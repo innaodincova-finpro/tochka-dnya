@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4E7A9E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Точка дня">
+<title>Точка дня</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%234E7A9E'/%3E%3Ctext x='90' y='78' font-family='Georgia,serif' font-size='30' fill='%23fff' text-anchor='middle'%3E%D0%A2%D0%9E%D0%A7%D0%9A%D0%90%3C/text%3E%3Ctext x='90' y='118' font-family='Georgia,serif' font-size='30' fill='%23fff' text-anchor='middle'%3E%D0%94%D0%9D%D0%AF%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234E7A9E'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%23B08347'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+
+:root{
+  --ground:#F4F7FA;
+  --card:#FFFFFF;
+  --ink:#22303F;
+  --mut:#6B7F92;
+  --line:#DCE6EE;
+  --navy:#28425C;
+  --head:#4E7A9E;
+  --accent:#2F6091;
+  --ok:#4B7F62;
+  --ochre:#B08347;
+  --stop:#A85147;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{
+  margin:0;background:var(--ground);color:var(--ink);
+  font-family:'Golos Text',system-ui,-apple-system,sans-serif;line-height:1.45;
+  display:flex;flex-direction:column;align-items:center;padding:26px 14px 56px;
+}
+.intro{max-width:600px;width:100%;text-align:center;margin-bottom:20px}
+.intro .eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:6px}
+.intro h1{font-family:'Spectral',Georgia,serif;font-weight:600;font-size:clamp(22px,5vw,30px);margin:0 0 8px}
+.intro p{margin:0;color:var(--mut);font-size:14px}
+.num{font-family:'IBM Plex Mono',monospace;font-weight:500}
+
+/* телефон */
+.phone{
+  width:390px;max-width:100%;height:800px;background:var(--ground);
+  border-radius:34px;border:1px solid var(--line);overflow:hidden;
+  box-shadow:0 26px 60px -26px rgba(40,66,92,.5);position:relative;display:flex;flex-direction:column
+}
+.status{height:24px;flex:0 0 24px;background:var(--head);color:rgba(255,255,255,.75);font-size:10px;display:flex;align-items:center;justify-content:space-between;padding:0 18px}
+.appbar{background:var(--head);color:#fff;padding:6px 18px 14px;display:flex;align-items:flex-end;justify-content:space-between}
+.appbar h2{font-family:'Spectral',serif;font-size:18px;margin:0;font-weight:600}
+.appbar .sub{font-size:11px;color:rgba(255,255,255,.75);margin-top:2px}
+.appbar .saved{font-size:10px;color:rgba(255,255,255,.75)}
+.screen{flex:1;overflow-y:auto;padding:14px 16px 150px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
+.screen[hidden]{display:none}
+
+.tip{background:#E8F0F7;border:1px solid #CBDDEB;border-radius:12px;padding:9px 12px;font-size:12px;color:var(--accent);margin-bottom:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.card.now{border-color:var(--accent);border-width:2px}
+.card.navy{background:var(--navy);color:#fff;border-color:var(--navy)}
+.card.navy .lab,.card.navy .mut{color:rgba(255,255,255,.65)}
+.lab{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);font-weight:600;margin-bottom:8px}
+.mut{color:var(--mut);font-size:12px}
+.big{font-family:'IBM Plex Mono',monospace;font-size:27px;font-weight:500;letter-spacing:-.02em}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.grid2 .card{margin:0}
+
+/* линия дня */
+.dayline{position:relative;padding-left:22px}
+.spine{position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl{position:relative;padding:0 0 16px}
+.tl-dot{position:absolute;left:-21px;top:4px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--line)}
+.tl.done .tl-dot{background:var(--ok);border-color:var(--ok)}
+.tl.next .tl-dot{background:var(--accent);border-color:var(--accent)}
+.tl-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mut)}
+.tl-what{font-size:14px;font-weight:500}
+.tl-sum{font-family:'IBM Plex Mono',monospace;font-size:13px}
+.now-mark{display:inline-block;background:var(--ochre);color:#fff;font-size:9px;letter-spacing:.14em;padding:2px 8px;border-radius:99px;font-weight:600;margin-bottom:6px}
+
+.stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.stat:last-child{border:0;padding-bottom:0}
+.stat b{font-family:'IBM Plex Mono',monospace;font-weight:500}
+
+.item{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.ic{width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:#EDF3F8;display:flex;align-items:center;justify-content:center;font-size:15px}
+.item .txt{flex:1;min-width:0}
+.item .txt b{display:block;font-weight:500;font-size:14px}
+.item .txt small{color:var(--mut);font-size:11px}
+.sum{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;white-space:nowrap}
+.sum.in{color:var(--ok)}
+
+.bar{height:7px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:7px}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.seg{display:flex;height:9px;border-radius:99px;overflow:hidden;margin:10px 0}
+.seg>i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:9px;font-size:11px;color:var(--mut)}
+.legend span{display:flex;align-items:center;gap:5px}
+.dot{width:8px;height:8px;border-radius:2px}
+
+.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:99px;background:#EDF3F8;font-size:12px;color:var(--accent);font-weight:500}
+.chip.ok{background:#E7F1EA;color:var(--ok)}
+.chip.warn{background:#F6EEE1;color:var(--ochre)}
+
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:12px;font-family:'Golos Text',sans-serif;font-size:14px;font-weight:500;cursor:pointer;background:var(--accent);color:#fff}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.ok{background:var(--ok)}
+
+.switch{display:flex;background:#E6EDF3;border-radius:12px;padding:3px;margin-bottom:12px}
+.switch button{flex:1;border:0;background:transparent;padding:9px;border-radius:10px;cursor:pointer;font-family:'Golos Text',sans-serif;font-size:13px;font-weight:500;color:var(--mut)}
+.switch button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 5px rgba(40,66,92,.12)}
+
+/* календарь */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal .dw{font-size:10px;color:var(--mut);padding-bottom:4px}
+.cal .d{aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;background:#fff;border:1px solid var(--line);position:relative}
+.cal .d.out{color:#C4D1DC;background:transparent;border-color:transparent}
+.cal .d.today{background:var(--navy);color:#fff;border-color:var(--navy)}
+.cal .d .mk{position:absolute;bottom:5px;display:flex;gap:2px}
+.cal .d .mk i{width:4px;height:4px;border-radius:50%}
+
+.daycard{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}
+.tarot{width:76px;flex:0 0 76px}
+.tarot svg,.tarot img.art{width:100%;height:auto;display:block;border-radius:6px}
+.tarot .artbox{border-radius:6px;overflow:hidden;box-shadow:0 3px 10px -4px rgba(40,66,92,.5)}
+.cmp{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.cmp:last-of-type{border-bottom:0}
+.cmp span{flex:1}
+.cmp b{font-family:'IBM Plex Mono',monospace;font-weight:500}
+.cmp em{font-style:normal;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mut);min-width:82px;text-align:right}
+.cmp em.down{color:var(--ok)}
+.cmp em.up{color:var(--ochre)}
+.textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font-family:'Golos Text',sans-serif;font-size:13px;resize:none;background:#FBFDFE}
+
+/* строка ввода */
+.dock{position:absolute;left:14px;right:14px;bottom:74px;background:var(--navy);border-radius:16px;padding:8px;display:flex;align-items:center;gap:7px;box-shadow:0 12px 26px -12px rgba(40,66,92,.7)}
+.dock .hint{flex:1;color:rgba(255,255,255,.6);font-size:12px;padding-left:6px}
+.dock button{width:38px;height:38px;border:0;border-radius:11px;cursor:pointer;background:rgba(255,255,255,.12);color:#fff;font-size:15px}
+.dock button.main{background:var(--ochre);width:42px;height:42px;font-size:17px}
+
+.tabs{position:absolute;left:0;right:0;bottom:0;height:66px;background:rgba(255,255,255,.96);border-top:1px solid var(--line);display:flex;align-items:center;padding:0 4px}
+.tabs button{flex:1;border:0;background:transparent;cursor:pointer;padding:5px 0;font-family:'Golos Text',sans-serif;font-size:10px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabs button i{font-style:normal;font-size:16px;opacity:.5}
+.tabs button[aria-selected="true"]{color:var(--accent);font-weight:600}
+.tabs button[aria-selected="true"] i{opacity:1}
+
+.sheet{position:absolute;inset:0;background:rgba(34,48,63,.45);display:none;align-items:flex-end;z-index:20}
+.sheet.open{display:flex}
+.sheet-in{background:#fff;width:100%;border-radius:20px 20px 0 0;padding:18px 16px 22px;animation:up .26s ease}
+@keyframes up{from{transform:translateY(50px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet-in{animation:none}}
+.sheet h3{font-family:'Spectral',serif;font-size:16px;margin:0 0 4px;font-weight:600}
+.parse{background:#F4F8FB;border:1px solid var(--line);border-radius:12px;padding:12px;margin:12px 0}
+.parse .to{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0}
+.parse .to em{font-style:normal;color:var(--mut);font-size:11px;margin-left:auto}
+.note{max-width:600px;width:100%;margin-top:22px;font-size:13px;color:var(--mut);text-align:center}
+
+/* ---- рабочая версия: формы, поля, всплывающие сообщения ---- */
+body{padding:0;background:var(--ground);display:block}
+.phone{width:100%;max-width:520px;height:auto;min-height:100vh;margin:0 auto;border:0;border-radius:0;box-shadow:none;background:var(--ground)}
+.status{display:none}
+.appbar{position:sticky;top:0;z-index:5;padding-top:calc(10px + env(safe-area-inset-top))}
+.screen{padding-bottom:170px}
+.dock{position:fixed;left:50%;transform:translateX(-50%);width:min(492px,calc(100% - 28px));bottom:calc(78px + env(safe-area-inset-bottom))}
+.tabs{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:520px;height:calc(66px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom)}
+.sheet{position:fixed}
+.sheet-in{max-width:520px;margin:0 auto;max-height:88vh;overflow-y:auto;padding-bottom:calc(22px + env(safe-area-inset-bottom))}
+.fld{margin-bottom:10px}
+.fld label{display:block;font-size:11px;color:var(--mut);margin-bottom:4px;font-weight:500}
+.fld input,.fld select,.fld textarea{
+  width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;
+  font-family:'Golos Text',sans-serif;font-size:15px;background:#FBFDFE;color:var(--ink)
+}
+.fld textarea{resize:vertical;min-height:78px}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
+.pick{display:flex;flex-wrap:wrap;gap:6px}
+.pick button{
+  border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 12px;cursor:pointer;
+  font-family:'Golos Text',sans-serif;font-size:13px;color:var(--ink)
+}
+.pick button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:150px;z-index:60;display:flex;flex-direction:column;gap:6px;width:min(480px,92%)}
+.toast{background:var(--navy);color:#fff;border-radius:12px;padding:11px 14px;font-size:13px;box-shadow:0 10px 24px -12px rgba(40,66,92,.8)}
+.empty{color:var(--mut);font-size:13px;padding:8px 0}
+.del{border:0;background:transparent;color:var(--stop);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif}
+.withmic{display:flex;gap:7px;align-items:stretch}
+.withmic input,.withmic textarea{flex:1}
+.mic{flex:0 0 46px;border:1px solid var(--line);background:#fff;border-radius:11px;font-size:17px;cursor:pointer;color:var(--accent)}
+.mic[data-on="1"]{background:var(--ochre);border-color:var(--ochre);color:#fff}
+.camwrap{position:relative;margin:12px 0;border-radius:14px;overflow:hidden;background:var(--navy);aspect-ratio:4/3}
+.camwrap video{width:100%;height:100%;object-fit:cover;display:block}
+.camline{position:absolute;left:12%;right:12%;top:50%;height:2px;background:var(--ochre);box-shadow:0 0 10px var(--ochre)}
+.warnbar{background:#F6E7E4;border:1px solid #E4C3BD;color:var(--stop);border-radius:12px;padding:9px 12px;font-size:12px;margin-bottom:12px}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="status"><span>9:41</span><span></span></div>
+  <div class="appbar">
+    <div>
+      <h2>Точка дня</h2>
+      <div class="sub" id="today-date"></div>
+    </div>
+    <div class="saved" id="saved"></div>
+  </div>
+
+  <section class="screen" id="s-today"></section>
+  <section class="screen" id="s-cal" hidden></section>
+  <section class="screen" id="s-money" hidden></section>
+  <section class="screen" id="s-food" hidden></section>
+  <section class="screen" id="s-more" hidden></section>
+
+  <div class="dock">
+    <button title="Штрих-код продукта" onclick="openSheet('scan')">📷</button>
+    <button title="Чек" onclick="openSheet('check')">🧾</button>
+    <div class="hint" onclick="openSheet('voice')">Скажите или отсканируйте</div>
+    <button class="main" title="Голос" onclick="openSheet('voice')">🎙</button>
+  </div>
+
+  <nav class="tabs">
+    <button aria-selected="true" onclick="go(this,'s-today')"><i>◉</i>Сегодня</button>
+    <button aria-selected="false" onclick="go(this,'s-cal')"><i>▦</i>Календарь</button>
+    <button aria-selected="false" onclick="go(this,'s-money')"><i>₽</i>Деньги</button>
+    <button aria-selected="false" onclick="go(this,'s-food')"><i>🍽</i>Еда</button>
+    <button aria-selected="false" onclick="go(this,'s-more')"><i>≡</i>Ещё</button>
+  </nav>
+
+  <div class="sheet" id="sheet" onclick="if(event.target.id==='sheet')closeSheet()">
+    <div class="sheet-in" id="sheet-in"></div>
+  </div>
+  <div class="toasts" id="toasts"></div>
+</div>
+<script>
+/* ================= Точка дня — рабочая версия =================
+   Один файл. Данные хранятся в браузере телефона, никуда не отправляются.
+   Семья кабинетов: Точка решения / Точка речи / Точка ответа / Точка красоты.
+   ============================================================== */
+
+const KEY = 'tochka-dnya-v1';
+const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
+const SLOTS = [['b','Завтрак'],['l','Обед'],['s','Перекус'],['d','Ужин']];
+const PLACES = [['home','дома'],['take','с собой'],['cafe','кафе'],['deliv','доставка']];
+const MOODS = [['ok','Хорошо'],['flat','Ровно'],['tired','Устала'],['hard','Тяжело']];
+
+const CURR = [['RUB','₽','Рубль'],['AZN','₼','Манат'],['KZT','₸','Тенге']];
+function cur(){ return (CURR.find(c => c[0] === (S && S.settings && S.settings.cur)) || CURR[0]); }
+function sign(){ return cur()[1]; }
+
+let S = null, storageOk = true;
+
+function blank(){
+  return {
+    settings:{budget:60000, kcal:1800, foodMode:'simple', art:'web', water:8, cur:'RUB'},
+    exp:[], inc:[], ev:[], meals:[], day:{}, savedAt:null, backupAt:null
+  };
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    S = raw ? JSON.parse(raw) : blank();
+  }catch(e){ S = blank(); storageOk = false; }
+  const b = blank();
+  for (const k in b) if (S[k] === undefined) S[k] = b[k];
+  for (const k in b.settings) if (S.settings[k] === undefined) S.settings[k] = b.settings[k];
+}
+function save(){
+  S.savedAt = new Date().toISOString();
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+  catch(e){ storageOk = false; }
+  renderAll();
+}
+
+/* ---------- вспомогательное ---------- */
+function esc(t){ return String(t == null ? '' : t).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function iso(d){ const x = d || new Date(); return new Date(x.getTime() - x.getTimezoneOffset()*60000).toISOString().slice(0,10); }
+function today(){ return iso(new Date()); }
+function money(n){ return (Math.round(n) || 0).toLocaleString('ru-RU') + ' ' + sign(); }
+function num(n){ return (Math.round(n) || 0).toLocaleString('ru-RU'); }
+const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+const MONTHS_N = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const WDAYS = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
+function humanDate(s){ const d = new Date(s + 'T12:00'); return d.getDate() + ' ' + MONTHS[d.getMonth()]; }
+function monthOf(s){ return s.slice(0,7); }
+function prevMonth(m){
+  const [y,mm] = m.split('-').map(Number);
+  return mm === 1 ? (y-1) + '-12' : y + '-' + String(mm-1).padStart(2,'0');
+}
+function daysInMonth(m){ const [y,mm] = m.split('-').map(Number); return new Date(y, mm, 0).getDate(); }
+function plural(n,a,b,c){ n = Math.abs(n)%100; const d = n%10;
+  if (n>10 && n<20) return c; if (d>1 && d<5) return b; if (d===1) return a; return c; }
+
+function toast(t){
+  const host = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = t;
+  host.appendChild(el);
+  setTimeout(() => el.remove(), 3600);
+}
+
+/* ---------- расчёты ---------- */
+function expOf(m){ return S.exp.filter(e => monthOf(e.date) === m); }
+function incOf(m){ return S.inc.filter(e => monthOf(e.date) === m); }
+function sum(a){ return a.reduce((s,x) => s + (+x.sum || 0), 0); }
+function spentMonth(m){ return sum(expOf(m)); }
+function byCat(m){
+  const r = {};
+  expOf(m).forEach(e => { r[e.cat] = (r[e.cat] || 0) + (+e.sum || 0); });
+  return Object.entries(r).sort((a,b) => b[1] - a[1]);
+}
+function freeLeft(){
+  const m = monthOf(today());
+  return S.settings.budget - spentMonth(m);
+}
+function daysLeft(){
+  const t = new Date(), n = daysInMonth(monthOf(today()));
+  return Math.max(1, n - t.getDate() + 1);
+}
+function mealsOf(d){ return S.meals.filter(x => x.date === d); }
+function kcalOf(d){ return mealsOf(d).reduce((s,x) => s + (+x.kcal || 0), 0); }
+function evOf(d){ return S.ev.filter(x => x.date === d).sort((a,b) => (a.time||'').localeCompare(b.time||'')); }
+function dayRec(d){ if (!S.day[d]) S.day[d] = {}; return S.day[d]; }
+function nextEvent(){
+  const now = new Date(), hm = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  const t = evOf(today()).find(e => (e.time || '99:99') >= hm);
+  if (t) return {e:t, when:'сегодня'};
+  const future = S.ev.filter(e => e.date > today()).sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time))[0];
+  return future ? {e:future, when:humanDate(future.date)} : null;
+}
+function todo(){
+  const out = [];
+  const d = today();
+  if (!mealsOf(d).some(m => m.slot === 'd')) out.push(['🍽','Ужин не записан','Внести голосом или вручную',"openSheet('meal')"]);
+  const noSum = S.ev.filter(e => e.date >= d && e.plan && !e.done).slice(0,2);
+  noSum.forEach(e => out.push(['📅', e.title + ' — ' + money(e.plan), 'Запланированный расход, ещё не потрачен', null]));
+  const last = S.backupAt ? (Date.now() - new Date(S.backupAt).getTime()) / 86400000 : 99;
+  if (last > 7) out.push(['💾','Резервная копия не делалась','Отправьте копию себе, чтобы не потерять данные',"openSheet('backup')"]);
+  return out;
+}
+
+/* ---------- добавление записей ---------- */
+function addExp(o){ S.exp.push(Object.assign({id:uid(), date:today(), src:'вручную'}, o)); save(); }
+function addInc(o){ S.inc.push(Object.assign({id:uid(), date:today(), src:'вручную'}, o)); save(); }
+function addEv(o){ S.ev.push(Object.assign({id:uid(), date:today()}, o)); save(); }
+function addMeal(o){ S.meals.push(Object.assign({id:uid(), date:today()}, o)); save(); }
+function drop(list, id){
+  S[list] = S[list].filter(x => x.id !== id);
+  save(); toast('Запись удалена');
+}
+
+/* ---------- разбор надиктованного ---------- */
+const WORDNUM = {'ноль':0,'один':1,'одну':1,'два':2,'две':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,'девять':9,'десять':10,
+ 'одиннадцать':11,'двенадцать':12,'тринадцать':13,'четырнадцать':14,'пятнадцать':15,'шестнадцать':16,'семнадцать':17,'восемнадцать':18,'девятнадцать':19,
+ 'двадцать':20,'тридцать':30,'сорок':40,'пятьдесят':50,'шестьдесят':60,'семьдесят':70,'восемьдесят':80,'девяносто':90,
+ 'сто':100,'двести':200,'триста':300,'четыреста':400,'пятьсот':500,'шестьсот':600,'семьсот':700,'восемьсот':800,'девятьсот':900,
+ 'тысяча':1000,'тысячи':1000,'тысяч':1000,'полторы':1500};
+const CAT_WORDS = {
+ 'Продукты':['продукт','магазин','пятёроч','пятероч','перекрёст','перекрест','лента','ашан','еда домой','овощ','молок','хлеб'],
+ 'Кафе':['кафе','кофе','ресторан','обед','ланч','бар','пиццери','кофейн'],
+ 'Доставка':['доставк','яндекс еда','самокат','купер','деливер'],
+ 'Дом':['дом','квартир','коммунал','жкх','интернет','аренд','ремонт','мебел'],
+ 'Красота':['маникюр','педикюр','космет','салон','парикмахер','брови','ресниц','массаж','уход'],
+ 'Транспорт':['такси','метро','бензин','проезд','автобус','каршер','парков'],
+ 'Здоровье':['аптек','врач','анализ','лекарств','стоматолог','витамин'],
+ 'Одежда':['одежд','обув','плать','джинс','куртк','бель'],
+ 'Дети':['ребён','ребен','детск','школ','сад','игрушк','кружок'],
+};
+const MEAL_WORDS = {b:['завтрак','утром'], l:['обед'], s:['перекус','полдник'], d:['ужин','вечером']};
+const PLACE_WORDS = {cafe:['кафе','ресторан','кофейн','столов'], deliv:['доставк','заказал','заказала'], take:['с собой','на работ'], home:['дома','приготовил']};
+const WDAY_WORDS = {'понедельник':1,'вторник':2,'сред':3,'четверг':4,'пятниц':5,'суббот':6,'воскресен':0};
+
+function parseSum(text){
+  const digits = text.match(/(\d[\d\s]{0,8})\s*(?:р|₽|руб|тыс)?/i);
+  if (digits){
+    let v = +digits[1].replace(/\s/g,'');
+    if (/тыс/i.test(text) && v < 100) v *= 1000;
+    if (v > 0) return v;
+  }
+  const keys = Object.keys(WORDNUM).sort((a,b) => b.length - a.length);
+  let total = 0, part = 0, seen = false;
+  text.toLowerCase().split(/[\s,]+/).forEach(w => {
+    for (const k of keys){
+      if (!w.startsWith(k)) continue;
+      const v = WORDNUM[k];
+      seen = true;
+      if (v === 1000){ total += (part >= 1000 ? part / 1000 : (part || 1)) * 1000; part = 0; }
+      else part += v;
+      break;
+    }
+  });
+  return seen ? total + part : null;
+}
+function parseTime(text){
+  const t = text.match(/(\d{1,2})[:.](\d{2})/);
+  if (t) return String(+t[1]).padStart(2,'0') + ':' + t[2];
+  const h = text.match(/в\s+(\d{1,2})\s*(?:час|ч)?/i);
+  if (h && +h[1] <= 23) return String(+h[1]).padStart(2,'0') + ':00';
+  const words = {'шесть':18,'семь':19,'восемь':20,'девять':9,'десять':10,'одиннадцать':11,'двенадцать':12,'час':13,'два':14,'три':15,'четыре':16,'пять':17};
+  for (const w in words) if (new RegExp('в\\s+' + w).test(text.toLowerCase())) return String(words[w]).padStart(2,'0') + ':00';
+  return null;
+}
+function parseDate(text){
+  const low = text.toLowerCase();
+  if (/послезавтра/.test(low)) return iso(new Date(Date.now() + 2*86400000));
+  if (/завтра/.test(low)) return iso(new Date(Date.now() + 86400000));
+  for (const w in WDAY_WORDS){
+    if (low.includes(w)){
+      const want = WDAY_WORDS[w], d = new Date();
+      let add = (want - d.getDay() + 7) % 7;
+      if (add === 0) add = 7;
+      return iso(new Date(Date.now() + add*86400000));
+    }
+  }
+  return today();
+}
+function pickCat(text){
+  const low = text.toLowerCase();
+  for (const c in CAT_WORDS) if (CAT_WORDS[c].some(w => low.includes(w))) return c;
+  return 'Прочее';
+}
+function pickSlot(text){
+  const low = text.toLowerCase();
+  for (const s in MEAL_WORDS) if (MEAL_WORDS[s].some(w => low.includes(w))) return s;
+  const h = new Date().getHours();
+  return h < 11 ? 'b' : h < 16 ? 'l' : h < 19 ? 's' : 'd';
+}
+function pickPlace(text){
+  const low = text.toLowerCase();
+  for (const p in PLACE_WORDS) if (PLACE_WORDS[p].some(w => low.includes(w))) return p;
+  return 'home';
+}
+/* фраза делится по запятым и союзам: каждая часть разбирается отдельно */
+function parseSpeech(text){
+  const out = {exp:[], inc:[], meals:[], ev:[], rest:[]};
+  String(text).split(/[,;.]| и потом | а также /i).map(s => s.trim()).filter(Boolean).forEach(part => {
+    const low = part.toLowerCase();
+    const money = parseSum(part);
+    const isIncome = /получил|зарплат|аванс|перевели|пришл[аои] деньги|заработал|кэшбэк|premi|прем/i.test(low);
+    const isMeal = /съел|ела |поел|завтрак|обед|ужин|перекус|выпил|позавтрак|поужин|пообед/i.test(low);
+    const isEvent = /встреч|созвон|запис|маникюр|педикюр|врач|зал|тренир|поезд|отпуск|день рожд|напомн|позвонить/i.test(low)
+                    && (parseTime(part) || /завтра|послезавтра|понедельник|вторник|сред|четверг|пятниц|суббот|воскресен/i.test(low));
+    if (isMeal){
+      const kcal = (part.match(/(\d{2,4})\s*(?:ккал|калор)/i) || [])[1];
+      out.meals.push({slot:pickSlot(part), title:clean(part), place:pickPlace(part), kcal:kcal ? +kcal : null});
+      if (money && /кафе|кофейн|ресторан|доставк/i.test(low))
+        out.exp.push({cat:pickCat(part), title:clean(part), sum:money, src:'голосом'});
+      return;
+    }
+    if (isEvent){
+      out.ev.push({date:parseDate(part), time:parseTime(part), title:clean(part), plan:money || null});
+      return;
+    }
+    if (money && isIncome){ out.inc.push({title:clean(part), sum:money, src:'голосом'}); return; }
+    if (money){ out.exp.push({cat:pickCat(part), title:clean(part), sum:money, src:'голосом'}); return; }
+    out.rest.push(part);
+  });
+  return out;
+}
+function clean(t){
+  let s = ' ' + String(t).trim() + ' ';
+  s = s.replace(/\s(потратила|потратил|заплатила|заплатил|купила|купил|съела|съел|поела|поел|позавтракала|пообедала|поужинала|записалась|записался|получила|получил|пришло|перевели)\s/gi,' ');
+  s = s.replace(/\s(в|на|за|во)\s+(понедельник|вторник|среду|четверг|пятницу|субботу|воскресенье|завтра|послезавтра)\s/gi,' ');
+  s = s.replace(/\s(завтра|послезавтра|сегодня|утром|днём|днем|вечером)\s/gi,' ');
+  s = s.replace(/\sв\s+\d{1,2}([:.]\d{2})?\s/gi,' ');
+  s = s.replace(/\sв\s+(час|два|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать)(\s+часов?|\s+утра|\s+вечера)?\s/gi,' ');
+  s = s.replace(/\s\d[\d\s]*\s*(р|₽|руб\w*|рублей|тысяч\w*)?\s/gi,' ');
+  s = s.replace(/\s(ноль|один|одну|два|две|три|четыре|пять|шесть|семь|восемь|девять|десять|сто|двести|триста|четыреста|пятьсот|шестьсот|семьсот|восемьсот|девятьсот|тысяч\w*|полторы)\s/gi,' ');
+  s = s.replace(/\s(на|за|про)\s+$/i,' ').replace(/\s{2,}/g,' ').trim();
+  s = s.replace(/^(на|за|про|в)\s+/i,'');
+  if (!s) s = String(t).trim();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+
+/* ===== Карта дня: колода, рисунки и значения перенесены из «Точки ответа» ===== */
+const MAJORS = [
+{i:0, n:'Шут', as:'Уран', k:'начало, свобода, риск, доверие пути',
+ u:'Чистый старт без гарантий. Шаг в неизвестность, спонтанность, готовность довериться жизни. Опыта нет — есть желание.',
+ r:'Безрассудство или, наоборот, страх сделать первый шаг. Инфантильность, риск ради риска, бегство от ответственности.'},
+{i:1, n:'Маг', as:'Меркурий', k:'воля, ресурс, мастерство, старт дела',
+ u:'У человека есть всё нужное, чтобы начать: умение, слово, связи. Время действовать и влиять на ситуацию.',
+ r:'Манипуляция, обещания без дела, силы распылены на десять начинаний сразу.'},
+{i:2, n:'Верховная Жрица', as:'Луна', k:'интуиция, тайна, пауза, скрытое знание',
+ u:'Информация есть, но не вся на поверхности. Время наблюдать, слушать себя и не торопить события.',
+ r:'Самообман, игнорирование внутреннего голоса, чужие секреты давят или тайное вот-вот вскроется.'},
+{i:3, n:'Императрица', as:'Венера', k:'изобилие, забота, рост, женская сила',
+ u:'Плодородный период: достаток, творчество, беременность, уют, забота, которая даёт расти.',
+ r:'Гиперопека, застой, истощение от бесконечной отдачи, зависимость от комфорта.'},
+{i:4, n:'Император', as:'Овен', k:'порядок, структура, власть, опора',
+ u:'Правила, ответственность, надёжная фигура рядом (отец, руководитель). Ситуация требует системы, а не порыва.',
+ r:'Жёсткость и контроль или, наоборот, безвластие; конфликт с авторитетом, отсутствие опоры.'},
+{i:5, n:'Иерофант', as:'Телец', k:'традиция, наставник, официальность',
+ u:'Обучение, наставник, институт, брак, следование проверенным правилам. Опора на опыт старших.',
+ r:'Догма и формальность ради формальности; человек ищет свой путь вопреки традиции.'},
+{i:6, n:'Влюблённые', as:'Близнецы', k:'выбор, союз, ценности',
+ u:'Значимый выбор, который делается сердцем. Притяжение, союз на общих ценностях.',
+ r:'Сомнения, невозможность выбрать, отношения не по любви, ценности разошлись.'},
+{i:7, n:'Колесница', as:'Рак', k:'движение, воля, победа, поездка',
+ u:'Продвижение вперёд собственным усилием. Ситуация взята под контроль, дорога, переезд, результат за счёт воли.',
+ r:'Буксование, усилия тянут в разные стороны, напор без результата, авария планов.'},
+{i:8, n:'Сила', as:'Лев', k:'внутренняя мощь, мягкость, терпение',
+ u:'Спокойная уверенность сильнее давления. Умение обходиться с собственными страстями и с чужой агрессией без насилия.',
+ r:'Неуверенность и срывы или попытка продавить силой. Страх, спрятанный за резкостью.'},
+{i:9, n:'Отшельник', as:'Дева', k:'уединение, поиск смысла, наставник',
+ u:'Пауза и работа с собой. Честность наедине с собой, опытный наставник, свет собственного фонаря.',
+ r:'Изоляция, отказ от помощи, отступление, которое затянулось в бегство от жизни.'},
+{i:10, n:'Колесо Фортуны', as:'Юпитер', k:'поворот, судьба, цикл, шанс',
+ u:'Закономерный виток: перемены к лучшему, шанс, встреча, которая меняет расклад сил.',
+ r:'Полоса невезения, сопротивление переменам, повторение одного и того же круга.'},
+{i:11, n:'Справедливость', as:'Весы', k:'закон, баланс, ответственность, документы',
+ u:'Честный итог по фактам: суд, договор, документы, воздаяние по заслугам. Решение принимается разумом.',
+ r:'Предвзятость, уход от ответственности, затянувшееся разбирательство, нечестная сделка.'},
+{i:12, n:'Повешенный', as:'Нептун', k:'пауза, другой взгляд, жертва',
+ u:'Вынужденная остановка. Ситуацию не сдвинуть силой — меняется угол зрения. Отказ от малого ради большего.',
+ r:'Бессмысленные жертвы, застревание, поза жертвы, ожидание вместо решения.'},
+{i:13, n:'Смерть', as:'Скорпион', k:'завершение, трансформация, освобождение',
+ u:'Конец этапа, необратимая перемена. То, что уходит, освобождает место новому.',
+ r:'Цепляние за прошлое, затянувшееся расставание, страх перемен держит на месте.'},
+{i:14, n:'Умеренность', as:'Стрелец', k:'мера, соединение, восстановление',
+ u:'Баланс и постепенность: компромисс, лечение, соединение несоединимого, спокойный ритм.',
+ r:'Перекос, спешка, несовместимость, срыв режима и переизбыток во всём.'},
+{i:15, n:'Дьявол', as:'Козерог', k:'зависимость, соблазн, теневая выгода',
+ u:'Сильное притяжение с ценой: страсть, зависимость, договор, где выгода очевидна, а плата скрыта. Деньги как власть.',
+ r:'Осознание зависимости и разрыв цепей — или полное отрицание проблемы.'},
+{i:16, n:'Башня', as:'Марс', k:'крах, внезапность, правда',
+ u:'Внезапно рушится то, что стояло на ложном основании. Шок, но и освобождение: дальше строить придётся заново и честно.',
+ r:'Оттянутый кризис, страх катастрофы, разрушение изнутри без внешнего повода.'},
+{i:17, n:'Звезда', as:'Водолей', k:'надежда, ориентир, исцеление',
+ u:'Спокойная надежда после трудного периода: вдохновение, восстановление, помощь приходит вовремя.',
+ r:'Уныние, потеря веры в себя, завышенные ожидания вместо действий.'},
+{i:18, n:'Луна', as:'Рыбы', k:'неясность, тревога, иллюзия, сны',
+ u:'Картина неполная: скрытые мотивы, тревожность, сильные сны и интуиция. Решать рано — многое не видно.',
+ r:'Туман рассеивается и правда проясняется — или человек уходит в обман с головой.'},
+{i:19, n:'Солнце', as:'Солнце', k:'ясность, радость, успех, дети',
+ u:'Открытый успех: признание, здоровье, дети, тепло. Всё на виду и в порядке.',
+ r:'Временное затмение, тщеславие, радость откладывается, успех меньше ожидаемого.'},
+{i:20, n:'Суд', as:'Плутон', k:'итог, пробуждение, второй шанс',
+ u:'Подведение итогов и важная новость. Прошлое переоценивается, появляется второй шанс — и его нужно услышать.',
+ r:'Решение откладывается, глухота к очевидному, самоедство вместо выводов.'},
+{i:21, n:'Мир', as:'Сатурн', k:'завершение, целостность, признание',
+ u:'Цикл закрыт удачно: результат, поездка, признание, ощущение «я на своём месте».',
+ r:'Финиш откладывается, дело недоделано, выход за привычные границы даётся тяжело.'}
+];
+
+/* ---------- Младшие арканы ---------- */
+const SUITS = [
+ {id:'w', n:'Жезлы',   g:'Жезлов',    el:'Огонь',  t:'дело, энергия, воля, движение'},
+ {id:'c', n:'Кубки',   g:'Кубков',    el:'Вода',   t:'чувства, отношения, внутреннее'},
+ {id:'s', n:'Мечи',    g:'Мечей',     el:'Воздух', t:'мысли, слова, конфликты, ясность'},
+ {id:'p', n:'Пентакли',g:'Пентаклей', el:'Земля',  t:'деньги, работа, тело, быт'}
+];
+const RANKS = ['Туз','Двойка','Тройка','Четвёрка','Пятёрка','Шестёрка','Семёрка','Восьмёрка','Девятка','Десятка','Паж','Рыцарь','Королева','Король'];
+
+const MINOR = {
+w:[
+{k:'старт, импульс, идея', u:'Новое дело или предложение, которое хочется взять. Вспышка энергии, желание действовать.', r:'Запал угас, старт откладывается, идея пока без опоры.'},
+{k:'план, выбор направления', u:'План составлен, горизонт шире, чем казалось. Выбор между своим делом и надёжным вариантом.', r:'Страх выйти за привычное, планы остаются на бумаге.'},
+{k:'первые результаты, ожидание', u:'Дело запущено, вложения сделаны, ждём отдачи. Расширение, партнёры и связи издалека.', r:'Задержки, ожидания не оправдались, слишком узкий горизонт планирования.'},
+{k:'праздник, дом, стабильность', u:'Радостный итог этапа: свадьба, новоселье, надёжная опора и своё место.', r:'Праздник без радости, стабильность шатается, дом требует вложений и ремонта отношений.'},
+{k:'соперничество, суета', u:'Столкновение интересов, спор, много активности без порядка. Каждый тянет в свою сторону.', r:'Конфликт улажен или загнан внутрь; силы потрачены на пустую борьбу.'},
+{k:'победа, признание', u:'Успех замечен другими: хорошие новости, заслуженное первое место, поддержка команды.', r:'Победа без признания, самоуверенность, триумф откладывается.'},
+{k:'оборона, отстаивание своего', u:'Нужно держать позицию. Правда за вами, но её придётся доказывать — и это по силам.', r:'Сдача позиций, усталость от борьбы, уступка под давлением.'},
+{k:'скорость, новости, дорога', u:'События ускоряются: сообщения, поездка, быстрый результат. Всё складывается на лету.', r:'Заминка, поспешность, важное сообщение не дошло или понято не так.'},
+{k:'настороженность, последний рубеж', u:'Усталость есть, но силы остались. Прошлый опыт заставляет держать оборону и не верить сразу.', r:'Подозрительность на пустом месте или полное истощение — пора отпустить.'},
+{k:'перегруз, ответственность', u:'Взято слишком много. Груз почти донесён, но давит и не даёт разогнуться.', r:'Сброс лишнего и делегирование — или надрыв, если тянуть дальше.'},
+{k:'ученик, новость, энтузиазм', u:'Молодая энергия, известие о деле, готовность учиться и пробовать.', r:'Разбросанность, пустая болтовня, обещания без опыта за спиной.'},
+{k:'рывок, переезд, страсть', u:'Человек действия: быстрый напор, смена места, дело берётся штурмом.', r:'Спешка без плана, вспыльчивость, начатое брошено на полпути.'},
+{k:'харизма, тепло, уверенность', u:'Яркая женщина, которая держит и дело, и людей. Притягательность, лидерство без давления.', r:'Ревность, требовательность, растрата себя на публику и внешнее.'},
+{k:'лидер, предприниматель', u:'Зрелый руководитель: стратегия, воля, покровительство. Умеет вести за собой.', r:'Деспотизм, нетерпимость к чужому мнению, амбиции без результата.'}
+],
+c:[
+{k:'новое чувство, открытость', u:'Зарождение отношений, тепло, предложение от сердца, вдохновение.', r:'Чувства не проявлены, эмоциональная закрытость, ожидание обмануто.'},
+{k:'взаимность, союз двоих', u:'Встреча и взаимное притяжение. Партнёрство на равных, примирение, договор по любви.', r:'Разлад, неравный обмен чувствами, связь рвётся.'},
+{k:'радость, круг близких', u:'Праздник, дружба, поддержка, хорошая новость в кругу своих.', r:'Третий лишний, пресыщение весельем, дружба только на поверхности.'},
+{k:'скука, «всё не то»', u:'Апатия и отказ от предложенного. Хорошее рядом, но человек его не видит.', r:'Выход из апатии, предложение принято, интерес к жизни возвращается.'},
+{k:'потеря, сожаление', u:'Горевание о том, что не сложилось. Часть ресурса цела, но взгляд прикован к потерянному.', r:'Принятие и прощение, разворот к тому, что осталось.'},
+{k:'прошлое, ностальгия, доброта', u:'Воспоминания, встреча с человеком из прошлого, бескорыстный подарок, тема детства.', r:'Застревание в прошлом — или прошлое наконец отпущено.'},
+{k:'иллюзии, много вариантов', u:'Фантазии и соблазны, туман в голове. Мечты подменяют шаги, выбрать трудно.', r:'Ясность, отрезвление, выбор наконец сделан.'},
+{k:'уход, поиск глубины', u:'Человек оставляет то, что перестало наполнять, и уходит за смыслом — по-хорошему, без скандала.', r:'Уйти не решается, возвращается обратно, мечется между двумя берегами.'},
+{k:'исполнение желания, довольство', u:'То, чего хотели, сбывается. Удовольствие, сытость, приятный итог.', r:'Желание сбылось не так, как мечталось, или радость только для себя одного.'},
+{k:'счастье в семье, полнота', u:'Гармония дома, признанные чувства, тёплый и прочный итог отношений.', r:'Красивая картинка снаружи и холод внутри, ссоры близких.'},
+{k:'нежность, весть о чувствах', u:'Признание, романтичный человек рядом, творческое начало, весть о ребёнке.', r:'Обидчивость, инфантильность, слова без чувств за ними.'},
+{k:'предложение, романтик', u:'Ухаживание, приглашение, человек, у которого сердце впереди головы.', r:'Красивые слова без содержания, непостоянство, обман в чувствах.'},
+{k:'чуткость, забота, интуиция', u:'Женщина глубоких чувств: эмпатия, поддержка, сильная интуиция, умение принимать.', r:'Растворение в другом, копящиеся обиды, эмоциональные качели.'},
+{k:'зрелые чувства, самообладание', u:'Мужчина, который умеет чувствовать и не тонуть. Дипломат, наставник, покровитель.', r:'Холодность под маской доброты, скрытые манипуляции чувствами.'}
+],
+s:[
+{k:'ясность, правда, решение', u:'Истина названа: ясная мысль, прямой разговор, документ, решительное «да» или «нет».', r:'Путаница, жестокое слово, решение принято сгоряча.'},
+{k:'пат, отказ смотреть', u:'Выбор откладывается: глаза закрыты, чтобы не решать. Хрупкое перемирие, равновесие двух сил.', r:'Правда вскрылась, решение придётся принять — откладывать больше нечем.'},
+{k:'боль, разрыв, слова, которые ранят', u:'Ссора, измена, тяжёлый разговор, разлука. Правда сказана, и она болезненна.', r:'Боль отпускает, идёт прощение, но осадок ещё остаётся.'},
+{k:'пауза, восстановление', u:'Отдых после напряжения: тишина, больничный, отступить и набраться сил.', r:'Простой затянулся или, наоборот, отдых игнорируется до срыва.'},
+{k:'победа ценой отношений', u:'Конфликт, где выигрыш горький: уязвлённое самолюбие, нечестная игра, каждый при своём.', r:'Примирение или окончательный разрыв; признание собственной неправоты.'},
+{k:'переезд, выход из трудного', u:'Постепенное движение к спокойному месту: дорога, помощь проводника, худшее позади.', r:'Уехать не получается, прошлое тянет назад.'},
+{k:'хитрость, обход, недосказанность', u:'Кто-то действует не в открытую. Тактика в обход правил, риск обмана или утаивания.', r:'Обман раскрыт, возврат к честной игре, признание.'},
+{k:'ограничения, ловушка в голове', u:'Ощущение «нет выхода», связанные руки. Чаще внутренний запрет, чем реальные стены.', r:'Освобождение: выход найден, страх ослабевает.'},
+{k:'тревога, бессонница, вина', u:'Страхи и самонакрутка. Ночные мысли тяжелее реальности, чувство вины.', r:'Тревога отступает и худшее не сбывается — или отчаяние на пике.'},
+{k:'дно, финал болезненного', u:'Ситуация исчерпана до конца. Точка невозврата — и одновременно точка, после которой хуже не будет.', r:'Медленное восстановление и усвоенный урок — или возврат старой боли.'},
+{k:'наблюдение, новость, учёба', u:'Человек собирает информацию: любопытство, бдительность, известие, за которым следят.', r:'Сплетни, подглядывание, поспешные выводы из обрывков.'},
+{k:'натиск, прямота, скорость', u:'Решительный человек, разговор начистоту, стремительное развитие событий.', r:'Резкость и конфликт на ровном месте, действие без расчёта.'},
+{k:'ум, честность, границы', u:'Женщина ясного ума: независимая, говорит правду, за плечами опыт потерь.', r:'Холодность, сарказм, критика из обиды.'},
+{k:'закон, логика, авторитет', u:'Юрист, руководитель, решение по правилам. Разум важнее эмоций, слово весомо.', r:'Жёсткость, злоупотребление положением, придирки к мелочам.'}
+],
+p:[
+{k:'деньги, надёжное начало', u:'Предложение работы, вложение, стабильный старт, здоровое тело и крепкая основа.', r:'Упущенная выгода, деньги задерживаются, вложение ненадёжно.'},
+{k:'жонглирование, баланс', u:'Совмещение дел, гибкость, перераспределение денег и времени. Пока получается держать всё.', r:'Перегруз: что-то придётся отпустить. Кассовый разрыв, долги по кругу.'},
+{k:'мастерство, команда, заказ', u:'Признание работы, обучение делом, совместный проект, качественный труд.', r:'Халтура, труд недооценён, сорванные сроки.'},
+{k:'накопление, удержание', u:'Стабильность и сбережения: контроль расходов, нежелание менять то, что работает.', r:'Жадность и зажим — или, наоборот, деньги утекают сквозь пальцы.'},
+{k:'нехватка, чувство «мимо меня»', u:'Финансовая трудность и ощущение исключённости. Помощь рядом, но её не замечают.', r:'Выход из полосы нужды: помощь принята, работа найдена.'},
+{k:'помощь, обмен ресурсом', u:'Поддержка, зарплата, возвращённый долг. Отношения «даю — беру» становятся видны.', r:'Неравный обмен, помощь с условием, накопленные долги.'},
+{k:'оценка вложений, терпение', u:'Пауза, чтобы оценить, окупается ли вложенное. Рост требует времени.', r:'Вложения не оправдались, нетерпение, пора менять стратегию.'},
+{k:'труд, навык, рутина', u:'Кропотливая работа и обучение: стабильный доход маленькими шагами, растущее мастерство.', r:'Механическая рутина без роста или спешка в ущерб качеству.'},
+{k:'самодостаточность, достаток', u:'Заслуженный комфорт: своё дело, независимость, умение заботиться о себе.', r:'Достаток без радости, зависимость от чужих денег.'},
+{k:'семья, наследство, прочный итог', u:'Финансовая база, дом, поддержка рода, долгосрочная надёжность.', r:'Споры о деньгах в семье, груз обязательств, шаткое положение.'},
+{k:'ученик, практический шаг', u:'Учёба, первый заработок, конкретное дело, новость о деньгах.', r:'Откладывание, учёба без применения, мелкие потери.'},
+{k:'надёжность, медленное движение', u:'Человек слова: планомерный труд, не быстро, но до конца.', r:'Застой и скука, упрямство, топтание на месте.'},
+{k:'хозяйка, забота, ресурс', u:'Практичная женщина: уют и достаток, умеет и считать, и заботиться.', r:'Тревога о деньгах, гиперопека, работа съедает дом.'},
+{k:'достаток, опора, своё дело', u:'Состоявшийся человек: стабильный доход, инвестор, надёжная опора семье.', r:'Скупость, помешанность на деньгах, статус без содержания.'}
+]
+};
+
+const DECK = [];
+MAJORS.forEach(function(c){
+  DECK.push({id:'M'+String(c.i).padStart(2,'0'), n:c.n, k:c.k, u:c.u, major:true, num:c.i});
+});
+SUITS.forEach(function(s){
+  MINOR[s.id].forEach(function(c,idx){
+    DECK.push({id:s.id+String(idx+1).padStart(2,'0'), n:RANKS[idx]+' '+s.g, k:c.k, u:c.u,
+               major:false, suit:s.id, num:idx+1});
+  });
+});
+const CARD_BY_ID = {};
+DECK.forEach(function(c){ CARD_BY_ID[c.id] = c; });
+
+/* ================= Рисунок карты ================= */
+/* Карты рисуются кодом: рамка, номер аркана, эмблема или пипсы по масти.
+   Никаких внешних файлов — кабинет остаётся одним файлом и работает офлайн. */
+const SUIT_COLOR = {w:'#BE6E4A', c:'#3E6B8F', s:'#28425C', p:'#B08347'};
+const MAJ_LINE = '#A9793F', MAJ_INK = '#28425C';
+const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
+
+/* эмблемы старших арканов, нарисованные в квадрате -14…14 */
+const MAJ_ART = [
+/*0  Шут*/           '<path d="M-9 10 L7 -7"/><circle cx="9.5" cy="-9.5" r="3.4"/><path d="M-9 10 l-2 2"/>',
+/*1  Маг*/           '<circle cx="-4" cy="-6" r="3.6"/><circle cx="4" cy="-6" r="3.6"/><path d="M0 -1 V12"/>',
+/*2  Жрица*/         '<path d="M3 -9 A9.5 9.5 0 1 0 3 9 A7.5 7.5 0 1 1 3 -9 Z"/><path d="M-11 12 V-3"/><path d="M11 12 V-3"/>',
+/*3  Императрица*/   '<circle cx="0" cy="-4" r="6.5"/><path d="M0 2.5 V12"/><path d="M-4.5 8 H4.5"/>',
+/*4  Император*/     '<rect x="-8" y="-2" width="16" height="14" rx="2"/><path d="M-8 -2 V-9 L-3 -5 L0 -11 L3 -5 L8 -9 V-2"/>',
+/*5  Иерофант*/      '<path d="M0 -12 V12"/><path d="M-7 -6 H7"/><path d="M-5 0 H5"/><path d="M-3 6 H3"/>',
+/*6  Влюблённые*/    '<circle cx="-4" cy="0" r="7"/><circle cx="4" cy="0" r="7"/>',
+/*7  Колесница*/     '<circle cx="0" cy="4" r="7"/><path d="M0 -3 V11"/><path d="M-7 4 H7"/><path d="M-11 -6 Q0 -13 11 -6"/>',
+/*8  Сила*/          '<circle cx="-3.6" cy="-7" r="3"/><circle cx="3.6" cy="-7" r="3"/><path d="M-8 12 V0 A8 8 0 0 1 8 0 V12"/>',
+/*9  Отшельник*/     '<path d="M-5 -5 H5 L6.5 7 H-6.5 Z"/><path d="M0 -5 V-10"/><path d="M-3.5 -10 H3.5"/><circle cx="0" cy="1" r="2"/>',
+/*10 Колесо*/        '<circle cx="0" cy="0" r="10.5"/><circle cx="0" cy="0" r="3"/><path d="M0 -10.5 V10.5 M-10.5 0 H10.5 M-7.4 -7.4 L7.4 7.4 M-7.4 7.4 L7.4 -7.4"/>',
+/*11 Справедливость*/'<path d="M0 -11 V10"/><path d="M-10 -6 H10"/><path d="M-10 -6 L-12.5 1 H-7.5 Z"/><path d="M10 -6 L12.5 1 H7.5 Z"/><path d="M-6 10 H6"/>',
+/*12 Повешенный*/    '<path d="M-10 -11 H10"/><path d="M0 -11 V-5"/><circle cx="0" cy="-1" r="4"/><path d="M0 3 V8"/><path d="M0 8 L-5 12 M0 8 L5 12"/>',
+/*13 Смерть*/        '<path d="M-8 12 L5 -5"/><path d="M5 -5 A12 12 0 0 0 -8 -8"/>',
+/*14 Умеренность*/   '<path d="M-12 -5 H-4 L-5.6 2 H-10.4 Z"/><path d="M4 0 H12 L10.4 7 H5.6 Z"/><path d="M-7 2 C-3 7 2 6 6 0"/>',
+/*15 Дьявол*/        '<path d="M-10 -9 Q-6 -2 0 -2 Q6 -2 10 -9"/><circle cx="0" cy="4" r="3.6"/><circle cx="0" cy="11" r="3.6"/>',
+/*16 Башня*/         '<path d="M-7 12 V-4 L0 -10 L7 -4 V12 Z"/><path d="M2.5 -2 L-2.5 3.5 H2 L-2.5 9"/>',
+/*17 Звезда*/        '<path d="M0 -12.5 L3.2 -3.2 L12.5 0 L3.2 3.2 L0 12.5 L-3.2 3.2 L-12.5 0 L-3.2 -3.2 Z"/>',
+/*18 Луна*/          '<path d="M3 -9 A9.5 9.5 0 1 0 3 9 A7.5 7.5 0 1 1 3 -9 Z"/><circle cx="10" cy="-3" r="1.5"/><circle cx="8.5" cy="5" r="1.2"/>',
+/*19 Солнце*/        '<circle cx="0" cy="0" r="6"/><path d="M0 -13 V-9 M0 9 V13 M-13 0 H-9 M9 0 H13 M-9.2 -9.2 L-6.4 -6.4 M6.4 6.4 L9.2 9.2 M-9.2 9.2 L-6.4 6.4 M6.4 -6.4 L9.2 -9.2"/>',
+/*20 Суд*/           '<path d="M-12 -3 L3 -7 V7 L-12 3 Z"/><path d="M7 -8 A9 9 0 0 1 7 8"/><path d="M11 -11 A13 13 0 0 1 11 11"/>',
+/*21 Мир*/           '<ellipse cx="0" cy="0" rx="8" ry="11"/><path d="M-8 -6 Q-12.5 0 -8 6"/><path d="M8 -6 Q12.5 0 8 6"/>'
+];
+
+/* знаки мастей в квадрате -10…10 */
+function suitGlyph(suit){
+  if (suit === 'w') return '<path d="M0 -10 V10"/><path d="M-3.4 -6 Q0 -8.4 3.4 -6"/><path d="M-2.8 6.2 Q0 8.6 2.8 6.2"/>';
+  if (suit === 'c') return '<path d="M-5.6 -6 H5.6 C5.6 -0.6 3.2 2.4 0 2.4 C-3.2 2.4 -5.6 -0.6 -5.6 -6 Z"/><path d="M0 2.4 V6.4"/><path d="M-4 6.4 H4"/>';
+  if (suit === 's') return '<path d="M0 -10 V8"/><path d="M-4.6 -2.5 H4.6"/><path d="M-2.2 8 H2.2"/>';
+  return '<circle cx="0" cy="0" r="6.8"/><path d="M0 -4.6 L2.7 3.72 L-4.37 -1.42 H4.37 L-2.7 3.72 Z"/>';
+}
+/* короны придворных карт */
+const COURT_MARK = {
+  11:'<circle cx="-5" cy="0" r="1.6"/><circle cx="0" cy="0" r="1.6"/><circle cx="5" cy="0" r="1.6"/>',           /* Паж */
+  12:'<path d="M-8 4 L0 -5 L8 4"/>',                                                                             /* Рыцарь */
+  13:'<path d="M-9 4 V-2 A3 3 0 0 1 -3 -2 A3 3 0 0 1 3 -2 A3 3 0 0 1 9 -2 V4 Z"/>',                               /* Королева */
+  14:'<path d="M-9 4 V-3 L-4.5 1 L0 -5.5 L4.5 1 L9 -3 V4 Z"/><path d="M-10 7 H10"/>'                              /* Король */
+};
+/* расстановка пипсов */
+const PIPS = {
+  1:[[50,80]],
+  2:[[50,46],[50,114]],
+  3:[[50,38],[50,80],[50,122]],
+  4:[[33,48],[67,48],[33,112],[67,112]],
+  5:[[33,46],[67,46],[50,80],[33,114],[67,114]],
+  6:[[33,42],[67,42],[33,80],[67,80],[33,118],[67,118]],
+  7:[[33,40],[67,40],[50,60],[33,80],[67,80],[33,118],[67,118]],
+  8:[[33,36],[67,36],[33,66],[67,66],[33,94],[67,94],[33,124],[67,124]],
+  9:[[33,36],[67,36],[33,64],[67,64],[50,80],[33,96],[67,96],[33,124],[67,124]],
+  10:[[33,32],[67,32],[50,46],[33,60],[67,60],[33,100],[67,100],[50,114],[33,128],[67,128]]
+};
+
+function cardArtDrawn(cardId, rev){
+  const c = CARD_BY_ID[cardId];
+  const frame =
+    '<rect x="1.2" y="1.2" width="97.6" height="157.6" rx="7" fill="#FBF6EE" stroke="#D8C5A4" stroke-width="1.6"/>'+
+    '<rect x="6" y="6" width="88" height="148" rx="4" fill="none" stroke="#E2D2B6" stroke-width="0.9"/>';
+  if (!c){
+    return '<svg class="art" viewBox="0 0 100 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Пустое место">'+
+      '<rect x="1.2" y="1.2" width="97.6" height="157.6" rx="7" fill="none" stroke="#C9D4E0" stroke-width="1.6" stroke-dasharray="5 4"/>'+
+      '<path d="M50 66 V94 M36 80 H64" stroke="#B7C4D2" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>';
+  }
+  let body = '';
+  if (c.major){
+    body = '<text x="50" y="27" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" fill="'+MAJ_INK+'">'+ROMAN[c.num]+'</text>'+
+      '<g transform="translate(50,88) scale(1.85)" stroke="'+MAJ_LINE+'" stroke-width="1.05" fill="none" stroke-linecap="round" stroke-linejoin="round">'+
+      MAJ_ART[c.num]+'</g>'+
+      '<path d="M32 140 H68" stroke="'+MAJ_LINE+'" stroke-width="0.9" opacity=".6"/>';
+  } else {
+    const col = SUIT_COLOR[c.suit], g = suitGlyph(c.suit);
+    if (c.num <= 10){
+      const pts = PIPS[c.num];
+      const k = c.num === 1 ? 2.3 : (c.num <= 3 ? 1.15 : (c.num <= 6 ? 0.98 : (c.num <= 8 ? 0.84 : 0.76)));
+      const base = c.num === 1 ? 2.4 : 1.7;
+      body = '<g stroke="'+col+'" stroke-width="'+(base/k).toFixed(2)+'" fill="none" stroke-linecap="round" stroke-linejoin="round">'+
+        pts.map(function(p){ return '<g transform="translate('+p[0]+','+p[1]+') scale('+k+')">'+g+'</g>'; }).join('')+'</g>'+
+        (c.num === 1 ? '' : '<text x="50" y="21" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="12" fill="'+col+'">'+c.num+'</text>');
+    } else {
+      body = '<g transform="translate(50,46)" stroke="'+col+'" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round">'+
+        COURT_MARK[c.num]+'</g>'+
+        '<g transform="translate(50,102) scale(2.1)" stroke="'+col+'" stroke-width="0.85" fill="none" stroke-linecap="round" stroke-linejoin="round">'+
+        g+'</g>';
+    }
+  }
+  return '<svg class="art" viewBox="0 0 100 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+esc(c.n)+'">'+
+    frame + '<g transform="rotate('+(rev?180:0)+' 50 80)">'+body+'</g>'+
+    (rev ? '<path d="M88 12 v8 m-3 -3 l3 3 l3 -3" stroke="#C08463" stroke-width="1.4" fill="none" stroke-linecap="round"/>' : '')+
+    '</svg>';
+}
+
+const EXT = {
+M00:['Новое знакомство без обязательств, лёгкость, за которой пока нет планов.','Смена сферы, стажировка, дело без гарантий — но с азартом.','Много энергии и мало режима; беспечность к телу.','Сделайте первый шаг, не требуя гарантий.','зависит'],
+M01:['Инициатива в ваших руках: можно начать и повести за собой.','Есть все ресурсы для старта; переговоры складываются в вашу пользу.','Хороший тонус, тело слушается.','Действуйте — у вас есть всё необходимое.','да'],
+M02:['Чувства есть, но не проговорены; кто-то не раскрывает карты.','Информации не хватает, решение принимать рано.','Нужен покой и сон, тело просит тишины.','Наблюдайте и слушайте себя, не форсируйте.','зависит'],
+M03:['Тёплые, питающие отношения; забота, беременность.','Дело растёт, доход прибывает, идёт творческий проект.','Хорошее самочувствие; важно не растратить себя на других.','Дайте ситуации вырасти и поддержите её ресурсом.','да'],
+M04:['Надёжный, но контролирующий партнёр; отношения по правилам.','Структура, руководство, официальное оформление.','Крепость через режим и дисциплину.','Наведите порядок и возьмите ответственность.','да'],
+M05:['Официальный союз, брак, одобрение семьи.','Работа в системе, обучение, наставник.','Поможет проверенный специалист, а не эксперименты.','Действуйте по правилам и спросите совета у опытного.','да'],
+M06:['Взаимное притяжение и настоящий выбор сердца.','Выбор между двумя предложениями; партнёрство.','Состояние сильно зависит от того, кто рядом.','Выбирайте то, что совпадает с вашими ценностями.','да'],
+M07:['Отношения на ходу: поездки, расстояние, напор одного из двоих.','Продвижение, командировка, победа усилием воли.','Силы есть, но вы на пределе управления.','Держите руль и не отпускайте цель.','да'],
+M08:['Спокойная нежность укрощает страсть; терпение к партнёру.','Дело требует выдержки, а не давления.','Здоровье восстанавливается мягко, без насилия над собой.','Мягкость и терпение сработают лучше нажима.','да'],
+M09:['Пауза, одиночество, отношения на расстоянии или в молчании.','Работа в одиночку, экспертиза, отказ от суеты.','Нужен отдых и уединение, возможен упадок сил.','Отойдите в сторону и разберитесь с собой.','нет'],
+M10:['Судьбоносная встреча или неожиданный поворот в отношениях.','Шанс приходит извне, условия меняются сами.','Циклы: то лучше, то хуже — отслеживайте ритм.','Примите перемену и используйте момент.','да'],
+M11:['Отношения проверяются на честность; всё вернётся по заслугам.','Договор, суд, проверка; решение принимается по фактам.','Тело честно отвечает на образ жизни.','Поступите честно и по правилам, взвесив факты.','зависит'],
+M12:['Ожидание, отношения зависли; жертвы ради другого.','Проект на паузе, задержка, невыгодное положение.','Вынужденный покой, ограничение подвижности.','Не дёргайтесь — посмотрите на ситуацию под другим углом.','нет'],
+M13:['Отношения завершаются или меняются необратимо.','Конец этапа: увольнение, закрытие проекта.','Перестройка организма; пора оставить старые привычки.','Отпустите то, что закончилось, — иначе новое не начнётся.','нет'],
+M14:['Мирные, выстроенные отношения; примирение.','Постепенный рост, совмещение, работа в команде.','Восстановление; режим и лечение помогают.','Ищите меру и соединяйте, а не разрывайте.','да'],
+M15:['Страсть с зависимостью; связь, из которой трудно выйти.','Выгодно, но с условиями: кредит, кабальный договор.','Зависимости и перегрузки, тело в напряжении.','Назовите цену вслух и решите, готовы ли платить.','нет'],
+M16:['Разрыв, скандал, вскрывшаяся правда.','Внезапные перемены, потеря позиции, слом привычной схемы.','Резкое обострение, нужна быстрая помощь.','Не удерживайте то, что рушится, — стройте заново.','нет'],
+M17:['Надежда, светлые чувства, исцеление после боли.','Перспективное дело, поддержка, признание впереди.','Восстановление, силы возвращаются.','Держите ориентир — помощь придёт.','да'],
+M18:['Недосказанность, ревность, иллюзии в отношениях.','Неясные условия, скрытые детали, риск обмана.','Тревожность, плохой сон, неясные симптомы.','Не решайте в тумане — сначала проверьте факты.','зависит'],
+M19:['Открытая радость, признание, дети.','Успех, публичность, хороший доход.','Здоровье и силы, всё в порядке.','Действуйте открыто — сейчас ваше время.','да'],
+M20:['Возвращение к прошлым отношениям, честный разговор.','Итоги, оценка, второй шанс, новое призвание.','Картина проясняется, наступает переломный момент.','Подведите итог и примите решение осознанно.','да'],
+M21:['Отношения состоялись: союз, семья, полнота.','Проект завершён успешно, впереди новый уровень и поездки.','Гармония, силы в равновесии.','Завершите начатое и признайте результат.','да'],
+
+w01:['Вспышка влечения, инициатива в отношениях.','Новое дело, предложение, уверенный старт.','Прилив сил.','Хватайтесь за импульс и начинайте.','да'],
+w02:['Выбор между двумя, планы на будущее вдвоём.','Планирование, расширение, партнёр издалека.','Силы есть, но пока в ожидании.','Определитесь с направлением.','зависит'],
+w03:['Отношения на расстоянии, ожидание ответного шага.','Первые плоды, торговля, связи с другими городами.','Устойчивое состояние.','Ждите отдачи и смотрите шире.','да'],
+w04:['Свадьба, помолвка, счастливый дом.','Стабильность, отпуск, завершение этапа.','Отдых восстанавливает.','Отпразднуйте достигнутое.','да'],
+w05:['Ссоры по мелочам, соперничество за внимание.','Конкуренция, споры в команде.','Суетливость и перерасход сил.','Не тратьте себя на пустую борьбу.','зависит'],
+w06:['Признание чувств, вы в выигрыше.','Успех, повышение, хорошие новости.','Подъём.','Примите победу и не зазнавайтесь.','да'],
+w07:['Отстаивание отношений, борьба за своё.','Конкуренты давят, но ваша позиция сильнее.','Напряжение, но резерв есть.','Держите позицию, правда за вами.','да'],
+w08:['Быстрое развитие, сообщение, скорая встреча.','Ускорение дел, поездка, новости.','Всё меняется быстро.','Действуйте быстро, момент короткий.','да'],
+w09:['Настороженность после прошлой боли.','Последний рубеж: устали, но дожать можно.','Истощение, нужен отдых.','Соберитесь — остался последний шаг.','зависит'],
+w10:['Отношения как обязанность, груз.','Перегруз, взяли слишком много.','Перенапряжение, спина и плечи.','Сбросьте лишнее и делегируйте.','нет'],
+w11:['Флирт, юный поклонник, весть о симпатии.','Ученик, стажировка, новость о деле.','Много энергии, мало опыта.','Учитесь и пробуйте.','да'],
+w12:['Страстный напор, роман на скорости, переезд.','Резкий рывок, командировка.','Импульсивность, риск травм.','Действуйте, но не бросайте на полпути.','да'],
+w13:['Яркая притягательная женщина, уверенность в чувствах.','Лидерство, харизма, своё дело.','Сильная энергия, важно не выгореть.','Будьте собой — этого достаточно.','да'],
+w14:['Зрелый влиятельный мужчина, отношения с лидером.','Руководитель, предприниматель, покровитель.','Крепкое состояние.','Возьмите ответственность и ведите.','да'],
+
+c01:['Начало чувства, признание, новая любовь.','Работа по душе, доброе предложение.','Эмоциональный подъём.','Откройтесь чувству.','да'],
+c02:['Взаимность, союз, примирение.','Партнёрство, договор по симпатии.','Гармония.','Идите навстречу друг другу.','да'],
+c03:['Праздник, круг друзей; возможен третий рядом.','Команда, совместный успех.','Хорошее настроение, риск излишеств.','Разделите радость с другими.','да'],
+c04:['Скука в отношениях, отказ от предложенного.','Апатия к работе, ощущение «всё не то».','Вялость, потеря интереса.','Оглядитесь — хорошее рядом.','нет'],
+c05:['Горе о несбывшемся, сожаления.','Потеря, но потеряно не всё.','Подавленность.','Посмотрите на то, что осталось.','нет'],
+c06:['Прошлая любовь, встреча из детства, нежность.','Возврат к прежнему делу, дружеская помощь.','Спокойствие с ноткой ностальгии.','Возьмите доброе из прошлого, но не живите там.','да'],
+c07:['Иллюзии о партнёре, слишком много вариантов.','Заманчивые предложения без опоры.','Туман в голове.','Выберите одно и проверьте фактами.','зависит'],
+c08:['Уход из отношений в поисках глубины.','Смена дела ради смысла.','Усталость от прежнего.','Если не наполняет — уходите спокойно.','нет'],
+c09:['Желание сбывается, довольство.','Удовлетворение результатом, премия.','Хорошее самочувствие.','Позвольте себе получить желаемое.','да'],
+c10:['Семейное счастье, полнота отношений.','Коллектив как семья, устойчивый результат.','Гармония.','Берегите то, что есть.','да'],
+c11:['Признание, нежность, весть о ребёнке.','Творческое начало, приглашение.','Повышенная чувствительность.','Скажите о своих чувствах.','да'],
+c12:['Ухаживание, романтическое предложение.','Красивое приглашение — проверьте, что за ним.','Мечтательность.','Примите приглашение, но проверьте суть.','да'],
+c13:['Чуткая женщина, глубокие чувства.','Работа с людьми, забота, помощь.','Чувствительность к настроению вокруг.','Доверьтесь интуиции.','да'],
+c14:['Зрелый мужчина, который умеет любить и держать слово.','Дипломат, наставник, помогающая профессия.','Спокойствие.','Сохраняйте самообладание.','да'],
+
+s01:['Ясный разговор, правда о чувствах.','Чёткое решение, документ, договор.','Точный диагноз, вмешательство.','Назовите вещи своими именами.','да'],
+s02:['Пауза, отказ выбирать между двумя.','Решение отложено, шаткое равновесие.','Напряжение, глаза и голова.','Откройте глаза и выберите.','зависит'],
+s03:['Разрыв, измена, тяжёлые слова.','Конфликт, увольнение, отказ.','Сердце и стресс.','Проживите боль, не отрицая её.','нет'],
+s04:['Пауза в отношениях, передышка.','Больничный, отпуск, простой.','Нужен отдых и сон.','Остановитесь и восстановитесь.','нет'],
+s05:['Ссора с уязвлением, победа ценой отношений.','Нечестная конкуренция, интриги.','Истощение после конфликта.','Подумайте, стоит ли победа своей цены.','нет'],
+s06:['Отъезд, отдаление, спокойный уход от бури.','Переезд, смена места, новая среда.','Постепенное улучшение.','Двигайтесь к спокойному месту.','зависит'],
+s07:['Недосказанность, тайные действия.','Хитрость, обход правил, риск обмана.','Скрытые причины недомогания.','Играйте честно или готовьтесь к раскрытию.','нет'],
+s08:['Чувство «нет выхода», связанные руки.','Ограничения, запреты, страх сменить работу.','Зажатость, ограничение подвижности.','Проверьте, реальны ли стены, — чаще нет.','нет'],
+s09:['Тревога, ревность, ночные мысли.','Страх ошибки, чувство вины.','Бессонница и тревожность.','Проверьте страхи фактами — они больше в голове.','нет'],
+s10:['Окончательный разрыв, предательство.','Полный провал этапа, конец схемы.','Истощение до дна; дальше только вверх.','Признайте конец — хуже уже не будет.','нет'],
+s11:['Наблюдение, проверка партнёра, слухи.','Сбор информации, учёба, известие.','Настороженность.','Соберите факты и не спешите с выводами.','зависит'],
+s12:['Резкий разговор, стремительный роман.','Быстрые события, натиск, конфликт.','Перевозбуждение.','Говорите прямо, но не рубите сплеча.','зависит'],
+s13:['Независимая женщина с опытом потерь, трезвый взгляд.','Эксперт, аналитик, честная оценка.','Держится на воле.','Держите границы и говорите правду.','зависит'],
+s14:['Строгий, рассудочный партнёр.','Юрист, руководитель, решение по закону.','Контроль над состоянием.','Решайте разумом, а не эмоцией.','да'],
+
+p01:['Надёжное начало, отношения с опорой.','Предложение работы, деньги, вложение.','Крепкое тело.','Возьмите предложенное — это надёжно.','да'],
+p02:['Совмещение отношений с делами, лёгкость.','Жонглирование задачами, перераспределение денег.','Держитесь, но на грани.','Расставьте приоритеты.','зависит'],
+p03:['Совместное дело, вклад обоих.','Заказ, признание мастерства, команда.','Хорошая работоспособность.','Работайте вместе и делайте качественно.','да'],
+p04:['Собственничество, страх потерять.','Накопления, контроль расходов, нежелание менять.','Скованность.','Держите нужное, но не душите.','зависит'],
+p05:['Чувство ненужности, холод в отношениях.','Нехватка денег, потеря работы.','Слабость, частые простуды.','Попросите помощи — она рядом.','нет'],
+p06:['Неравенство: кто-то даёт больше.','Зарплата, помощь, возврат долга.','Поддержка со стороны помогает.','Выровняйте обмен.','да'],
+p07:['Оценка отношений: стоит ли вкладываться дальше.','Пауза и подсчёт отдачи от вложений.','Медленное восстановление.','Дайте времени сделать своё, потом решайте.','зависит'],
+p08:['Работа над отношениями, ровные будни.','Кропотливый труд, обучение ремеслу.','Режим и регулярность работают.','Делайте по шагу каждый день.','да'],
+p09:['Самодостаточность, отношения без нужды.','Свой доход, независимость.','Хорошее состояние, забота о себе.','Позвольте себе то, что заработали.','да'],
+p10:['Семья, дом, брак с прочной базой.','Стабильный доход, наследство, долгая перспектива.','Устойчивость, здоровье рода.','Стройте вдолгую.','да'],
+p11:['Осторожное начало, практичный интерес.','Учёба, первые деньги, конкретный шаг.','Внимание к телу.','Начните с малого и конкретного.','да'],
+p12:['Надёжный, но медлительный партнёр.','Планомерная работа, стабильность без рывков.','Ровное состояние.','Идите медленно, но не останавливайтесь.','да'],
+p13:['Хозяйственная, заботливая женщина.','Практичность, умение считать, уют в деле.','Забота о теле даёт результат.','Позаботьтесь о быте и ресурсе.','да'],
+p14:['Состоятельный, надёжный мужчина.','Стабильный доход, инвестор, руководитель.','Крепость.','Опирайтесь на проверенное.','да']
+};
+
+
+/* ---------- настоящие карты Уэйта ----------
+   Колода Райдера—Уэйта—Смит (1909) — общественное достояние.
+   Берётся из папки cards рядом с кабинетом (офлайн) либо с Викисклада.
+   Если картинка не загрузилась — на её место встаёт рисунок кабинета. */
+const RWS_MAJOR = ['RWS_Tarot_00_Fool','RWS_Tarot_01_Magician','RWS_Tarot_02_High_Priestess','RWS_Tarot_03_Empress',
+'RWS_Tarot_04_Emperor','RWS_Tarot_05_Hierophant','RWS_Tarot_06_Lovers','RWS_Tarot_07_Chariot','RWS_Tarot_08_Strength',
+'RWS_Tarot_09_Hermit','RWS_Tarot_10_Wheel_of_Fortune','RWS_Tarot_11_Justice','RWS_Tarot_12_Hanged_Man','RWS_Tarot_13_Death',
+'RWS_Tarot_14_Temperance','RWS_Tarot_15_Devil','RWS_Tarot_16_Tower','RWS_Tarot_17_Star','RWS_Tarot_18_Moon',
+'RWS_Tarot_19_Sun','RWS_Tarot_20_Judgement','RWS_Tarot_21_World'];
+const RWS_SUIT = {w:'Wands', c:'Cups', s:'Swords', p:'Pents'};
+function pad2(n){ return String(n).padStart(2,'0'); }
+function cardFile(c){ return (c.major ? RWS_MAJOR[c.num] : RWS_SUIT[c.suit] + pad2(c.num)) + '.jpg'; }
+/* 'web' — с Викисклада, 'local' — из папки cards рядом, 'draw' — рисунок кабинета */
+function cardImgUrl(cardId){
+  const c = CARD_BY_ID[cardId]; if (!c || ART_MODE === 'draw') return null;
+  if (ART_MODE === 'local') return 'cards/' + cardFile(c);
+  return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(cardFile(c)) + '?width=420';
+}
+function artFail(img){
+  const box = img.parentNode; if (!box || !box.getAttribute) return;
+  box.outerHTML = cardArtDrawn(box.getAttribute('data-card'), false);
+}
+function cardArt(cardId){
+  const url = cardImgUrl(cardId);
+  if (!url) return cardArtDrawn(cardId, false);
+  const c = CARD_BY_ID[cardId];
+  return '<div class="artbox" data-card="' + cardId + '">' +
+    '<img class="art" alt="' + esc(c.n) + '" src="' + url + '" onerror="artFail(this)"></div>';
+}
+
+const DAYTXT = {
+"M00": "День для лёгкости: можно попробовать что-то новое, не продумав всё до конца. Небольшая авантюра сегодня к месту.",
+"M01": "У вас сегодня есть всё, чтобы сдвинуть дело, которое давно висит. Начните с самого простого шага.",
+"M02": "Тихий день. Не торопитесь с решениями — сегодня полезнее слушать себя, чем кому-то что-то доказывать.",
+"M03": "День про заботу о себе: вкусная еда, уют, приятные мелочи. Позвольте себе это без чувства вины.",
+"M04": "Хороший день навести порядок — в бумагах, счетах, списке дел. Структура сегодня даётся легко.",
+"M05": "Сегодня лучше идти проверенным путём. Если сомневаетесь, спросите того, кто это уже проходил.",
+"M06": "День выбора. Выбирайте то, к чему тянет, а не то, что выглядит правильным со стороны.",
+"M07": "Энергии много — направьте её в одно дело, а не в пять. Получится там, где вы держите руль.",
+"M08": "Мягкость сегодня сильнее нажима. Если что-то не идёт, не давите — вернитесь спокойно чуть позже.",
+"M09": "День для тишины. Отменить лишнее и побыть одной — это не эгоизм, а нормальная потребность.",
+"M10": "День может повернуть неожиданно. Не расстраивайтесь из-за смены планов, часто это к лучшему.",
+"M11": "Хороший день расставить всё по местам: посчитать, сверить, честно сказать то, что думаете.",
+"M12": "Что-то придётся подождать. Вместо того чтобы дёргаться, посмотрите на ситуацию с другой стороны.",
+"M13": "День расставания с лишним: разобрать шкаф, отписаться, закончить то, что давно себя изжило.",
+"M14": "Сегодня работает середина — не строгость и не срыв. Спокойный ритм даст больше, чем рывок.",
+"M15": "День соблазнов: доставка, распродажа, лишняя покупка. Захотелось — подождите час и решите заново.",
+"M16": "Планы могут рассыпаться. Неприятно, но иногда так уходит то, что вы и сами хотели закончить.",
+"M17": "Спокойный светлый день. Получается то, что откладывали. Хорошее время начать что-то небольшое.",
+"M18": "Не всё ясно, и это нормально. Важные решения лучше отложить до завтра, когда туман рассеется.",
+"M19": "Лёгкий день. Разрешите себе радоваться простому и покажитесь людям — сегодня вас хорошо принимают.",
+"M20": "День итогов. Хорошо посмотреть, куда ушёл месяц, и честно решить, что оставить, а что нет.",
+"M21": "Что-то завершается красиво. Отметьте это, а не проскакивайте сразу дальше по списку дел.",
+"w01": "Появится идея или желание что-то начать. Запишите — сегодня импульс сильный.",
+"w02": "День планов: прикиньте, куда хотите прийти через полгода. Пока без действий, только направление.",
+"w03": "Первые результаты уже видны. Не бросайте на середине — отдача ближе, чем кажется.",
+"w04": "Хороший день для дома и близких. Уют сегодня важнее продуктивности.",
+"w05": "Возможны мелкие споры и толкотня. Не ввязывайтесь в то, что вас не касается.",
+"w06": "День, когда вас заметят и похвалят. Примите это спокойно, вы заслужили.",
+"w07": "Придётся отстоять своё. Держите позицию — сегодня правда на вашей стороне.",
+"w08": "Всё ускоряется: сообщения, ответы, встречи. Успевайте отвечать, но не хватайтесь за всё разом.",
+"w09": "Устали, но остался последний рывок. Доделайте одно дело и отдыхайте с чистой совестью.",
+"w10": "Похоже, вы взяли на себя слишком много. Посмотрите, что можно снять или перенести на завтра.",
+"w11": "День учиться новому: короткий курс, рецепт, незнакомое приложение. Пробуйте без ожиданий.",
+"w12": "Тянет действовать быстро. Хорошо, если доведёте до конца, а не бросите через час.",
+"w13": "Ваш день быть заметной. Занимайтесь тем, что нравится, — сегодня это притягивает людей.",
+"w14": "День брать ответственность: решить, договориться, повести за собой. У вас получится.",
+"c01": "День про тёплые чувства. Скажите близким что-то хорошее — сегодня это легко даётся.",
+"c02": "Хороший день для встречи и примирения. Один разговор может многое поправить.",
+"c03": "Позовите подруг. Общение сегодня восстанавливает лучше, чем отдых в одиночестве.",
+"c04": "Кажется, что всё не то. Оглянитесь: хорошее рядом, просто примелькалось.",
+"c05": "Настроение может быть грустным. Не корите себя, но и не застревайте — посмотрите, что осталось хорошего.",
+"c06": "День тёплых воспоминаний. Позвоните тому, о ком давно думали.",
+"c07": "Много вариантов и соблазнов. Выберите один, остальное отложите, иначе распылитесь.",
+"c08": "Что-то пора оставить и пойти дальше. Это не потеря, а освобождение места.",
+"c09": "День исполнения маленького желания. Позвольте себе то, что давно хотели.",
+"c10": "Тёплый семейный день. Хорошее время для дома и тех, кто рядом.",
+"c11": "Приятная новость или неожиданное внимание. Порадуйтесь, не выискивая подвох.",
+"c12": "День красивых жестов. Можно самой сделать первый шаг — сегодня это уместно.",
+"c13": "Вы тоньше обычного чувствуете людей. Заботьтесь, но не в ущерб себе.",
+"c14": "Спокойный зрелый день. Эмоции под контролем, можно обсудить сложное.",
+"s01": "Ясная голова. Хороший день принять решение, которое давно откладывали.",
+"s02": "Не получается выбрать. Не давите на себя — соберите факты, решение придёт само.",
+"s03": "Возможен неприятный разговор. Неприятно, но правда лучше догадок.",
+"s04": "Отдых сегодня не роскошь. Отмените лишнее и выспитесь.",
+"s05": "Спорить сегодня бессмысленно: даже выигрыш выйдет дороже. Иногда лучше промолчать.",
+"s06": "Понемногу становится спокойнее. Хороший день для дороги и смены обстановки.",
+"s07": "Не всё говорится прямо. Проверяйте детали, особенно там, где речь о деньгах.",
+"s08": "Кажется, что выхода нет, но многие ограничения придуманы. Сделайте один маленький шаг.",
+"s09": "К ночи могут одолеть тревожные мысли. Выпишите их на бумагу — утром окажется, что их меньше.",
+"s10": "Тяжёлый этап заканчивается. Дальше будет легче.",
+"s11": "Любопытный день, узнаете что-то новое. Проверяйте информацию, прежде чем пересказывать.",
+"s12": "Хочется рубить с плеча. Прежде чем отправить резкое сообщение, перечитайте его.",
+"s13": "Трезвый взгляд без иллюзий. Хороший день разобраться в цифрах и договорах.",
+"s14": "День решений по фактам, а не по настроению. Скажите прямо то, что нужно сказать.",
+"p01": "Хороший день для денег: может прийти предложение или идея заработка. Запишите её сразу.",
+"p02": "Жонглируете делами и счетами. Сегодня выручит простой список приоритетов.",
+"p03": "День работы и мастерства. Ваш труд заметят, а помощь принимать не стыдно.",
+"p04": "Хочется всё сберечь. Экономия хороша, но не превращайте её в тревогу.",
+"p05": "Может казаться, что не хватает. Посмотрите на цифры — обычно всё лучше, чем ощущается.",
+"p06": "День обмена: вам помогут или вы поможете. Принимайте помощь спокойно.",
+"p07": "Хорошее время посчитать, что дали вложения — деньги, время, силы, — и решить, что продолжать.",
+"p08": "День маленьких дел и рутины. Именно она сегодня даёт результат.",
+"p09": "Вы можете позволить себе приятное, и это не расточительство. Купите то, что радует, в рамках плана.",
+"p10": "День про семью и надёжность. Хорошо заняться тем, что даёт опору надолго.",
+"p11": "Учитесь обращаться с деньгами: посмотрите, куда уходит, и попробуйте одно новое правило.",
+"p12": "Медленно, но верно. Сегодня побеждает не скорость, а последовательность.",
+"p13": "День хозяйки: дом, еда, забота о себе. Всё это сегодня даётся легко и в радость.",
+"p14": "Устойчивый день. Можно принимать денежные решения — вы видите картину целиком."
+};
+
+
+
+/* ================= Экраны ================= */
+
+function go(btn, id){
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected','false'));
+  btn.setAttribute('aria-selected','true');
+  document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== id);
+  window.scrollTo(0,0);
+}
+function bar(pct, color){
+  return '<div class="bar"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%;background:' + (color || 'var(--accent)') + '"></i></div>';
+}
+function card(inner, cls){ return '<div class="card' + (cls ? ' ' + cls : '') + '">' + inner + '</div>'; }
+function lab(t){ return '<div class="lab">' + esc(t) + '</div>'; }
+
+function renderAll(){
+  const d = new Date();
+  document.getElementById('today-date').textContent =
+    WDAYS[d.getDay()].charAt(0).toUpperCase() + WDAYS[d.getDay()].slice(1) + ', ' + humanDate(today());
+  document.getElementById('saved').textContent = storageOk
+    ? (S.savedAt ? 'сохранено ' + new Date(S.savedAt).toTimeString().slice(0,5) : 'готово к работе')
+    : 'НЕ СОХРАНЯЕТСЯ';
+  renderToday(); renderCal(); renderMoney(); renderFood(); renderMore();
+}
+
+/* ---------- Сегодня ---------- */
+function renderToday(){
+  const d = today(), rec = dayRec(d), free = freeLeft(), perDay = free / daysLeft();
+  const spentPct = S.settings.budget ? spentMonth(monthOf(d)) / S.settings.budget * 100 : 0;
+  let h = '';
+
+  if (!storageOk) h += '<div class="warnbar">Браузер не сохраняет данные. Проверьте, не открыт ли режим инкогнито.</div>';
+
+  const nx = nextEvent();
+  h += card(
+    '<div class="row" style="align-items:flex-start"><div>' + lab('Ближайшее событие') +
+    (nx ? '<div style="font-family:\'Spectral\',serif;font-size:18px;font-weight:600">' + esc(nx.e.title) + '</div>' +
+          '<div class="mut" style="margin-top:3px">' + (nx.e.time ? esc(nx.e.time) + ' · ' : '') + esc(nx.when) + '</div>'
+        : '<div class="mut">Ничего не назначено. Добавьте встречу или напоминание.</div>') +
+    '</div><span class="chip">Календарь</span></div>', nx ? 'now' : '');
+
+  h += dayCardHtml();
+
+  h += '<div class="grid2">' +
+    card(lab('Деньги') + '<div class="big" style="font-size:20px">' + money(free) + '</div>' +
+      '<div class="mut">свободно · ' + money(perDay) + ' в день</div>' + bar(spentPct, 'var(--ochre)')) +
+    card(lab('Еда') + foodTile()) +
+    '</div>';
+
+  const ev = evOf(d);
+  h += card(lab('Назначено на сегодня') +
+    (ev.length ? '<div class="dayline"><div class="spine"></div>' + ev.map(e => {
+        const past = (e.time || '') < new Date().toTimeString().slice(0,5);
+        return '<div class="tl' + (past ? ' done' : ' next') + '"><div class="tl-dot"></div>' +
+          '<div class="tl-time">' + esc(e.time || '—') + '</div>' +
+          '<div class="row"><span class="tl-what">' + esc(e.title) + '</span>' +
+          '<button class="del" onclick="drop(\'ev\',\'' + e.id + '\')">убрать</button></div></div>';
+      }).join('') + '</div>'
+      : '<div class="empty">На сегодня ничего не назначено.</div>') +
+    '<button class="btn ghost" style="margin-top:10px" onclick="openSheet(\'ev\')">Добавить событие</button>');
+
+  const te = S.exp.filter(x => x.date === d), tm = mealsOf(d);
+  h += card(lab('Записано сегодня') +
+    '<div class="item"><div class="ic">₽</div><div class="txt"><b>Расходы · ' + te.length + ' ' + plural(te.length,'запись','записи','записей') + '</b>' +
+      '<small>' + (te.length ? esc(te.map(x => x.title).slice(0,3).join(', ')) : 'пока ничего') + '</small></div>' +
+      '<div class="sum">' + (te.length ? '−' + money(sum(te)) : '—') + '</div></div>' +
+    '<div class="item"><div class="ic">🍽</div><div class="txt"><b>Еда · ' + tm.length + ' ' + plural(tm.length,'запись','записи','записей') + '</b>' +
+      '<small>' + (tm.length ? esc(tm.map(x => x.title).slice(0,3).join(', ')) : 'пока ничего') + '</small></div>' +
+      '<div class="sum">' + (kcalOf(d) ? num(kcalOf(d)) + ' ккал' : '—') + '</div></div>');
+
+  h += card(lab('Итог дня') +
+    '<div class="stat"><span>Дела из назначенных</span><b>' + ev.filter(e => (e.time||'') < new Date().toTimeString().slice(0,5)).length + ' из ' + ev.length + '</b></div>' +
+    '<div class="stat"><span>Дневной бюджет</span><b style="color:' + (sum(te) <= perDay ? 'var(--ok)' : 'var(--ochre)') + '">' +
+      (sum(te) <= perDay ? 'в норме' : 'превышен') + '</b></div>' +
+    '<div class="stat"><span>Еда</span><b>' + (tm.length ? esc(tm.map(m => (PLACES.find(p => p[0] === m.place) || ['','—'])[1]).join(', ')) : '—') + '</b></div>' +
+    '<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">' +
+      '<div style="font-size:13px;margin-bottom:8px">А как вы себя чувствуете?</div>' +
+      '<div class="pick">' + MOODS.map(m =>
+        '<button aria-pressed="' + (rec.mood === m[0]) + '" onclick="setMood(\'' + m[0] + '\')">' + m[1] + '</button>').join('') +
+      '</div></div>');
+
+  const td = todo();
+  if (td.length) h += card(lab('Нужно отметить') + td.map(t =>
+    '<div class="item"' + (t[3] ? ' onclick="' + t[3] + '" style="cursor:pointer"' : '') + '><div class="ic">' + t[0] + '</div>' +
+    '<div class="txt"><b>' + esc(t[1]) + '</b><small>' + esc(t[2]) + '</small></div></div>').join(''));
+
+  document.getElementById('s-today').innerHTML = h;
+}
+function foodTile(){
+  const d = today(), m = mealsOf(d);
+  if (S.settings.foodMode === 'full'){
+    const left = S.settings.kcal - kcalOf(d);
+    return '<div class="big" style="font-size:20px">' + num(Math.max(0,left)) + '</div>' +
+      '<div class="mut">ккал осталось</div>' + bar(kcalOf(d) / S.settings.kcal * 100, 'var(--ok)');
+  }
+  return '<div class="big" style="font-size:20px">' + m.length + ' из 4</div>' +
+    '<div class="mut">приёмов отмечено</div>' + bar(m.length / 4 * 100, 'var(--ok)');
+}
+function setMood(v){ dayRec(today()).mood = v; save(); }
+
+/* ---------- Календарь ---------- */
+let calMonth = monthOf(today());
+function renderCal(){
+  const [y, mm] = calMonth.split('-').map(Number);
+  const first = new Date(y, mm-1, 1), shift = (first.getDay() + 6) % 7, n = daysInMonth(calMonth);
+  let cells = '';
+  for (let i = 0; i < shift; i++) cells += '<div class="d out"></div>';
+  for (let i = 1; i <= n; i++){
+    const ds = calMonth + '-' + String(i).padStart(2,'0');
+    const marks = [];
+    if (S.ev.some(e => e.date === ds)) marks.push('var(--accent)');
+    if (S.exp.some(e => e.date === ds) || S.inc.some(e => e.date === ds)) marks.push('var(--ok)');
+    cells += '<div class="d' + (ds === today() ? ' today' : '') + '" onclick="pickDay(\'' + ds + '\')">' + i +
+      (marks.length ? '<span class="mk">' + marks.map(c => '<i style="background:' + (ds === today() ? '#fff' : c) + '"></i>').join('') + '</span>' : '') +
+      '</div>';
+  }
+  const sel = selDay || today();
+  const list = evOf(sel);
+  document.getElementById('s-cal').innerHTML =
+    card('<div class="row" style="margin-bottom:10px"><span style="font-family:\'Spectral\',serif;font-size:15px;font-weight:600">' +
+      MONTHS_N[mm-1] + ' ' + y + '</span><span class="mut"><button class="del" style="color:var(--accent)" onclick="shiftMonth(-1)">‹</button> ' +
+      '<button class="del" style="color:var(--accent)" onclick="shiftMonth(1)">›</button></span></div>' +
+      '<div class="cal"><div class="dw">пн</div><div class="dw">вт</div><div class="dw">ср</div><div class="dw">чт</div><div class="dw">пт</div><div class="dw">сб</div><div class="dw">вс</div>' +
+      cells + '</div>' +
+      '<div class="legend" style="margin-top:12px"><span><i class="dot" style="background:var(--accent)"></i>Встречи и дела</span>' +
+      '<span><i class="dot" style="background:var(--ok)"></i>Деньги</span></div>') +
+    card(lab(humanDate(sel)) +
+      (list.length ? list.map(e =>
+        '<div class="item"><div class="ic">📅</div><div class="txt"><b>' + esc(e.title) + '</b>' +
+        '<small>' + (e.time ? esc(e.time) : 'без времени') + (e.plan ? ' · ' + money(e.plan) : '') + '</small></div>' +
+        '<button class="del" onclick="drop(\'ev\',\'' + e.id + '\')">убрать</button></div>').join('')
+        : '<div class="empty">На этот день ничего не назначено.</div>') +
+      '<button class="btn" style="margin-top:11px" onclick="openSheet(\'ev\',\'' + sel + '\')">Добавить событие</button>') +
+    card(lab('Ближайшее') + (function(){
+      const up = S.ev.filter(e => e.date >= today()).sort((a,b) => (a.date+(a.time||'')).localeCompare(b.date+(b.time||''))).slice(0,5);
+      return up.length ? up.map(e =>
+        '<div class="item"><div class="ic">→</div><div class="txt"><b>' + esc(e.title) + '</b>' +
+        '<small>' + humanDate(e.date) + (e.time ? ', ' + esc(e.time) : '') + '</small></div>' +
+        (e.plan ? '<div class="sum">' + money(e.plan) + '</div>' : '') + '</div>').join('')
+        : '<div class="empty">Впереди пока пусто.</div>';
+    })());
+}
+let selDay = null;
+function pickDay(d){ selDay = d; renderCal(); }
+function shiftMonth(k){
+  const [y,mm] = calMonth.split('-').map(Number);
+  const d = new Date(y, mm-1+k, 1);
+  calMonth = iso(d).slice(0,7); selDay = null; renderCal();
+}
+
+/* ---------- Деньги ---------- */
+let moneyTab = 'exp';
+function renderMoney(){
+  const m = monthOf(today()), pm = prevMonth(m);
+  const spent = spentMonth(m), got = sum(incOf(m));
+  const cats = byCat(m), prevCats = Object.fromEntries(byCat(pm));
+  const COLORS = ['var(--navy)','var(--accent)','var(--head)','var(--ochre)','#C4D1DC','#9FB4C6','#DCC49A','#8FA9BE','#B9C9D6','#CBB08A'];
+
+  let exp = card('<div class="row"><div>' + lab('Потрачено') + '<div class="big">' + money(spent) + '</div></div>' +
+      '<div style="text-align:right">' + lab('Бюджет') + '<div class="num" style="font-size:15px">' + money(S.settings.budget) + '</div></div></div>' +
+      (cats.length ? '<div class="seg">' + cats.map((c,i) =>
+        '<i style="width:' + (c[1]/spent*100) + '%;background:' + COLORS[i % COLORS.length] + '"></i>').join('') + '</div>' +
+        '<div class="legend">' + cats.map((c,i) =>
+        '<span><i class="dot" style="background:' + COLORS[i % COLORS.length] + '"></i>' + esc(c[0]) + ' ' + num(c[1]) + '</span>').join('') + '</div>'
+        : '<div class="empty">В этом месяце расходов ещё нет.</div>'));
+
+  const prevSpent = spentMonth(pm);
+  if (prevSpent || spent){
+    const diff = spent - prevSpent;
+    exp += card(lab('Сравнение с прошлым месяцем: ' + MONTHS_N[(+pm.slice(5,7)) - 1].toLowerCase()) +
+      '<div class="cmp"><span>Всего потрачено</span><b>' + num(spent) + '</b><em class="' + (diff <= 0 ? 'down' : 'up') + '">' +
+        (diff === 0 ? 'без изменений' : (diff > 0 ? '+' : '−') + num(Math.abs(diff)) + ' ' + sign()) + '</em></div>' +
+      cats.map(c => {
+        const was = prevCats[c[0]] || 0, dd = c[1] - was;
+        return '<div class="cmp"><span>' + esc(c[0]) + '</span><b>' + num(c[1]) + '</b><em class="' + (dd <= 0 ? 'down' : 'up') + '">' +
+          (was === 0 ? 'новое' : (dd === 0 ? 'без изменений' : (dd > 0 ? '+' : '−') + num(Math.abs(dd)) + ' ' + sign())) + '</em></div>';
+      }).join('') +
+      (cats.length ? '<div class="mut" style="margin-top:9px">Больше всего в этом месяце ушло на «' + esc(cats[0][0]) + '».</div>' : ''));
+  }
+
+  const places = {};
+  S.meals.filter(x => monthOf(x.date) === m).forEach(x => { places[x.place] = (places[x.place] || 0) + 1; });
+  if (Object.keys(places).length){
+    exp += card(lab('Где вы ели в этом месяце') + PLACES.map(p => {
+      const c = places[p[0]] || 0; if (!c) return '';
+      const spentHere = sum(S.exp.filter(e => monthOf(e.date) === m &&
+        ((p[0] === 'cafe' && e.cat === 'Кафе') || (p[0] === 'deliv' && e.cat === 'Доставка') || (p[0] === 'home' && e.cat === 'Продукты'))));
+      return '<div class="item"><div class="ic">' + (p[0]==='home'?'🏠':p[0]==='cafe'?'🍽':p[0]==='deliv'?'🛵':'🥗') + '</div>' +
+        '<div class="txt"><b>' + p[1].charAt(0).toUpperCase() + p[1].slice(1) + '</b><small>' + c + ' ' + plural(c,'раз','раза','раз') + '</small></div>' +
+        (spentHere ? '<div class="sum">' + money(spentHere) + '</div>' : '') + '</div>';
+    }).join(''));
+  }
+
+  const last = S.exp.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,8);
+  exp += card(lab('Последние операции') +
+    (last.length ? last.map(e =>
+      '<div class="item"><div class="ic">' + (e.src === 'голосом' ? '🎙' : e.src === 'из чека' ? '🧾' : '₽') + '</div>' +
+      '<div class="txt"><b>' + esc(e.title) + '</b><small>' + esc(e.cat) + ' · ' + humanDate(e.date) + ' · ' + esc(e.src) + '</small></div>' +
+      '<div class="sum">−' + money(e.sum) + '</div>' +
+      '<button class="del" onclick="drop(\'exp\',\'' + e.id + '\')">✕</button></div>').join('')
+      : '<div class="empty">Записей пока нет.</div>') +
+    '<button class="btn" style="margin-top:11px" onclick="openSheet(\'exp\')">Добавить расход</button>');
+
+  const li = S.inc.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,8);
+  let inc = card('<div class="row"><div>' + lab('Получено за месяц') + '<div class="big" style="color:var(--ok)">' + money(got) + '</div></div></div>' +
+      bar(got ? Math.min(100, got / Math.max(got, S.settings.budget) * 100) : 0, 'var(--ok)')) +
+    card(lab('Поступления') +
+      (li.length ? li.map(e =>
+        '<div class="item"><div class="ic">' + (e.src === 'голосом' ? '🎙' : '💼') + '</div>' +
+        '<div class="txt"><b>' + esc(e.title) + '</b><small>' + humanDate(e.date) + ' · ' + esc(e.src) + '</small></div>' +
+        '<div class="sum in">+' + money(e.sum) + '</div>' +
+        '<button class="del" onclick="drop(\'inc\',\'' + e.id + '\')">✕</button></div>').join('')
+        : '<div class="empty">Доходов пока не внесено.</div>') +
+      '<button class="btn ok" style="margin-top:11px" onclick="openSheet(\'inc\')">Добавить доход</button>') +
+    card(lab('Осталось после всех трат') + '<div class="big">' + money(got - spent) + '</div>' +
+      '<div class="mut" style="margin-top:6px">' + (got ? Math.round((got - spent) / got * 100) + ' % дохода' : 'внесите доход, чтобы увидеть долю') + '</div>', 'navy');
+
+  document.getElementById('s-money').innerHTML =
+    '<div class="switch"><button aria-selected="' + (moneyTab === 'exp') + '" onclick="moneySw(\'exp\')">Расходы</button>' +
+    '<button aria-selected="' + (moneyTab === 'inc') + '" onclick="moneySw(\'inc\')">Доходы</button></div>' +
+    (moneyTab === 'exp' ? exp : inc);
+}
+function moneySw(t){ moneyTab = t; renderMoney(); }
+
+/* ---------- Еда ---------- */
+function renderFood(){
+  const d = today(), m = mealsOf(d), mode = S.settings.foodMode;
+  let h = '<div class="switch">' +
+    '<button aria-selected="' + (mode === 'simple') + '" onclick="foodMode(\'simple\')">Просто отмечаю</button>' +
+    '<button aria-selected="' + (mode === 'full') + '" onclick="foodMode(\'full\')">Считаю точно</button></div>';
+
+  if (mode === 'full'){
+    const k = kcalOf(d);
+    h += card('<div class="row"><div>' + lab('Съедено сегодня') + '<div class="big">' + num(k) + '</div></div>' +
+      '<div class="mut">из ' + num(S.settings.kcal) + ' ккал</div></div>' + bar(k / S.settings.kcal * 100, 'var(--ok)'));
+  }
+
+  h += card(lab('Сегодня') +
+    (m.length ? m.map(x =>
+      '<div class="item"><div class="ic">' + (x.slot==='b'?'🌅':x.slot==='l'?'🥗':x.slot==='s'?'🍎':'🌙') + '</div>' +
+      '<div class="txt"><b>' + esc(x.title) + '</b><small>' + (SLOTS.find(s => s[0] === x.slot)||['','—'])[1] +
+        ' · ' + (PLACES.find(p => p[0] === x.place)||['','—'])[1] + (x.kcal ? ' · ' + num(x.kcal) + ' ккал' : '') + '</small></div>' +
+      '<button class="del" onclick="drop(\'meals\',\'' + x.id + '\')">✕</button></div>').join('')
+      : '<div class="empty">Сегодня ещё ничего не отмечено.</div>') +
+    '<button class="btn ok" style="margin-top:11px" onclick="openSheet(\'meal\')">Отметить еду</button>' +
+    (mode === 'full' ? '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'scan\')">Сканировать штрих-код</button>' : ''));
+
+  const mm = monthOf(d), places = {};
+  S.meals.filter(x => monthOf(x.date) === mm).forEach(x => { places[x.place] = (places[x.place] || 0) + 1; });
+  if (Object.keys(places).length)
+    h += card(lab('Месяц в разрезе') + PLACES.map(p => places[p[0]]
+      ? '<div class="cmp"><span>' + p[1].charAt(0).toUpperCase() + p[1].slice(1) + '</span><b>' + places[p[0]] + ' ' + plural(places[p[0]],'раз','раза','раз') + '</b><em></em></div>'
+      : '').join('') + '<div class="mut" style="margin-top:9px">Это тот же учёт, только в тарелках: видно, где уходят деньги на еду.</div>');
+
+  document.getElementById('s-food').innerHTML = h;
+}
+function foodMode(v){ S.settings.foodMode = v; save(); }
+
+/* ---------- Ещё ---------- */
+function renderMore(){
+  const week = [];
+  for (let i = 0; i < 7; i++) week.push(iso(new Date(Date.now() - i*86400000)));
+  const wExp = sum(S.exp.filter(e => week.includes(e.date)));
+  const moods = week.map(d => (S.day[d] || {}).mood).filter(Boolean);
+  const good = moods.filter(x => x === 'ok' || x === 'flat').length;
+
+  document.getElementById('s-more').innerHTML =
+    card(lab('Записать голосом') +
+      '<div class="mut" style="margin-bottom:8px">Скажите всё подряд — приложение разложит по разделам.</div>' +
+      '<button class="btn" onclick="openSheet(\'voice\')">Открыть разбор</button>' +
+      '<div class="mut" style="margin-top:8px">Диктовать удобнее микрофоном на клавиатуре телефона.</div>') +
+    card(lab('Неделя') +
+      '<div class="stat"><span>Потрачено за 7 дней</span><b>' + money(wExp) + '</b></div>' +
+      '<div class="stat"><span>Записей о еде</span><b>' + S.meals.filter(x => week.includes(x.date)).length + '</b></div>' +
+      '<div class="stat"><span>Дней отмечено по самочувствию</span><b>' + moods.length + ' из 7</b></div>' +
+      (moods.length ? '<div class="mut" style="margin-top:9px">Спокойных дней: ' + good + ' из ' + moods.length + '.</div>' : ''), 'navy') +
+    card(lab('Настройки') +
+      '<div class="fld"><label>Бюджет на месяц, ' + sign() + '</label><input type="number" inputmode="numeric" value="' + S.settings.budget + '" onchange="setNum(\'budget\',this.value)"></div>' +
+      '<div class="fld"><label>Дневная норма калорий</label><input type="number" inputmode="numeric" value="' + S.settings.kcal + '" onchange="setNum(\'kcal\',this.value)"></div>' +
+      '<div class="fld"><label>Валюта</label><div class="pick" id="p-cur">' +
+        CURR.map(c => '<button aria-pressed="' + (c[0] === cur()[0]) + '" onclick="setCur(\'' + c[0] + '\')">' + c[2] + ' ' + c[1] + '</button>').join('') +
+      '</div></div>') +
+    card(lab('Карты дня') +
+      '<div class="item"><div class="ic">🃏</div><div class="txt"><b>Вид карт</b><small id="artmode-note">' +
+        (ART_MODE === 'web' ? 'Настоящие карты Уэйта' : 'Рисунок кабинета, работает без интернета') + '</small></div></div>' +
+      '<div style="display:flex;gap:7px;margin-top:10px">' +
+      '<button class="btn ghost" style="flex:1" onclick="setArt(\'web\')">Настоящие</button>' +
+      '<button class="btn ghost" style="flex:1" onclick="setArt(\'draw\')">Рисунок кабинета</button></div>') +
+    card(lab('Сохранность данных') +
+      '<div class="mut" style="margin-bottom:10px">Данные лежат в браузере этого телефона и никуда не отправляются. ' +
+        (S.backupAt ? 'Последняя копия — ' + humanDate(iso(new Date(S.backupAt))) + '.' : 'Копию ещё не делали.') + '</div>' +
+      '<button class="btn" onclick="openSheet(\'backup\')">Резервная копия</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="document.getElementById(\'restore\').click()">Загрузить копию</button>' +
+      '<input type="file" id="restore" accept="application/json,.json" hidden onchange="restoreFile(this)">') +
+    card(lab('Кабинет') +
+      '<div class="item"><div class="ic">📱</div><div class="txt"><b>Иконка на экране телефона</b><small>Меню браузера → «На экран „Домой“»</small></div></div>' +
+      '<div class="item" onclick="myProducts()" style="cursor:pointer"><div class="ic">🏷</div><div class="txt"><b>Мои продукты</b>' +
+        '<small>' + Object.keys(S.products || {}).length + ' в справочнике · пополняется сканированием</small></div></div>' +
+      '<div class="item"><div class="ic">💬</div><div class="txt"><b>Рассказать подругам</b><small>Отправить ссылку на приложение</small></div>' +
+      '<button class="del" style="color:var(--accent)" onclick="shareApp()">отправить</button></div>') +
+    card(lab('Важно') + '<div class="mut">Кабинет считает то, что вы вносите, и не ставит диагнозов. ' +
+      'Нормы калорий и любые ограничения обсуждайте с врачом.</div>');
+}
+function setCur(c){ S.settings.cur = c; save(); toast('Валюта: ' + cur()[2]); }
+function setNum(k, v){ S.settings[k] = Math.max(0, +v || 0); save(); toast('Сохранено'); }
+
+
+/* ================= Формы и шторки ================= */
+let sheetState = {};
+
+function openSheet(kind, arg){
+  sheetState = {kind, arg};
+  const box = document.getElementById('sheet-in');
+  box.innerHTML = SHEETS[kind] ? SHEETS[kind](arg) : '';
+  document.getElementById('sheet').classList.add('open');
+  const first = box.querySelector('input,textarea,select');
+  if (first && kind !== 'voice') setTimeout(() => first.focus(), 120);
+}
+function closeSheet(){ if (typeof camEnd === 'function') camEnd(); if (typeof micStopAll === 'function') micStopAll(); document.getElementById('sheet').classList.remove('open'); }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+function val(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+const SHEETS = {
+  exp: () => '<h3>Расход</h3>' +
+    fldMic('На что', '<input id="f-title" placeholder="Продукты в Пятёрочке">', 'f-title') +
+    fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" placeholder="800">', 'f-sum', 'sum') +
+    '<div class="fld"><label>Категория</label><select id="f-cat">' + CATS.map(c => '<option>' + c + '</option>').join('') + '</select></div>' +
+    '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + today() + '"></div>' +
+    '<button class="btn" onclick="saveExp()">Записать расход</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
+
+  inc: () => '<h3>Доход</h3>' +
+    fldMic('Откуда', '<input id="f-title" placeholder="Зарплата">', 'f-title') +
+    fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" placeholder="96000">', 'f-sum', 'sum') +
+    '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + today() + '"></div>' +
+    '<button class="btn ok" onclick="saveInc()">Записать доход</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
+
+  ev: (d) => '<h3>Событие</h3>' +
+    fldMic('Что', '<input id="f-title" placeholder="Маникюр">', 'f-title') +
+    '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (d || today()) + '"></div>' +
+    fldMic('Время', '<input id="f-time" type="time">', 'f-time', 'time') +
+    '<div class="fld"><label>Планируемый расход, ' + sign() + ' — необязательно</label><input id="f-sum" type="number" inputmode="decimal" placeholder="3200"></div>' +
+    '<button class="btn" onclick="saveEv()">Добавить в календарь</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
+
+  meal: () => '<h3>Что съели</h3>' +
+    fldMic('Что', '<input id="f-title" placeholder="Овсянка с ягодами">', 'f-title') +
+    '<div class="fld"><label>Приём пищи</label><div class="pick" id="p-slot">' +
+      SLOTS.map(s => '<button data-v="' + s[0] + '" onclick="pickOne(this)">' + s[1] + '</button>').join('') + '</div></div>' +
+    '<div class="fld"><label>Где</label><div class="pick" id="p-place">' +
+      PLACES.map(p => '<button data-v="' + p[0] + '" onclick="pickOne(this)">' + p[1] + '</button>').join('') + '</div></div>' +
+    (S.settings.foodMode === 'full'
+      ? '<div class="fld"><label>Калории — если знаете</label><input id="f-kcal" type="number" inputmode="numeric" placeholder="320"></div>' : '') +
+    '<button class="btn ok" onclick="saveMeal()">Отметить</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
+
+  voice: () => '<h3>Расскажите свободно</h3>' +
+    '<div class="mut">Скажите всё подряд — про траты, еду и планы. Разложу по разделам.</div>' +
+    '<div class="fld" style="margin-top:10px"><div class="withmic">' +
+      '<textarea id="f-speech" rows="4" placeholder="Потратила восемьсот на продукты, съела омлет, в пятницу маникюр в шесть"></textarea>' +
+      micBtn('f-speech','raw') + '</div></div>' +
+    '<div class="mut" style="margin-bottom:10px">' + (micWhyNot() || 'Нажмите микрофон справа или диктуйте с клавиатуры телефона.') + '</div>' +
+    '<button class="btn" onclick="doParse()">Разложить по полям</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
+
+  backup: () => '<h3>Резервная копия</h3>' +
+    '<div class="mut">Копия — это файл со всеми вашими записями. Держите её не только на телефоне: ' +
+      'отправьте себе в мессенджер или в облако, тогда данные переживут потерю телефона.</div>' +
+    '<button class="btn" style="margin-top:12px" onclick="sendBackup()">Отправить копию себе</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="downloadBackup()">Сохранить файлом</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>',
+
+  scan: () => { setTimeout(openScan, 0); return '<h3>Штрих-код продукта</h3><div class="mut">Включаю камеру…</div>'; },
+
+  check: () => { setTimeout(openCheck, 0); return '<h3>Чек</h3><div class="mut">Включаю камеру…</div>'; }
+};
+
+function pickOne(btn){
+  btn.parentNode.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed','false'));
+  btn.setAttribute('aria-pressed','true');
+}
+function picked(id, dflt){
+  const b = document.querySelector('#' + id + ' button[aria-pressed="true"]');
+  return b ? b.dataset.v : dflt;
+}
+
+function saveExp(){
+  const s = +val('f-sum');
+  if (!s){ toast('Впишите сумму'); return; }
+  addExp({title: val('f-title') || 'Расход', sum: s, cat: val('f-cat'), date: val('f-date') || today()});
+  closeSheet(); toast('Расход записан');
+}
+function saveInc(){
+  const s = +val('f-sum');
+  if (!s){ toast('Впишите сумму'); return; }
+  addInc({title: val('f-title') || 'Доход', sum: s, date: val('f-date') || today()});
+  closeSheet(); toast('Доход записан');
+}
+function saveEv(){
+  const t = val('f-title');
+  if (!t){ toast('Впишите, что за событие'); return; }
+  addEv({title: t, date: val('f-date') || today(), time: val('f-time') || null, plan: +val('f-sum') || null});
+  closeSheet(); toast('Добавлено в календарь');
+}
+function saveMeal(){
+  const t = val('f-title');
+  if (!t){ toast('Впишите, что съели'); return; }
+  addMeal({title: t, slot: picked('p-slot','l'), place: picked('p-place','home'), kcal: +val('f-kcal') || null});
+  closeSheet(); toast('Отмечено');
+}
+
+/* ---------- разбор надиктованного ---------- */
+let parsed = null;
+function doParse(){
+  const text = val('f-speech');
+  if (!text){ toast('Сначала надиктуйте или впишите текст'); return; }
+  parsed = parseSpeech(text);
+  const line = (ic, t, where) => '<div class="to">' + ic + ' <span>' + esc(t) + '</span><em>' + where + '</em></div>';
+  let rows = '';
+  parsed.exp.forEach(e => rows += line('💸', e.title + ' · ' + money(e.sum) + ' · ' + e.cat, 'Деньги'));
+  parsed.inc.forEach(e => rows += line('💰', e.title + ' · ' + money(e.sum), 'Доход'));
+  parsed.meals.forEach(e => rows += line('🍽', e.title + ' · ' + (PLACES.find(p => p[0] === e.place)||['','—'])[1], 'Еда'));
+  parsed.ev.forEach(e => rows += line('📅', e.title + ' · ' + humanDate(e.date) + (e.time ? ', ' + e.time : ''), 'Календарь'));
+  const nothing = !rows;
+  document.getElementById('sheet-in').innerHTML =
+    '<h3>Разложено</h3>' +
+    (nothing ? '<div class="mut">Не удалось ничего распознать. Попробуйте назвать сумму или время: «потратила 800 на продукты».</div>'
+      : '<div class="parse">' + rows + '</div>') +
+    (parsed.rest.length ? '<div class="card" style="margin:0"><div class="lab">Не разобрано</div><div class="mut">' +
+        esc(parsed.rest.join('. ')) + '</div></div>' : '') +
+    (nothing ? '' : '<button class="btn" style="margin-top:12px" onclick="applyParse()">Записать</button>') +
+    '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'voice\')">Сказать заново</button>';
+}
+function applyParse(){
+  if (!parsed) return;
+  parsed.exp.forEach(e => S.exp.push(Object.assign({id:uid(), date:today()}, e)));
+  parsed.inc.forEach(e => S.inc.push(Object.assign({id:uid(), date:today()}, e)));
+  parsed.meals.forEach(e => S.meals.push(Object.assign({id:uid(), date:today()}, e)));
+  parsed.ev.forEach(e => S.ev.push(Object.assign({id:uid()}, e)));
+  save(); closeSheet(); toast('Записано');
+  parsed = null;
+}
+
+/* ---------- копия данных ---------- */
+function backupBlob(){
+  const data = JSON.stringify({app:'tochka-dnya', v:1, at:new Date().toISOString(), data:S}, null, 1);
+  return new File([data], 'tochka-dnya-' + today() + '.json', {type:'application/json'});
+}
+function markBackup(){ S.backupAt = new Date().toISOString(); save(); }
+async function sendBackup(){
+  const file = backupBlob();
+  if (navigator.canShare && navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file], title:'Копия «Точки дня»'});
+      markBackup(); closeSheet(); toast('Копия отправлена');
+      return;
+    }catch(e){ if (e && e.name === 'AbortError') return; }
+  }
+  downloadBackup();
+  toast('Отправка недоступна — файл сохранён, перешлите его себе вручную');
+}
+function downloadBackup(){
+  const file = backupBlob();
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a');
+  a.href = url; a.download = file.name; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  markBackup(); closeSheet(); toast('Копия сохранена');
+}
+function restoreFile(input){
+  const f = input.files && input.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const o = JSON.parse(r.result);
+      const d = o && o.data ? o.data : o;
+      if (!d || !Array.isArray(d.exp)) throw 0;
+      S = d; save(); toast('Копия загружена — все записи на месте');
+    }catch(e){ toast('Это не похоже на копию «Точки дня»'); }
+  };
+  r.readAsText(f);
+  input.value = '';
+}
+function shareApp(){
+  const url = location.href.split('#')[0];
+  if (navigator.share) navigator.share({title:'Точка дня', text:'Кабинет для денег, еды и планов', url}).catch(()=>{});
+  else { navigator.clipboard && navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
+}
+
+/* ---------- карта дня ---------- */
+function cardOfDay(d){
+  const key = iso(d || new Date());
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++){ h ^= key.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  h ^= h >>> 13; h = Math.imul(h, 2246822507) >>> 0; h ^= h >>> 16;
+  return DECK[(h >>> 0) % DECK.length];
+}
+let ART_MODE = 'web';
+function setArt(mode){ ART_MODE = mode; S.settings.art = mode; save(); }
+function dayCardHtml(){
+  const c = cardOfDay(), rec = dayRec(today());
+  return '<div class="daycard">' +
+    '<div class="row" style="align-items:center;gap:14px">' +
+      '<div class="tarot">' + cardArt(c.id) + '</div>' +
+      '<div style="flex:1">' + lab('Карта дня') +
+        '<div style="font-family:\'Spectral\',serif;font-size:17px;font-weight:600">' + esc(c.n) + '</div>' +
+        '<div class="mut" style="margin-top:4px">' + esc(DAYTXT[c.id] || c.u) + '</div>' +
+      '</div></div>' +
+    '<button class="btn ghost" style="margin-top:11px" onclick="openAdvice()">Совет карты</button>' +
+    '<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:11px">' +
+      '<div style="font-size:13px;margin-bottom:8px">Вечером: карта была про ваш день?</div>' +
+      '<div class="pick"><button aria-pressed="' + (rec.card === 'hit') + '" onclick="markCard(\'hit\')">Совпало</button>' +
+      '<button aria-pressed="' + (rec.card === 'miss') + '" onclick="markCard(\'miss\')">Мимо</button></div></div>' +
+    '<div class="mut" style="margin-top:9px;font-size:11px">Для настроения. Новая карта каждое утро.</div></div>';
+}
+function markCard(v){ dayRec(today()).card = v; save(); }
+function openAdvice(){
+  const c = cardOfDay(), e = EXT[c.id];
+  document.getElementById('sheet-in').innerHTML =
+    '<h3>' + esc(c.n) + '</h3><div class="mut">Карта дня</div>' +
+    '<div class="parse"><div style="font-size:14px">' + esc(DAYTXT[c.id] || c.u) + '</div></div>' +
+    (e ? '<div class="card" style="margin:0">' +
+      '<div class="stat"><span>Отношения</span></div><div class="mut" style="padding:4px 0 8px">' + esc(e[0]) + '</div>' +
+      '<div class="stat"><span>Работа и деньги</span></div><div class="mut" style="padding:4px 0 8px">' + esc(e[1]) + '</div>' +
+      '<div class="stat"><span>Состояние</span></div><div class="mut" style="padding:4px 0 8px">' + esc(e[2]) + '</div>' +
+      '<div class="stat"><span>Совет карты</span></div><div style="font-size:13px;padding:4px 0 8px">' + esc(e[3]) + '</div>' +
+      '<div class="stat" style="border:0"><span>Что означает сама карта</span></div><div class="mut" style="padding-top:4px">' + esc(c.u) + '</div>' +
+      '</div>' : '') +
+    '<button class="btn" style="margin-top:12px" onclick="closeSheet()">Закрыть</button>';
+  document.getElementById('sheet').classList.add('open');
+}
+
+
+/* ================= Голосовое заполнение полей =================
+   Встроенное распознавание речи есть в Chrome и требует открытия кабинета
+   по адресу в сети (не файлом с диска). Где его нет — подсказываем диктовку
+   с клавиатуры телефона: результат тот же, надёжность выше. */
+function micOn(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
+function inFrame(){ try{ return window.self !== window.top; }catch(e){ return true; } }
+function secureOrigin(){ return location.protocol === 'https:' || location.hostname === 'localhost'; }
+function micWhyNot(){
+  if (inFrame()) return 'Во встроенном окне просмотра микрофон недоступен — откройте кабинет отдельной страницей.';
+  if (!secureOrigin()) return 'Микрофон работает только с адреса в сети (https), не с файла на диске.';
+  if (!micOn()) return 'Этот браузер не умеет распознавать речь — нажмите микрофон на клавиатуре телефона.';
+  return null;
+}
+function micBtn(targetId, mode){
+  return '<button type="button" class="mic" title="Сказать голосом" onclick="micStart(this,\'' + targetId + '\',\'' + (mode || 'text') + '\')">🎙</button>';
+}
+function fldMic(labelText, inputHtml, targetId, mode){
+  return '<div class="fld"><label>' + labelText + '</label><div class="withmic">' + inputHtml + micBtn(targetId, mode) + '</div></div>';
+}
+let rec = null;
+function micStart(btn, targetId, mode){
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  const why = micWhyNot();
+  if (why){
+    toast(why + ' Пока диктуйте микрофоном на клавиатуре телефона.');
+    el.focus();
+    return;
+  }
+  if (rec){ try{ rec.stop(); }catch(e){} rec = null; btn.dataset.on = '0'; return; }
+  const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+  rec = new R();
+  rec.lang = 'ru-RU'; rec.interimResults = false; rec.maxAlternatives = 1;
+  btn.dataset.on = '1';
+  rec.onresult = e => {
+    btn.dataset.on = '0'; rec = null;
+    const said = e.results[0][0].transcript;
+    if (mode === 'sum'){
+      const v = parseSum(said);
+      if (v) el.value = v; else toast('Не расслышала сумму: «' + said + '»');
+    } else if (mode === 'time'){
+      const t = parseTime(said);
+      if (t) el.value = t; else toast('Не расслышала время: «' + said + '»');
+    } else {
+      el.value = (el.value ? el.value + ', ' : '') + (mode === 'raw' ? said : clean(said));
+    }
+  };
+  rec.onerror = ev => {
+    btn.dataset.on = '0'; rec = null;
+    toast(ev.error === 'not-allowed'
+      ? (inFrame() ? 'Во встроенном окне просмотра микрофон недоступен — откройте кабинет отдельной страницей.'
+                   : 'Микрофон запрещён — разрешите доступ браузеру.')
+      : 'Не получилось расслышать. Попробуйте микрофон на клавиатуре телефона.');
+  };
+  rec.onend = () => { btn.dataset.on = '0'; rec = null; };
+  try{ rec.start(); }catch(e){ btn.dataset.on = '0'; rec = null; }
+}
+function micStopAll(){ if (rec){ try{ rec.stop(); }catch(e){} rec = null; } }
+
+/* ================= Камера: QR чека и штрих-код продукта =================
+   Используется встроенный в браузер распознаватель кодов (BarcodeDetector).
+   Он есть в Chrome на Android. Где его нет (Safari на iPhone) — предлагаем
+   ручной ввод, приложение не ломается. Никаких внешних библиотек. */
+
+function camSupported(){ return typeof window.BarcodeDetector !== 'undefined'; }
+let camStream = null, camStop = false;
+
+function camBox(title, hint){
+  return '<h3>' + esc(title) + '</h3><div class="mut">' + esc(hint) + '</div>' +
+    '<div class="camwrap"><video id="cam" playsinline muted autoplay></video><div class="camline"></div></div>' +
+    '<div class="mut" id="cam-note" style="margin-top:8px">Наведите камеру на код</div>';
+}
+async function camStart(kinds, onCode){
+  camStop = false;
+  const video = document.getElementById('cam');
+  if (!video) return;
+  try{
+    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    video.srcObject = camStream;
+    await video.play();
+  }catch(e){
+    document.getElementById('cam-note').textContent = inFrame()
+      ? 'Во встроенном окне просмотра камера недоступна — откройте кабинет отдельной страницей.'
+      : (!secureOrigin() ? 'Камера работает только с адреса в сети (https), не с файла на диске.'
+                         : 'Камера запрещена — разрешите доступ браузеру или внесите вручную.');
+    return;
+  }
+  const det = new window.BarcodeDetector({formats:kinds});
+  const tick = async () => {
+    if (camStop) return;
+    try{
+      const codes = await det.detect(video);
+      if (codes && codes.length){ camEnd(); onCode(codes[0].rawValue); return; }
+    }catch(e){}
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+function camEnd(){
+  camStop = true;
+  if (camStream){ camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+}
+
+/* ---------- чек ---------- */
+/* В QR фискального чека лежат реквизиты вида
+   t=20260828T1542&s=1842.00&fn=...&i=...&fp=...&n=1
+   Состава покупок там нет — он хранится в базе ФНС и запрашивается отдельно. */
+function parseReceiptQR(raw){
+  const q = {};
+  String(raw).split('&').forEach(p => { const [k,v] = p.split('='); if (k) q[k] = v; });
+  if (!q.s || !q.t) return null;
+  const sum = parseFloat(String(q.s).replace(',','.'));
+  const t = String(q.t);
+  const date = t.length >= 8 ? t.slice(0,4) + '-' + t.slice(4,6) + '-' + t.slice(6,8) : today();
+  const time = t.length >= 13 ? t.slice(9,11) + ':' + t.slice(11,13) : null;
+  if (!sum) return null;
+  return {sum, date, time, fn:q.fn || null, fd:q.i || null, fp:q.fp || null};
+}
+function openCheck(){
+  if (!camSupported()){
+    document.getElementById('sheet-in').innerHTML =
+      '<h3>Чек</h3><div class="mut">Этот браузер не умеет читать коды камерой. На айфоне откройте кабинет в Chrome ' +
+      'или внесите сумму вручную — она есть на чеке крупно.</div>' +
+      '<button class="btn" style="margin-top:12px" onclick="openSheet(\'exp\')">Внести сумму</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'voice\')">Сказать голосом</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
+    return;
+  }
+  document.getElementById('sheet-in').innerHTML =
+    camBox('Чек', 'Наведите на квадратный код внизу чека — сумма и дата подставятся сами.') +
+    '<button class="btn ghost" style="margin-top:12px" onclick="camEnd();openSheet(\'exp\')">Внести вручную</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
+  camStart(['qr_code'], raw => {
+    const r = parseReceiptQR(raw);
+    if (!r){ toast('Это не фискальный чек — попробуйте ещё раз'); openCheck(); return; }
+    checkConfirm(r);
+  });
+}
+function checkConfirm(r){
+  document.getElementById('sheet-in').innerHTML =
+    '<h3>Чек прочитан</h3>' +
+    '<div class="parse"><div class="to">🧾 <span>' + money(r.sum) + '</span><em>' + humanDate(r.date) + (r.time ? ', ' + r.time : '') + '</em></div></div>' +
+    '<div class="fld"><label>Куда отнести</label><div class="pick" id="p-cat">' +
+      CATS.map((c,i) => '<button data-v="' + esc(c) + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + c + '</button>').join('') +
+    '</div></div>' +
+    '<div class="fld"><label>Название — необязательно</label><input id="f-title" placeholder="Магазин у дома"></div>' +
+    '<div class="mut">Состав по позициям в коде не записан: он хранится в базе ФНС и подключается отдельно. ' +
+      'Если нужно разделить чек — проговорите голосом, что в нём было.</div>' +
+    '<button class="btn" style="margin-top:12px" onclick="saveCheck(' + r.sum + ',\'' + r.date + '\')">Записать расход</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="openCheck()">Сканировать другой</button>';
+}
+function saveCheck(sum, date){
+  addExp({title: val('f-title') || 'Покупка по чеку', sum: sum, cat: picked('p-cat','Продукты'), date: date, src:'из чека'});
+  closeSheet(); toast('Расход по чеку записан');
+}
+
+/* ---------- штрих-код продукта ---------- */
+/* Своего справочника производителей нет — он платный. Поэтому кабинет
+   запоминает продукты сам: незнакомый код вносится один раз и дальше узнаётся. */
+function products(){ if (!S.products) S.products = {}; return S.products; }
+function openScan(){
+  if (!camSupported()){
+    document.getElementById('sheet-in').innerHTML =
+      '<h3>Штрих-код</h3><div class="mut">Этот браузер не умеет читать коды камерой. Внесите продукт вручную — ' +
+      'в следующий раз его можно будет выбрать из своих.</div>' +
+      '<button class="btn ok" style="margin-top:12px" onclick="openSheet(\'meal\')">Внести вручную</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
+    return;
+  }
+  document.getElementById('sheet-in').innerHTML =
+    camBox('Штрих-код продукта', 'Наведите на полоски на упаковке.') +
+    '<button class="btn ghost" style="margin-top:12px" onclick="camEnd();openSheet(\'meal\')">Внести вручную</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
+  camStart(['ean_13','ean_8','upc_a','upc_e'], code => {
+    const p = products()[code];
+    if (p) scanKnown(code, p); else scanNew(code);
+  });
+}
+function scanKnown(code, p){
+  document.getElementById('sheet-in').innerHTML =
+    '<h3>' + esc(p.name) + '</h3>' +
+    '<div class="mut num">100 г: ' + num(p.kcal) + ' ккал</div>' +
+    '<div class="fld" style="margin-top:12px"><label>Сколько граммов</label><input id="f-g" type="number" inputmode="numeric" value="100"></div>' +
+    '<div class="fld"><label>Приём пищи</label><div class="pick" id="p-slot">' +
+      SLOTS.map((s,i) => '<button data-v="' + s[0] + '" aria-pressed="' + (i===2) + '" onclick="pickOne(this)">' + s[1] + '</button>').join('') +
+    '</div></div>' +
+    '<button class="btn ok" onclick="saveScan(\'' + code + '\')">Добавить в дневник</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="openScan()">Сканировать другой</button>';
+}
+function scanNew(code){
+  document.getElementById('sheet-in').innerHTML =
+    '<h3>Новый продукт</h3>' +
+    '<div class="mut">Этот код кабинету пока незнаком. Впишите один раз — дальше он будет узнаваться сам.</div>' +
+    fldMic('Название', '<input id="f-name" placeholder="Хлеб «Бородинский»">', 'f-name') +
+    '<div class="fld"><label>Калорийность на 100 г — с упаковки</label><input id="f-kcal100" type="number" inputmode="numeric" placeholder="208"></div>' +
+    '<button class="btn" onclick="saveProduct(\'' + code + '\')">Запомнить продукт</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="openScan()">Отмена</button>';
+}
+function saveProduct(code){
+  const name = val('f-name'), kcal = +val('f-kcal100');
+  if (!name){ toast('Впишите название'); return; }
+  products()[code] = {name, kcal: kcal || 0};
+  save(); toast('Продукт запомнен');
+  scanKnown(code, products()[code]);
+}
+function saveScan(code){
+  const p = products()[code], g = +val('f-g') || 100;
+  addMeal({title: p.name + ', ' + g + ' г', slot: picked('p-slot','s'), place:'home',
+           kcal: p.kcal ? Math.round(p.kcal * g / 100) : null});
+  closeSheet(); toast('Добавлено в дневник');
+}
+
+/* мои продукты — список в «Ещё» */
+function myProducts(){
+  const list = Object.entries(products());
+  document.getElementById('sheet-in').innerHTML =
+    '<h3>Мои продукты</h3>' +
+    (list.length ? list.map(([code,p]) =>
+      '<div class="item"><div class="ic">🏷</div><div class="txt"><b>' + esc(p.name) + '</b>' +
+      '<small>' + num(p.kcal) + ' ккал на 100 г · ' + esc(code) + '</small></div>' +
+      '<button class="del" onclick="forgetProduct(\'' + code + '\')">✕</button></div>').join('')
+      : '<div class="empty">Пока пусто. Отсканируйте упаковку — продукт запомнится.</div>') +
+    '<button class="btn ghost" style="margin-top:12px" onclick="closeSheet()">Закрыть</button>';
+  document.getElementById('sheet').classList.add('open');
+}
+function forgetProduct(code){ delete products()[code]; save(); myProducts(); }
+
+/* ---------- запуск ---------- */
+load();
+ART_MODE = S.settings.art || 'web';
+renderAll();
+if (!storageOk) toast('Браузер не сохраняет данные — работайте в обычном режиме, не в инкогнито');
+
+</script>
+</body>
+</html>
