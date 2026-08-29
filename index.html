@@ -570,7 +570,7 @@ const SPLITTERS = ['потом','затем','после этого','ещё','�
  'потратила','потратил','купила','купил','заплатила','заплатил','отдала','отдал','перевела',
  'съела','съел','поела','поел','позавтракала','пообедала','поужинала','перекусила','выпила','выпил',
  'получила','получил','пришла зарплата','пришли деньги','заработала',
- 'записалась','записался','встреча','созвон','не забыть','надо','нужно','купить','заехать','зайти',
+ 'записалась','записался','встреча','созвон','надо','нужно','заехать','зайти',
  'завтра','послезавтра'];
 function segments(text){
   let t = ' ' + String(text).replace(/[,;.!?]/g, ' | ').replace(/\s+/g,' ') + ' ';
@@ -748,6 +748,7 @@ function clean(t){
   cut(/ [0-9][0-9 ]*(руб[а-яё]*|₽|тысяч[а-яё]*)? /gi);
   cut(/ на [0-9]+ /gi);
   cut(new RegExp(' (' + Object.keys(WORDNUM).join('|') + ') ', 'gi'));
+  cut(/ (тысяч[а-яё]*|миллион[а-яё]*|руб[а-яё]*|₽|манат[а-яё]*|тенге) /gi);
   s = s.replace(/ {2,}/g,' ').trim();
   s = s.replace(/^(в|во|на|за|про|до|к|и|а|с|у)\s+/i,'').trim();
   for (let n = 0; n < 3; n++)
@@ -1502,15 +1503,14 @@ function renderMoney(){
   exp += card(lab('Последние операции') +
     (last.length ? last.map(e =>
       '<div class="item tapline" onclick="editExp(\'' + e.id + '\')">' +
-      '<div class="ic">' + (e.src === 'голосом' ? '🎙' : e.src === 'из чека' ? '🧾' : '₽') + '</div>' +
+      '<div class="ic">' + (e.src === 'голосом' ? '🎙' : '₽') + '</div>' +
       '<div class="txt"><b>' + esc(e.title) + '</b>' +
       '<small>' + esc(e.cat) + ' · ' + humanDate(e.date) + '</small></div>' +
       '<div class="sum">−' + money(e.sum) + '</div>' +
       '<button class="mini" onclick="event.stopPropagation();editExp(\'' + e.id + '\')">изменить</button>' +
       '<button class="del" onclick="event.stopPropagation();drop(\'exp\',\'' + e.id + '\')">✕</button></div>').join('')
       : '<div class="empty">Записей пока нет. Скажите «потратила восемьсот на продукты» — запишу сюда.</div>') +
-    '<button class="btn" style="margin-top:11px" onclick="openSheet(\'exp\')">Добавить расход</button>' +
-    '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'check\')">Считать чек камерой</button>');
+    '<button class="btn" style="margin-top:11px" onclick="openSheet(\'exp\')">Добавить расход</button>');
 
   const li = S.inc.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,8);
   let inc = card('<div class="row"><div>' + lab('Получено за месяц') + '<div class="big" style="color:var(--ok)">' + money(got) + '</div></div></div>' +
@@ -1689,7 +1689,7 @@ function renderMore(){
 
       '<div class="item"><div class="ic">💬</div><div class="txt"><b>Рассказать подругам</b><small>Отправить ссылку на приложение</small></div>' +
       '<button class="del" style="color:var(--accent)" onclick="shareApp()">отправить</button></div>') +
-    card(lab('Версия') + '<div class="mut">Сборка от 29.08 14:06. Если цифры ведут себя странно — ' +
+    card(lab('Версия') + '<div class="mut">Сборка от 29.08 14:16. Если цифры ведут себя странно — ' +
       'проверьте, что открыт этот файл, а не старая копия.</div>' +
       '<button class="btn ghost" style="margin-top:10px" onclick="resetMoneyDefaults()">Сбросить старые настройки денег</button>') +
     card(lab('Важно') + '<div class="mut">Приложение считает только то, что вы вносите сами. ' +
@@ -1816,9 +1816,12 @@ const SHEETS = {
     '<button class="btn ghost" style="margin-top:8px" onclick="downloadBackup()">Сохранить файлом</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>',
 
-  scan: () => { setTimeout(openScan, 0); return '<h3>Штрих-код продукта</h3><div class="mut">Включаю камеру…</div>'; },
 
-  check: () => { setTimeout(openCheck, 0); return '<h3>Чек</h3><div class="mut">Включаю камеру…</div>'; }
+
+  check: () => '<h3>Чек</h3>' +
+    '<div class="mut">Сумму с чека внесите в расходы, а состав, если нужен, надиктуйте заметкой.</div>' +
+    '<button class="btn" style="margin-top:12px" onclick="openSheet(\'exp\')">Внести расход</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>'
 };
 
 function pickOne(btn){
