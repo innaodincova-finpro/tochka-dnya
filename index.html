@@ -1385,6 +1385,8 @@ function renderToday(){
       bar(Math.min(100,(S.notes.length + S.dreams.length) * 8), 'var(--ok)') + '</div>' +
   '</div>';
 
+  h += veilCard();
+
   const ev = evOf(d);
   h += card(lab('Назначено на сегодня') +
     (ev.length ? ev.map(e => {
@@ -1402,7 +1404,9 @@ function renderToday(){
   const lists = activeLists();
   lists.forEach(n => {
     const left = n.items.filter(i => !i.done).length;
-    h += card(lab('Купить' + (n.where ? ' · ' + n.where : '')) + listBody(n) +
+    h += card('<div class="row" style="margin-bottom:6px">' +
+      lab('Купить' + (n.where ? ' · ' + n.where : '')).replace('margin-bottom:8px','') +
+      '<button class="mini" onclick="editNote(\'' + n.id + '\')">изменить</button></div>' + listBody(n) +
       '<div class="mut" style="margin-top:8px;font-size:11px">Осталось ' + left + ' ' +
       plural(left,'пункт','пункта','пунктов') + '. Отметьте — исчезнет из списка.</div>');
   });
@@ -1410,8 +1414,9 @@ function renderToday(){
   const dn = dueNotes();
   if (dn.length) h += card(lab('Напоминание') + dn.map(n =>
     '<div class="item" style="align-items:flex-start"><div class="ic">🔔</div>' +
-    '<div class="txt"><b style="font-weight:400;font-size:14px">' + esc(n.text) + '</b>' +
-    '<small>' + (n.due === today() ? 'на сегодня' : 'было на ' + humanDate(n.due)) + '</small></div>' +
+    '<div class="txt" onclick="editNote(\'' + n.id + '\')" style="cursor:pointer">' +
+    '<b style="font-weight:400;font-size:14px">' + esc(n.text) + '</b>' +
+    '<small>' + (n.due === today() ? 'на сегодня' : 'было на ' + humanDate(n.due)) + ' · нажмите, чтобы изменить</small></div>' +
     '<button class="del" style="color:var(--accent)" onclick="clearDue(\'' + n.id + '\')">снять</button></div>').join(''));
 
   const te = S.exp.filter(x => x.date === d);
@@ -1467,6 +1472,7 @@ function renderCal(){
     const ds = calMonth + '-' + String(i).padStart(2,'0');
     const marks = [];
     if (S.ev.some(e => occursOn(e, ds))) marks.push('var(--accent)');
+    if (S.notes.some(n => n.due === ds)) marks.push('var(--ochre)');
     if (S.exp.some(e => e.date === ds) || S.inc.some(e => e.date === ds)) marks.push('var(--ok)');
     cells += '<div class="d' + (ds === today() ? ' today' : '') + '" onclick="pickDay(\'' + ds + '\')">' + i +
       (marks.length ? '<span class="mk">' + marks.map(c => '<i style="background:' + (ds === today() ? '#fff' : c) + '"></i>').join('') + '</span>' : '') +
@@ -1474,6 +1480,7 @@ function renderCal(){
   }
   const sel = selDay || today();
   const list = evOf(sel);
+  const dueHere = dueOn(sel);
   document.getElementById('s-cal').innerHTML =
     card('<div class="row" style="margin-bottom:10px"><span style="font-family:\'Spectral\',serif;font-size:15px;font-weight:600">' +
       MONTHS_N[mm-1] + ' ' + y + '</span><span class="mut"><button class="del" style="color:var(--accent)" onclick="shiftMonth(-1)">‹</button> ' +
@@ -1481,23 +1488,41 @@ function renderCal(){
       '<div class="cal"><div class="dw">пн</div><div class="dw">вт</div><div class="dw">ср</div><div class="dw">чт</div><div class="dw">пт</div><div class="dw">сб</div><div class="dw">вс</div>' +
       cells + '</div>' +
       '<div class="legend" style="margin-top:12px"><span><i class="dot" style="background:var(--accent)"></i>Встречи и дела</span>' +
+      '<span><i class="dot" style="background:var(--ochre)"></i>Напоминания из записей</span>' +
       '<span><i class="dot" style="background:var(--ok)"></i>Деньги</span></div>') +
     card(lab(humanDate(sel)) +
-      (list.length ? list.map(e =>
+      (list.map(e =>
         '<div class="item"><div class="ic">📅</div><div class="txt"><b>' + esc(e.title) + '</b>' +
         '<small>' + (e.time ? esc(e.time) : 'без времени') + (e.plan ? ' · ' + money(e.plan) : '') + '</small></div>' +
         '<button class="del" style="color:var(--accent)" onclick="toPhoneCalendar(\'' + e.id + '\')">напомнить</button>' +
-        '<button class="del" onclick="drop(\'ev\',\'' + e.id + '\')">убрать</button></div>').join('')
+        '<button class="del" onclick="drop(\'ev\',\'' + e.id + '\')">убрать</button></div>').join('')) +
+      (dueHere.map(n =>
+        '<div class="item"><div class="ic">🔔</div><div class="txt" onclick="editNote(\'' + n.id + '\')" style="cursor:pointer">' +
+        '<b>' + esc(noteTitle(n)) + '</b><small>из записей · нажмите, чтобы изменить</small></div>' +
+        '<button class="del" style="color:var(--accent)" onclick="noteToPhone(\'' + n.id + '\')">напомнить</button></div>').join('')) +
+      (list.length || dueHere.length ? ''
         : '<div class="empty">На этот день ничего не назначено. Нажмите на любое число, чтобы посмотреть другой день.</div>') +
       '<button class="btn" style="margin-top:11px" onclick="openSheet(\'ev\',\'' + sel + '\')">Добавить событие</button>') +
     card(lab('Впереди') + (function(){
-      const up = upcoming(60).slice(0,8);
-      return up.length ? up.map(x => {
+      const up = upcoming(60).map(x => ({date:x.date, in:x.in, e:x.e}));
+      S.notes.forEach(n => {
+        if (!n.due || n.due < today()) return;
+        const away = Math.round((new Date(n.due + 'T12:00') - new Date(today() + 'T12:00')) / 86400000);
+        if (away <= 60) up.push({date:n.due, in:away, note:n});
+      });
+      up.sort((a,b) => a.date.localeCompare(b.date));
+      const когда = x => x.in === 0 ? 'сегодня' : x.in === 1 ? 'завтра'
+        : humanDate(x.date) + ' · через ' + x.in + ' ' + plural(x.in,'день','дня','дней');
+      return up.length ? up.slice(0,10).map(x => {
+        if (x.note) return '<div class="item"><div class="ic">🔔</div>' +
+          '<div class="txt" onclick="editNote(\'' + x.note.id + '\')" style="cursor:pointer"><b>' + esc(noteTitle(x.note)) + '</b>' +
+          '<small>' + когда(x) + ' · из записей</small></div>' +
+          '<button class="del" style="color:var(--accent)" onclick="noteToPhone(\'' + x.note.id + '\')">напомнить</button></div>';
         const e = x.e, y = yearsTurning(e, x.date);
         const ic = e.kind === 'bd' ? '🎂' : e.kind === 'pay' ? '💳' : e.kind === 'doc' ? '📄' : '→';
         return '<div class="item"><div class="ic">' + ic + '</div><div class="txt"><b>' + esc(e.title) +
           (y ? ' · ' + y + ' ' + plural(y,'год','года','лет') : '') + '</b>' +
-          '<small>' + (x.in === 0 ? 'сегодня' : x.in === 1 ? 'завтра' : humanDate(x.date) + ' · через ' + x.in + ' ' + plural(x.in,'день','дня','дней')) +
+          '<small>' + когда(x) +
           (e.time ? ', ' + esc(e.time) : '') + (e.repeat && e.repeat !== 'none' ? ' · повторяется' : '') + '</small></div>' +
           (e.plan ? '<div class="sum">' + money(e.plan) + '</div>' : '') +
           '<button class="del" style="color:var(--accent)" onclick="toPhoneCalendar(\'' + e.id + '\')">напомнить</button></div>';
@@ -1642,13 +1667,17 @@ function eventICS(e){
             : 'DTSTART:' + start + '\r\nDTEND:' + end + '\r\n') +
     rule +
     'SUMMARY:' + String(e.title).replace(/[,;]/g,' ') + '\r\n' +
-    (e.plan ? 'DESCRIPTION:Планируемый расход ' + e.plan + '\r\n' : '') +
+    (e.desc ? 'DESCRIPTION:' + String(e.desc).replace(/[,;]/g,' ') + '\r\n'
+            : e.plan ? 'DESCRIPTION:Планируемый расход ' + e.plan + '\r\n' : '') +
     alarm(1440, 'Завтра: ' + String(e.title).replace(/[,;]/g,' ')) +
     (e.time ? alarm(120, 'Через два часа') : '') +
     'END:VEVENT\r\nEND:VCALENDAR\r\n';
 }
 async function toPhoneCalendar(id){
   const e = S.ev.find(x => x.id === id);
+  if (e) toPhoneCalendarObj(e);
+}
+async function toPhoneCalendarObj(e){
   if (!e) return;
   const file = new File([eventICS(e)], 'sobytie.ics', {type:'text/calendar'});
   if (navigator.canShare && navigator.canShare({files:[file]})){
@@ -1692,12 +1721,16 @@ function renderNotes(){
         ? '<div style="border-bottom:1px solid var(--line);padding:10px 0">' +
           '<div class="row" style="margin-bottom:6px"><b style="font-size:14px;font-weight:500">Купить' +
             (x.where ? ' · ' + esc(x.where) : '') + '</b>' +
-          '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button></div>' +
+          '<span><button class="mini" onclick="editNote(\'' + x.id + '\')">изменить</button>' +
+          '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button></span></div>' +
           listBody(x) +
-          '<div class="mut" style="font-size:11px;margin-top:6px">' + humanDate(x.date) + '</div></div>'
+          '<div class="mut" style="font-size:11px;margin-top:6px">' + humanDate(x.date) +
+            (x.due ? ' · напомню ' + humanDate(x.due) : '') + '</div></div>'
         : '<div class="item" style="align-items:flex-start"><div class="ic">' + (tab === 'note' ? '✎' : '☾') + '</div>' +
-          '<div class="txt"><b style="font-weight:400;font-size:14px;white-space:pre-wrap">' + esc(x.text) + '</b>' +
+          '<div class="txt" onclick="editNote(\'' + x.id + '\')" style="cursor:pointer">' +
+          '<b style="font-weight:400;font-size:14px;white-space:pre-wrap">' + esc(x.text) + '</b>' +
           '<small>' + humanDate(x.date) + (x.due ? ' · напомню ' + humanDate(x.due) : '') + '</small></div>' +
+          '<button class="mini" onclick="editNote(\'' + x.id + '\')">изменить</button>' +
           '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button></div>')).join('')
       : '<div class="empty">' + (q ? 'Ничего не нашлось.'
           : (tab === 'note' ? 'Пока пусто. Сюда — списки покупок, мысли, что сказал врач, что подарить.'
@@ -1773,10 +1806,71 @@ function refreshList(){
 }
 /* напоминания по заметкам с датой */
 function dueNotes(){ return S.notes.filter(n => n.due && !n.items && n.due <= today()); }
+function dueOn(d){ return S.notes.filter(n => n.due === d); }
+function noteTitle(n){
+  if (n.items) return 'Купить' + (n.where ? ' · ' + n.where : '') + ': ' +
+    n.items.filter(i => !i.done).map(i => i.t).join(', ');
+  return n.text;
+}
 function clearDue(id){
   const n = S.notes.find(x => x.id === id);
   if (!n) return;
   delete n.due; save(); toast('Напоминание снято, заметка осталась');
+}
+
+/* ---------- правка записи ---------- */
+let editNoteId = null;
+function editNote(id){ editNoteId = id; openSheet('noteEdit'); }
+function findNote(id){
+  return S.notes.find(x => x.id === id) || S.dreams.find(x => x.id === id) || null;
+}
+function isDreamNote(id){ return S.dreams.some(x => x.id === id); }
+function autoItems(){
+  const el = document.getElementById('f-items'), src = val('f-note');
+  if (!el) return;
+  const it = listItems(src);
+  if (!it.length){ toast('Не нашла, что разложить на пункты'); return; }
+  el.value = it.map(i => i.t).join('\n');
+  const wh = document.getElementById('f-where');
+  if (wh && !wh.value) wh.value = shopOf(src) || '';
+  toast('Разложила на ' + it.length + ' ' + plural(it.length,'пункт','пункта','пунктов') + ' — поправьте, если что');
+}
+function saveNoteEdit(){
+  const n = findNote(editNoteId);
+  if (!n) return;
+  const txt = val('f-note');
+  const lines = (val('f-items') || '').split('\n').map(x => x.trim()).filter(Boolean);
+  if (!txt && !lines.length){ toast('Запись пустая — впишите текст или пункты'); return; }
+  n.text = tidy(txt) || n.text;
+  if (isDreamNote(editNoteId)){ save(); closeSheet(); toast('Изменено'); return; }
+  if (lines.length){
+    const was = {};
+    (n.items || []).forEach(i => { was[i.t.toLowerCase()] = i.done; });
+    n.items = lines.slice(0,40).map(t => ({t: t.charAt(0).toUpperCase() + t.slice(1), done: !!was[t.toLowerCase()]}));
+    const wh = val('f-where');
+    if (wh) n.where = wh; else delete n.where;
+  } else { delete n.items; delete n.where; }
+  const due = val('f-due');
+  if (due) n.due = due; else delete n.due;
+  save(); closeSheet();
+  toast(due ? 'Изменено · напомню ' + humanDate(due) : 'Изменено');
+}
+function deleteNoteFromEdit(){
+  const k = isDreamNote(editNoteId) ? 'dreams' : 'notes';
+  S[k] = S[k].filter(x => x.id !== editNoteId);
+  editNoteId = null; save(); closeSheet(); toast('Удалено');
+}
+/* напоминание из записи — в календарь телефона, как и событие */
+function noteToPhone(id){
+  const n = S.notes.find(x => x.id === id);
+  if (!n) return;
+  if (!n.due){ toast('У записи нет даты — поставьте её в правке'); editNote(id); return; }
+  toPhoneCalendarObj({
+    id: n.id,
+    title: n.items ? ('Купить' + (n.where ? ' · ' + n.where : '')) : n.text.slice(0,90),
+    date: n.due, time: null, repeat: 'none',
+    desc: n.items ? n.items.filter(i => !i.done).map(i => i.t).join(', ') : ''
+  });
 }
 /* что повторяется в снах — считается из её же записей, без толкований */
 function dreamHint(){
@@ -1791,6 +1885,210 @@ function dreamHint(){
   return '<div style="font-size:14px">В ' + S.dreams.length + ' ' + plural(S.dreams.length,'записи','записях','записях') +
     ' чаще всего повторяется: ' + top.map(t => esc(t[0]) + ' (' + t[1] + ')').join(', ') + '.</div>' +
     '<div class="mut" style="margin-top:7px">Это просто подсчёт слов из ваших записей. Никаких толкований.</div>';
+}
+
+/* ================= Наблюдения =================
+   Приложение считает только по вашим же записям и только тогда, когда данных
+   достаточно. Если их мало — оно молчит, а не выдумывает закономерность.
+   Показывается вуалью: намёк без цифр, открывать или нет — решаете вы. */
+const WDAY_ACC = ['воскресенья','понедельники','вторники','среды','четверги','пятницы','субботы'];
+const WDAY_DAT = ['воскресеньям','понедельникам','вторникам','средам','четвергам','пятницам','субботам'];
+const OBS_NOTE = 'Это совпадение в ваших записях, а не причина и следствие. Приложение ничего не предсказывает.';
+function avgOf(a){ return a.length ? a.reduce((s,x) => s + x, 0) / a.length : 0; }
+function obsCfg(){
+  if (!S.settings.obs) S.settings.obs = {off:0, lastAt:null, seen:{}, muted:{}};
+  const o = S.settings.obs;
+  o.seen = o.seen || {}; o.muted = o.muted || {};
+  return o;
+}
+function spentOn(d){ return sum(S.exp.filter(e => e.date === d)); }
+
+/* день недели с заметно большими тратами */
+function obsWeekday(){
+  const dates = [...new Set(S.exp.map(e => e.date))].sort();
+  if (S.exp.length < 15 || dates.length < 10) return null;
+  const span = (new Date(dates[dates.length-1] + 'T12:00') - new Date(dates[0] + 'T12:00')) / 86400000;
+  if (span < 20) return null;
+  const bySum = {}, byCount = {};
+  for (let t = new Date(dates[0] + 'T12:00'); t <= new Date(dates[dates.length-1] + 'T12:00'); t.setDate(t.getDate() + 1)){
+    const w = t.getDay(), d = iso(t);
+    byCount[w] = (byCount[w] || 0) + 1;
+    bySum[w] = (bySum[w] || 0) + spentOn(d);
+  }
+  const avg = Object.keys(byCount).filter(w => byCount[w] >= 3).map(w => [+w, bySum[w] / byCount[w]]);
+  if (avg.length < 6) return null;
+  avg.sort((a,b) => b[1] - a[1]);
+  const top = avg[0], rest = avgOf(avg.slice(1).map(x => x[1]));
+  if (!rest || top[1] < rest * 1.5) return null;
+  return {id:'wday',
+    teaser:'Кое-что заметила про ваши ' + WDAY_ACC[top[0]] + '.',
+    title:'Дни недели',
+    body:'По ' + WDAY_DAT[top[0]] + ' у вас уходит в среднем ' + money(top[1]) +
+         ', в остальные дни — ' + money(rest) + '.'};
+}
+/* категория, куда уходит много мелкими шагами */
+function obsHabit(){
+  const m = monthOf(today()), by = {};
+  expOf(m).forEach(e => { by[e.cat] = by[e.cat] || {n:0, s:0}; by[e.cat].n++; by[e.cat].s += +e.sum || 0; });
+  const c = Object.entries(by).filter(x => x[1].n >= 6).sort((a,b) => b[1].s - a[1].s)[0];
+  if (!c) return null;
+  return {id:'habit',
+    teaser:'Одна привычка набегает по мелочи.',
+    title:'Мелкими шагами',
+    body:'В этом месяце «' + c[0] + '» — ' + c[1].n + ' ' + plural(c[1].n,'раз','раза','раз') +
+         ' на ' + money(c[1].s) + '. В среднем ' + money(c[1].s / c[1].n) + ' за раз.'};
+}
+/* категория, которая заметно изменилась к прошлому месяцу */
+function obsMonthCat(){
+  const m = monthOf(today()), pm = prevMonth(m);
+  if (expOf(pm).length < 5 || expOf(m).length < 5) return null;
+  const now = Object.fromEntries(byCat(m)), was = Object.fromEntries(byCat(pm));
+  let best = null;
+  Object.keys(Object.assign({}, now, was)).forEach(c => {
+    const a = now[c] || 0, b = was[c] || 0, d = a - b;
+    if (!b || Math.abs(d) < 1000 || Math.abs(d) / b < 0.3) return;
+    if (!best || Math.abs(d) > Math.abs(best.d)) best = {c, a, b, d};
+  });
+  if (!best) return null;
+  return {id:'mcat',
+    teaser:'Одна категория в этом месяце ведёт себя иначе.',
+    title:'Не как в прошлом месяце',
+    body:'«' + best.c + '»: было ' + money(best.b) + ', стало ' + money(best.a) + ' — ' +
+         (best.d > 0 ? 'больше на ' : 'меньше на ') + money(Math.abs(best.d)) + '.'};
+}
+/* сон и траты */
+function obsSleepMoney(){
+  const bad = [], good = [];
+  Object.keys(S.day).forEach(d => {
+    const r = S.day[d]; if (!r || !r.sleep) return;
+    if (r.sleep === 'bad' || r.sleep === 'few') bad.push(spentOn(d));
+    else if (r.sleep === 'good') good.push(spentOn(d));
+  });
+  if (bad.length < 5 || good.length < 5) return null;
+  const a = avgOf(bad), b = avgOf(good), mx = Math.max(a, b);
+  if (!mx || Math.abs(a - b) / mx < 0.3) return null;
+  return {id:'sleepmoney',
+    teaser:'Ваш сон и ваши траты кое-где сходятся.',
+    title:'Сон и деньги',
+    body:'В дни, когда вы отметили плохой или короткий сон, уходит в среднем ' + money(a) +
+         '. В дни после хорошего — ' + money(b) + '. Считала по ' + (bad.length + good.length) + ' отмеченным дням.',
+    note:OBS_NOTE};
+}
+/* самочувствие и траты */
+function obsMoodMoney(){
+  const hard = [], ok = [];
+  Object.keys(S.day).forEach(d => {
+    const r = S.day[d]; if (!r || !r.mood) return;
+    if (r.mood === 'hard' || r.mood === 'tired') hard.push(spentOn(d));
+    else ok.push(spentOn(d));
+  });
+  if (hard.length < 5 || ok.length < 5) return null;
+  const a = avgOf(hard), b = avgOf(ok), mx = Math.max(a, b);
+  if (!mx || Math.abs(a - b) / mx < 0.3) return null;
+  return {id:'moodmoney',
+    teaser:'В тяжёлые дни деньги ведут себя не так, как в спокойные.',
+    title:'Самочувствие и деньги',
+    body:'В дни, отмеченные как тяжёлые или усталые, уходит в среднем ' + money(a) +
+         '. В спокойные — ' + money(b) + '. Считала по ' + (hard.length + ok.length) + ' отмеченным дням.',
+    note:OBS_NOTE};
+}
+/* что повторяется в снах и на какие ночи это пришлось */
+const DREAM_STOP = new Set(['и','в','на','с','а','но','что','как','это','мне','меня','был','была','было','были',
+ 'сне','сон','снилось','снился','снилась','очень','потом','когда','где','там','тут','его','её','ее','они','мы','я','ты','он','она','не','по','из','за','то','же','бы','уже','ещё','еще','какой','какая','какие','себя','свой','своя']);
+function topDreamWords(n){
+  const freq = {};
+  S.dreams.forEach(d => (d.text || '').toLowerCase().split(/[^а-яё]+/).forEach(w => {
+    if (w.length > 3 && !DREAM_STOP.has(w)) freq[w] = (freq[w] || 0) + 1;
+  }));
+  return Object.entries(freq).filter(x => x[1] > 1).sort((a,b) => b[1] - a[1]).slice(0, n || 3);
+}
+function obsDreamWords(){
+  if (S.dreams.length < 8) return null;
+  const top = topDreamWords(1)[0];
+  if (!top || top[1] < 3) return null;
+  const nights = S.dreams.filter(d => (d.text || '').toLowerCase().includes(top[0])).map(d => d.date);
+  const rough = nights.filter(d => {
+    const r = S.day[d]; return r && (r.sleep === 'bad' || r.sleep === 'few');
+  }).length;
+  return {id:'dreamword',
+    teaser:'В ваших снах кое-что повторяется.',
+    title:'Дневник снов',
+    body:'В ' + S.dreams.length + ' ' + plural(S.dreams.length,'записи','записях','записях') +
+         ' чаще всего встречается «' + top[0] + '» — ' + top[1] + ' ' + plural(top[1],'раз','раза','раз') + '.' +
+         (rough >= 2 ? ' Из этих ночей ' + rough + ' вы отметили как плохой или короткий сон.' : ''),
+    note:'Приложение не толкует сны. Оно только считает, что повторяется в ваших собственных словах.'};
+}
+/* еда вне дома */
+function obsEatOut(){
+  const m = monthOf(today());
+  const mm = S.meals.filter(x => monthOf(x.date) === m);
+  if (mm.length < 8) return null;
+  const out = mm.filter(x => x.place === 'cafe' || x.place === 'deliv').length;
+  if (out < 3) return null;
+  const spentOut = sum(S.exp.filter(e => monthOf(e.date) === m && (e.cat === 'Кафе' || e.cat === 'Доставка')));
+  return {id:'eatout',
+    teaser:'Заметила кое-что про еду вне дома.',
+    title:'Где вы ели',
+    body:'За месяц вы отметили ' + mm.length + ' ' + plural(mm.length,'раз','раза','раз') + ', из них ' +
+         out + ' вне дома.' + (spentOut ? ' На кафе и доставку ушло ' + money(spentOut) + '.' : '')};
+}
+function allObs(){
+  return [obsWeekday(), obsHabit(), obsMonthCat(), obsSleepMoney(), obsMoodMoney(), obsDreamWords(), obsEatOut()]
+    .filter(Boolean);
+}
+/* вуаль: намёк без цифр, не чаще раза в три дня */
+function pickObs(){
+  const o = obsCfg();
+  if (o.off) return null;
+  if (o.lastAt && (Date.now() - new Date(o.lastAt).getTime()) / 86400000 < 3) return null;
+  const list = allObs().filter(x => !o.muted[x.id]);
+  if (!list.length) return null;
+  list.sort((a,b) => (o.seen[a.id] || 0) - (o.seen[b.id] || 0) || a.id.localeCompare(b.id));
+  return list[0];
+}
+function veilCard(){
+  const x = pickObs();
+  if (!x) return '';
+  return '<div class="card tap" style="border-color:var(--ochre);border-left-width:3px" onclick="openObs(\'' + x.id + '\')">' +
+    '<div class="row"><div style="flex:1">' +
+    '<div style="font-family:\'Spectral\',serif;font-size:15px;font-weight:600">' + esc(x.teaser) + '</div>' +
+    '<div class="mut" style="margin-top:3px;font-size:12px">Нажмите, чтобы посмотреть</div></div>' +
+    '<button class="del" onclick="event.stopPropagation();obsSnooze()" title="Не сейчас">✕</button></div></div>';
+}
+function obsById(id){ return allObs().find(x => x.id === id) || null; }
+function openObs(id){
+  const x = obsById(id);
+  if (!x) return;
+  const o = obsCfg();
+  o.seen[id] = (o.seen[id] || 0) + 1;
+  o.lastAt = new Date().toISOString();
+  saveQuiet();
+  document.getElementById('sheet-in').innerHTML =
+    '<h3>' + esc(x.title) + '</h3>' +
+    '<div class="parse"><div style="font-size:14px">' + esc(x.body) + '</div></div>' +
+    '<div class="mut" style="margin-top:10px;font-size:11px">' + esc(x.note || OBS_NOTE) + '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:14px">' +
+    '<button class="btn" style="flex:1" onclick="obsLike()">Интересно</button>' +
+    '<button class="btn ghost" style="flex:1" onclick="obsMute(\'' + id + '\')">Не показывать такое</button></div>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="obsOff()">Отключить наблюдения совсем</button>';
+  document.getElementById('sheet').classList.add('open');
+}
+function obsSnooze(){
+  const o = obsCfg(); o.lastAt = new Date().toISOString();
+  save(); toast('Хорошо, вернусь к этому позже');
+}
+function obsLike(){ save(); closeSheet(); toast('Запомнила'); }
+function obsMute(id){
+  const o = obsCfg(); o.muted[id] = 1;
+  save(); closeSheet(); toast('Такие наблюдения больше не покажу');
+}
+function obsOff(){
+  const o = obsCfg(); o.off = 1;
+  save(); closeSheet(); toast('Наблюдения отключены. Включить можно в «Ещё»');
+}
+function obsOn(){
+  const o = obsCfg(); o.off = 0; o.muted = {};
+  save(); toast('Наблюдения снова включены');
 }
 
 /* ---------- Ещё ---------- */
@@ -1811,6 +2109,20 @@ function renderMore(){
         (S.notes.filter(x => week.includes(x.date)).length + S.dreams.filter(x => week.includes(x.date)).length) + '</b></div>' +
       '<div class="stat"><span>Отмечено самочувствие</span><b>' + (moods.length ? moods.length + ' ' + plural(moods.length,'день','дня','дней') : 'ещё нет') + '</b></div>' +
       (moods.length ? '<div class="mut" style="margin-top:9px">Спокойных дней: ' + good + ' из ' + moods.length + '.</div>' : ''), 'navy') +
+    card(lab('Наблюдения') +
+      '<div class="mut" style="margin-bottom:10px">Приложение считает только по вашим записям и молчит, пока данных мало. ' +
+      'Показывает намёк не чаще раза в три дня — открывать или нет, решаете вы.</div>' +
+      (function(){
+        const o = obsCfg(), ready = allObs().length, muted = Object.keys(o.muted).length;
+        if (o.off) return '<div class="mut">Сейчас отключены.</div>' +
+          '<button class="btn" style="margin-top:10px" onclick="obsOn()">Включить снова</button>';
+        return '<div class="stat"><span>Готово наблюдений</span><b>' + ready + '</b></div>' +
+          '<div class="stat"><span>Скрыто вами</span><b>' + (muted || '—') + '</b></div>' +
+          (ready ? '' : '<div class="mut" style="margin-top:9px">Пока нечего показать. Записей нужно больше — ' +
+            'приложение не станет выдумывать закономерность из трёх строк.</div>') +
+          (muted ? '<button class="btn ghost" style="margin-top:10px" onclick="obsOn()">Вернуть скрытые</button>' : '') +
+          '<button class="btn ghost" style="margin-top:8px" onclick="obsOff()">Отключить наблюдения</button>';
+      })()) +
     card(lab('Настройки') +
       '<div class="fld"><label>Обычный доход в месяц, ' + sign() + '</label><input type="number" inputmode="numeric" value="' + (S.settings.income || '') + '" onchange="setNum(\'income\',this.value)"></div>' +
       '<div class="fld"><label>Сколько хотите откладывать, ' + sign() + '</label><input type="number" inputmode="numeric" value="' + (S.settings.save || '') + '" onchange="setNum(\'save\',this.value)"></div>' +
@@ -1837,7 +2149,7 @@ function renderMore(){
 
       '<div class="item"><div class="ic">💬</div><div class="txt"><b>Рассказать подругам</b><small>Отправить ссылку на приложение</small></div>' +
       '<button class="del" style="color:var(--accent)" onclick="shareApp()">отправить</button></div>') +
-    card(lab('Версия') + '<div class="mut">Сборка от 29.08 18:05. Если цифры ведут себя странно — ' +
+    card(lab('Версия') + '<div class="mut">Сборка от 29.08 19:20. Если цифры ведут себя странно — ' +
       'проверьте, что открыт этот файл, а не старая копия.</div>' +
       '<button class="btn ghost" style="margin-top:10px" onclick="resetMoneyDefaults()">Сбросить старые настройки денег</button>') +
     card(lab('Важно') + '<div class="mut">Приложение считает только то, что вы вносите сами. ' +
@@ -1961,6 +2273,28 @@ const SHEETS = {
       'в календаре — событие, в деньгах — трату, в записях — мысль. Кнопка внизу подстраивается под открытый раздел.</div>' +
     '<button class="btn" onclick="doParse()">Разложить по полям</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
+
+  noteEdit: () => {
+    const n = findNote(editNoteId);
+    if (!n) return '<h3>Запись не найдена</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
+    const dream = isDreamNote(editNoteId);
+    return '<h3>' + (dream ? 'Изменить сон' : 'Изменить запись') + '</h3>' +
+      fldMic('Текст', '<textarea id="f-note" rows="3">' + esc(n.text || '') + '</textarea>', 'f-note', 'raw') +
+      (dream ? '' :
+        '<div class="fld"><label>Пункты списка — по одному в строке. Пусто, если это не список</label>' +
+        '<textarea id="f-items" rows="4" placeholder="Яйца&#10;Творог&#10;Хлеб">' +
+          esc((n.items || []).map(i => i.t).join('\n')) + '</textarea></div>' +
+        '<button class="btn ghost" style="margin-bottom:10px" onclick="autoItems()">Разложить текст на пункты</button>' +
+        '<div class="fld"><label>Магазин — необязательно</label>' +
+          '<input id="f-where" value="' + esc(n.where || '') + '" placeholder="Пятёрочка"></div>' +
+        '<div class="fld"><label>Напомнить · выберите в календарике. Пусто — без напоминания</label>' +
+          '<input id="f-due" type="date" value="' + (n.due || '') + '"></div>' +
+        '<div class="mut" style="margin:-4px 0 12px;font-size:11px">Дата покажет запись на «Сегодня» и поставит точку в календаре. ' +
+          'Чтобы телефон разбудил вас уведомлением, нажмите «напомнить» у записи в календаре.</div>') +
+      '<button class="btn" onclick="saveNoteEdit()">Сохранить</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>' +
+      '<button class="btn ghost" style="margin-top:8px;color:var(--stop)" onclick="deleteNoteFromEdit()">Удалить запись</button>';
+  },
 
   closeList: () => {
     const lists = activeLists();
