@@ -409,13 +409,13 @@ const WORDNUM = {'ноль':0,'один':1,'одну':1,'два':2,'две':2,'�
  'сто':100,'двести':200,'триста':300,'четыреста':400,'пятьсот':500,'шестьсот':600,'семьсот':700,'восемьсот':800,'девятьсот':900,
  'тысяча':1000,'тысячи':1000,'тысяч':1000,'полторы':1500};
 const CAT_WORDS = {
- 'Продукты':['продукт','магазин','пятёроч','пятероч','перекрёст','перекрест','лента','ашан','еда домой','овощ','молок','хлеб'],
+ 'Продукты':['продукт','магазин','пятёроч','пятероч','перекрёст','перекрест','лента','ашан','магнит','дикси','вкусвилл','еда домой','овощ','фрукт','молок','хлеб','мясо','рыб','арбуз','яйц','творог','сыр','крупа'],
  'Кафе':['кафе','кофе','ресторан','обед','ланч','бар','пиццери','кофейн'],
  'Доставка':['доставк','яндекс еда','самокат','купер','деливер'],
- 'Дом':['дом','квартир','коммунал','жкх','интернет','аренд','ремонт','мебел'],
- 'Красота':['маникюр','педикюр','космет','салон','парикмахер','брови','ресниц','массаж','уход'],
- 'Транспорт':['такси','метро','бензин','проезд','автобус','каршер','парков'],
- 'Здоровье':['аптек','врач','анализ','лекарств','стоматолог','витамин'],
+ 'Дом':['квартплат','квартир','коммунал','жкх','интернет','аренд','ремонт','мебел','посуд','бытов','хозтовар','свет и вода','электричеств'],
+ 'Красота':['маникюр','педикюр','космет','салон','парикмахер','стрижк','окрашив','брови','ресниц','массаж','уход','ноготк','шеллак','эпиляц','депиляц','барбер','укладк','спа'],
+ 'Транспорт':['такси','метро','бензин','заправк','азс','топлив','дизел','солярк','проезд','автобус','маршрутк','каршер','парков','шиномонтаж','мойк','электричк','самокат аренд','билет на поезд'],
+ 'Здоровье':['аптек','врач','анализ','лекарств','стоматолог','витамин','клиник','узи','приём у','прием у','страховк дмс'],
  'Одежда':['одежд','обув','плать','джинс','куртк','бель'],
  'Дети':['ребён','ребен','детск','школ','сад','игрушк','кружок'],
 };
@@ -1497,8 +1497,9 @@ function renderMoney(){
   exp += card(lab('Последние операции') +
     (last.length ? last.map(e =>
       '<div class="item"><div class="ic">' + (e.src === 'голосом' ? '🎙' : e.src === 'из чека' ? '🧾' : '₽') + '</div>' +
-      '<div class="txt"><b>' + esc(e.title) + '</b><small>' + esc(e.cat) + ' · ' + humanDate(e.date) + ' · ' + esc(e.src) + '</small></div>' +
-      '<div class="sum">−' + money(e.sum) + '</div>' +
+      '<div class="txt" style="cursor:pointer" onclick="editExp(\'' + e.id + '\')"><b>' + esc(e.title) + '</b>' +
+      '<small>' + esc(e.cat) + ' · ' + humanDate(e.date) + ' · изменить</small></div>' +
+      '<div class="sum" style="cursor:pointer" onclick="editExp(\'' + e.id + '\')">−' + money(e.sum) + '</div>' +
       '<button class="del" onclick="drop(\'exp\',\'' + e.id + '\')">✕</button></div>').join('')
       : '<div class="empty">Записей пока нет. Скажите «потратила восемьсот на продукты» — запишу сюда.</div>') +
     '<button class="btn" style="margin-top:11px" onclick="openSheet(\'exp\')">Добавить расход</button>' +
@@ -1681,7 +1682,7 @@ function renderMore(){
 
       '<div class="item"><div class="ic">💬</div><div class="txt"><b>Рассказать подругам</b><small>Отправить ссылку на приложение</small></div>' +
       '<button class="del" style="color:var(--accent)" onclick="shareApp()">отправить</button></div>') +
-    card(lab('Версия') + '<div class="mut">Сборка от 29.08 08:32. Если цифры ведут себя странно — ' +
+    card(lab('Версия') + '<div class="mut">Сборка от 29.08 13:52. Если цифры ведут себя странно — ' +
       'проверьте, что открыт этот файл, а не старая копия.</div>' +
       '<button class="btn ghost" style="margin-top:10px" onclick="resetMoneyDefaults()">Сбросить старые настройки денег</button>') +
     card(lab('Важно') + '<div class="mut">Приложение считает только то, что вы вносите сами. ' +
@@ -1721,10 +1722,33 @@ const SHEETS = {
       '<small>Никуда не отправляются. Раз в неделю делайте копию в «Ещё»</small></div></div>' +
     '<button class="btn" style="margin-top:12px" onclick="hideHi();closeSheet()">Понятно</button>',
 
+  expEdit: () => {
+    const e = S.exp.find(x => x.id === editId) || {};
+    return '<h3>Изменить расход</h3>' +
+      fldMic('На что', '<input id="f-title" value="' + esc(e.title || '') + '">', 'f-title') +
+      fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" value="' + (e.sum || '') + '">', 'f-sum', 'sum') +
+      '<div class="fld"><label>Категория</label><select id="f-cat">' +
+        CATS.map(c => '<option' + (c === e.cat ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>' +
+      '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + (e.date || today()) + '"></div>' +
+      '<button class="btn" onclick="saveExpEdit()">Сохранить</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
+  },
+
+  incEdit: () => {
+    const e = S.inc.find(x => x.id === editId) || {};
+    return '<h3>Изменить доход</h3>' +
+      fldMic('Откуда', '<input id="f-title" value="' + esc(e.title || '') + '">', 'f-title') +
+      fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" value="' + (e.sum || '') + '">', 'f-sum', 'sum') +
+      '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + (e.date || today()) + '"></div>' +
+      '<button class="btn ok" onclick="saveIncEdit()">Сохранить</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
+  },
+
   exp: () => '<h3>Расход</h3>' +
     fldMic('На что', '<input id="f-title" placeholder="Продукты в Пятёрочке">', 'f-title') +
     fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" placeholder="800">', 'f-sum', 'sum') +
-    '<div class="fld"><label>Категория</label><select id="f-cat">' + CATS.map(c => '<option>' + c + '</option>').join('') + '</select></div>' +
+    '<div class="fld"><label>Категория · подставится сама по названию</label><select id="f-cat" onchange="catTouched=1">' +
+      CATS.map(c => '<option>' + c + '</option>').join('') + '</select></div>' +
     '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + today() + '"></div>' +
     '<button class="btn" onclick="saveExp()">Записать расход</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
@@ -1799,10 +1823,34 @@ function picked(id, dflt){
   return b ? b.dataset.v : dflt;
 }
 
+let editId = null;
+function editExp(id){ editId = id; openSheet('expEdit'); }
+function saveExpEdit(){
+  const e = S.exp.find(x => x.id === editId);
+  if (!e) return;
+  const t = val('f-title'), sum = +val('f-sum');
+  if (!t || !sum){ toast('Заполните название и сумму'); return; }
+  e.title = tidy(t); e.sum = sum; e.cat = val('f-cat') || e.cat; e.date = val('f-date') || e.date;
+  editId = null; save(); closeSheet(); toast('Изменено');
+}
+function editInc(id){ editId = id; openSheet('incEdit'); }
+function saveIncEdit(){
+  const e = S.inc.find(x => x.id === editId);
+  if (!e) return;
+  const t = val('f-title'), sum = +val('f-sum');
+  if (!t || !sum){ toast('Заполните название и сумму'); return; }
+  e.title = tidy(t); e.sum = sum; e.date = val('f-date') || e.date;
+  editId = null; save(); closeSheet(); toast('Изменено');
+}
+let catTouched = 0;
 function saveExp(){
   const s = +val('f-sum');
   if (!s){ toast('Впишите сумму'); return; }
-  addExp({title: tidy(val('f-title')) || 'Расход', sum: s, cat: val('f-cat'), date: val('f-date') || today()});
+  const t = tidy(val('f-title')) || 'Расход';
+  // если категорию не трогали — подставляем по названию
+  const cat = catTouched ? val('f-cat') : (pickCat(t) || val('f-cat'));
+  catTouched = 0;
+  addExp({title: t, sum: s, cat: cat, date: val('f-date') || today()});
   closeSheet(); toast('Расход записан');
 }
 function saveInc(){
