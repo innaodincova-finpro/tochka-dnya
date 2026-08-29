@@ -589,6 +589,7 @@ function splitItems(part){
 /* служебные слова, которые женщина говорит между делом */
 function stripFiller(t){
   return String(t)
+    .replace(/^\s*(так|ну|вот|значит|короче|слушай)\s+/i,' ')
     .replace(/(^| )(запиши|запишите|пожалуйста|напиши|напомни|напомните|отметь|мне нужно|мне надо|нужно напоминание|напоминание за день|чтобы я не забыла|чтобы я не забыл|чтобы я|я хочу|это самое|короче|теперь дальше|теперь|где-то|о том|когда я приду на работу|во сколько|за день|будет)( |$|,)/gi,' ')
     .replace(/ {2,}/g,' ').trim();
 }
@@ -596,6 +597,64 @@ function stripFiller(t){
 function isShoppingList(t){
   const low = t.toLowerCase();
   return /куп|не забыть|зайти|заехать|заказать|список покупок|взять в магазин/.test(low) && !/[0-9]{2,}/.test(low);
+}
+
+/* ---------- список покупок: разбираем фразу на пункты ----------
+   Диктовка не ставит запятых, поэтому «яйца творог хлеб» приходит одной
+   строкой. Режем по пробелам, но прилагательное приклеиваем к следующему
+   слову: «туалетная бумага» и «подсолнечное масло» должны остаться целыми. */
+const BUY_RE = /(?:купить|купи|куплю|покупать|взять|возьми|заказать|захватить|прихватить|приобрести)\s+/i;
+const SHOPS = {'пятёр':'Пятёрочка','пятер':'Пятёрочка','перекрёст':'Перекрёсток','перекрест':'Перекрёсток',
+ 'магнит':'Магнит','ашан':'Ашан','лент':'Лента','дикси':'Дикси','вкусвилл':'ВкусВилл',
+ 'аптек':'Аптека','рынк':'Рынок','рынок':'Рынок','озон':'Озон','вайлдберр':'Вайлдберриз',
+ 'metro':'Метро','метро ':'Метро'};
+function shopOf(t){
+  const low = String(t).toLowerCase();
+  for (const k in SHOPS) if (low.includes(k)) return SHOPS[k];
+  return null;
+}
+function looksAdj(w){ return w.length > 4 && /(ая|яя|ый|ий|ое|ее|ые|ие|ой|ую|юю|ым|им|ную|ной|ных|ного)$/.test(w); }
+function glueWords(chunk){
+  const w = chunk.split(/\s+/).filter(Boolean), out = [];
+  for (let i = 0; i < w.length; i++){
+    if (looksAdj(w[i]) && i + 1 < w.length){ out.push(w[i] + ' ' + w[i+1]); i++; }
+    else out.push(w[i]);
+  }
+  return out;
+}
+function listItems(raw){
+  let s = ' ' + String(raw).toLowerCase().replace(/[.!?]+/g,' ') + ' ';
+  const pos = s.search(BUY_RE);
+  if (pos >= 0) s = ' ' + s.slice(pos + s.match(BUY_RE)[0].length);
+  s = s.replace(new RegExp('\\s(в|во|на|из)\\s+(' + Object.keys(SHOPS).join('|') + ')[а-яё]*','gi'),' ');
+  s = s.replace(/(^|\s)(не забыть|надо|нужно|зайти|заехать|зайду|заеду|сходить|сходи|магазин[а-яё]*|сегодня|завтра|послезавтра|вечером|утром|днём|днем|по дороге|домой|потом|ещё|еще|там|себе)(?=\s|$)/gi,' ');
+  const chunks = s.split(/\s*[,;]\s*|\s+и\s+|\s+да\s+|\s+а также\s+/).map(x => x.trim()).filter(Boolean);
+  const seen = {}, out = [];
+  chunks.forEach(c => glueWords(c).forEach(x => {
+    const t = x.replace(/^[\s,.;-]+|[\s,.;-]+$/g,'');
+    if (t.length < 2 || seen[t]) return;
+    seen[t] = 1;
+    out.push({t: t.charAt(0).toUpperCase() + t.slice(1), done:false});
+  }));
+  return out.slice(0,25);
+}
+/* заметка с датой: «завтра позвонить в клинику» — напомним в этот день */
+const DATEHINT = /завтра|послезавтра|через\s|понедельник|вторник|сред[уа]|четверг|пятниц|суббот|воскресен|январ|феврал|март|апрел|ма[йя]\b|июн|июл|август|сентябр|октябр|ноябр|декабр/i;
+function noteDue(text){
+  if (!DATEHINT.test(String(text))) return null;
+  const d = parseDate(text);
+  return (d && d > today()) ? d : null;
+}
+/* единая сборка заметки: сама решает, список это или мысль */
+function makeNote(text){
+  const rec = {id:uid(), date:today(), text:tidy(stripFiller(text))};
+  if (isShoppingList(text) && BUY_RE.test(text)){
+    const it = listItems(text);
+    if (it.length){ rec.items = it; rec.where = shopOf(text); }
+  }
+  const due = noteDue(text);
+  if (due) rec.due = due;
+  return rec;
 }
 function parseSpeech(text){
   const out = {exp:[], inc:[], meals:[], ev:[], notes:[], rest:[], sleep:null};
@@ -1340,6 +1399,21 @@ function renderToday(){
       : '<div class="empty">На сегодня ничего не назначено. Скажите «завтра врач в десять» — попадёт в календарь.</div>') +
     '<button class="btn ghost" style="margin-top:10px" onclick="openSheet(\'ev\')">Добавить событие</button>');
 
+  const lists = activeLists();
+  lists.forEach(n => {
+    const left = n.items.filter(i => !i.done).length;
+    h += card(lab('Купить' + (n.where ? ' · ' + n.where : '')) + listBody(n) +
+      '<div class="mut" style="margin-top:8px;font-size:11px">Осталось ' + left + ' ' +
+      plural(left,'пункт','пункта','пунктов') + '. Отметьте — исчезнет из списка.</div>');
+  });
+
+  const dn = dueNotes();
+  if (dn.length) h += card(lab('Напоминание') + dn.map(n =>
+    '<div class="item" style="align-items:flex-start"><div class="ic">🔔</div>' +
+    '<div class="txt"><b style="font-weight:400;font-size:14px">' + esc(n.text) + '</b>' +
+    '<small>' + (n.due === today() ? 'на сегодня' : 'было на ' + humanDate(n.due)) + '</small></div>' +
+    '<button class="del" style="color:var(--accent)" onclick="clearDue(\'' + n.id + '\')">снять</button></div>').join(''));
+
   const te = S.exp.filter(x => x.date === d);
   const evDone = (rec.done || []).length;
   const evening = new Date().getHours() >= 18;
@@ -1614,10 +1688,17 @@ function renderNotes(){
 
   h += card(lab(tab === 'note' ? 'Заметки' : 'Дневник снов') +
     (sorted.length ? sorted.map(x =>
-      '<div class="item" style="align-items:flex-start"><div class="ic">' + (tab === 'note' ? '✎' : '☾') + '</div>' +
-      '<div class="txt"><b style="font-weight:400;font-size:14px;white-space:pre-wrap">' + esc(x.text) + '</b>' +
-      '<small>' + humanDate(x.date) + '</small></div>' +
-      '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button></div>').join('')
+      (x.items && x.items.length
+        ? '<div style="border-bottom:1px solid var(--line);padding:10px 0">' +
+          '<div class="row" style="margin-bottom:6px"><b style="font-size:14px;font-weight:500">Купить' +
+            (x.where ? ' · ' + esc(x.where) : '') + '</b>' +
+          '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button></div>' +
+          listBody(x) +
+          '<div class="mut" style="font-size:11px;margin-top:6px">' + humanDate(x.date) + '</div></div>'
+        : '<div class="item" style="align-items:flex-start"><div class="ic">' + (tab === 'note' ? '✎' : '☾') + '</div>' +
+          '<div class="txt"><b style="font-weight:400;font-size:14px;white-space:pre-wrap">' + esc(x.text) + '</b>' +
+          '<small>' + humanDate(x.date) + (x.due ? ' · напомню ' + humanDate(x.due) : '') + '</small></div>' +
+          '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button></div>')).join('')
       : '<div class="empty">' + (q ? 'Ничего не нашлось.'
           : (tab === 'note' ? 'Пока пусто. Сюда — списки покупок, мысли, что сказал врач, что подарить.'
                             : 'Пока пусто. Наговорите сон сразу после пробуждения, пока помните.')) + '</div>'));
@@ -1629,15 +1710,73 @@ let noteQuery = '';
 function notesTab(t){ S.settings.notesTab = t; noteQuery = ''; save(); }
 function noteFind(v){ noteQuery = v; renderNotes(); const el = document.getElementById('n-q'); if (el){ el.focus(); el.setSelectionRange(v.length, v.length); } }
 function saveNote(){
-  const t = tidy(val('n-text'));
-  if (!t){ toast('Сначала запишите или надиктуйте'); return; }
-  const rec = {id:uid(), date:today(), text:t};
-  (S.settings.notesTab === 'dream' ? S.dreams : S.notes).push(rec);
-  save(); toast('Записано');
+  const raw = val('n-text');
+  if (!raw){ toast('Сначала запишите или надиктуйте'); return; }
+  if (S.settings.notesTab === 'dream'){
+    S.dreams.push({id:uid(), date:today(), text:tidy(raw)});
+    save(); toast('Записано');
+    return;
+  }
+  const rec = makeNote(raw);
+  S.notes.push(rec);
+  save();
+  toast(rec.items ? 'Список: ' + rec.items.length + ' ' + plural(rec.items.length,'пункт','пункта','пунктов')
+      : rec.due ? 'Напомню ' + humanDate(rec.due) : 'Записано');
 }
 function dropNote(id){
   const k = S.settings.notesTab === 'dream' ? 'dreams' : 'notes';
   S[k] = S[k].filter(x => x.id !== id); save(); toast('Удалено');
+}
+
+/* ---------- список покупок: галочки ----------
+   Отмеченное сразу уходит из списка, но не пропадает совсем: внизу видно,
+   что уже куплено, и одной кнопкой всё возвращается обратно. */
+function activeLists(){ return S.notes.filter(n => n.items && n.items.some(i => !i.done)); }
+function listBody(n){
+  const rows = n.items.map((i, idx) => i.done ? '' :
+    '<div class="item" style="padding:7px 0">' +
+    '<button class="tick" onclick="tickItem(\'' + n.id + '\',' + idx + ')" title="Куплено"></button>' +
+    '<div class="txt"><b style="font-weight:400;font-size:14px">' + esc(i.t) + '</b></div></div>').join('');
+  const done = n.items.filter(i => i.done);
+  return rows + (done.length
+    ? '<div class="mut" style="font-size:11px;margin-top:5px">Куплено: ' + esc(done.map(x => x.t).join(', ')) +
+      ' · <button class="del" style="color:var(--accent);font-size:11px;padding:0" onclick="untickList(\'' + n.id + '\')">вернуть</button></div>'
+    : '');
+}
+function tickItem(id, idx){
+  const n = S.notes.find(x => x.id === id);
+  if (!n || !n.items || !n.items[idx]) return;
+  n.items[idx].done = true;
+  if (n.items.every(i => i.done)){
+    S.notes = S.notes.filter(x => x.id !== id);
+    save(); refreshList(); toast('Список закрыт — всё куплено');
+    return;
+  }
+  save(); refreshList();
+}
+function untickList(id){
+  const n = S.notes.find(x => x.id === id);
+  if (!n || !n.items) return;
+  n.items.forEach(i => i.done = false);
+  save(); refreshList(); toast('Вернула в список');
+}
+function closeWholeList(id){
+  S.notes = S.notes.filter(x => x.id !== id);
+  save(); refreshList(); toast('Список закрыт');
+}
+/* если открыта шторка со списком — перерисовываем и её */
+function refreshList(){
+  if (sheetState && sheetState.kind === 'closeList'){
+    if (!activeLists().length){ closeSheet(); return; }
+    openSheet('closeList');
+  }
+}
+/* напоминания по заметкам с датой */
+function dueNotes(){ return S.notes.filter(n => n.due && !n.items && n.due <= today()); }
+function clearDue(id){
+  const n = S.notes.find(x => x.id === id);
+  if (!n) return;
+  delete n.due; save(); toast('Напоминание снято, заметка осталась');
 }
 /* что повторяется в снах — считается из её же записей, без толкований */
 function dreamHint(){
@@ -1698,7 +1837,7 @@ function renderMore(){
 
       '<div class="item"><div class="ic">💬</div><div class="txt"><b>Рассказать подругам</b><small>Отправить ссылку на приложение</small></div>' +
       '<button class="del" style="color:var(--accent)" onclick="shareApp()">отправить</button></div>') +
-    card(lab('Версия') + '<div class="mut">Сборка от 29.08 17:45. Если цифры ведут себя странно — ' +
+    card(lab('Версия') + '<div class="mut">Сборка от 29.08 18:05. Если цифры ведут себя странно — ' +
       'проверьте, что открыт этот файл, а не старая копия.</div>' +
       '<button class="btn ghost" style="margin-top:10px" onclick="resetMoneyDefaults()">Сбросить старые настройки денег</button>') +
     card(lab('Важно') + '<div class="mut">Приложение считает только то, что вы вносите сами. ' +
@@ -1823,6 +1962,17 @@ const SHEETS = {
     '<button class="btn" onclick="doParse()">Разложить по полям</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
+  closeList: () => {
+    const lists = activeLists();
+    if (!lists.length) return '<h3>Список пуст</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
+    return '<h3>Закрыть список покупок?</h3>' +
+      '<div class="mut">Вы записали трату на продукты. Отметьте, что купили — эти пункты уйдут из списка.</div>' +
+      lists.map(n => '<div class="card" style="margin:12px 0 0">' +
+        '<div class="lab">Купить' + (n.where ? ' · ' + esc(n.where) : '') + '</div>' + listBody(n) +
+        '<button class="btn ghost" style="margin-top:10px" onclick="closeWholeList(\'' + n.id + '\')">Куплено всё</button></div>').join('') +
+      '<button class="btn" style="margin-top:12px" onclick="closeSheet()">Не сейчас</button>';
+  },
+
   backup: () => '<h3>Резервная копия</h3>' +
     '<div class="mut">Копия — это файл со всеми вашими записями. Держите её не только на телефоне: ' +
       'отправьте себе в мессенджер или в облако, тогда данные переживут потерю телефона.</div>' +
@@ -1912,6 +2062,9 @@ function saveExp(){
   catTouched = 0;
   addExp({title: t, sum: s, cat: cat, date: val('f-date') || today()});
   closeSheet(); toast('Расход записан');
+  // трата на продукты — предлагаем закрыть список покупок
+  if ((cat === 'Продукты' || cat === 'Дом') && activeLists().length)
+    setTimeout(() => openSheet('closeList'), 400);
 }
 function saveInc(){
   spillBeforeSave();
@@ -1998,7 +2151,7 @@ function applyParse(){
   parsed.inc.forEach(e => S.inc.push(Object.assign({id:uid(), date:today()}, e)));
   parsed.meals.forEach(e => S.meals.push(Object.assign({id:uid(), date:today()}, e)));
   parsed.ev.forEach(e => S.ev.push(Object.assign({id:uid()}, e)));
-  parsed.notes.forEach(t => S.notes.push({id:uid(), date:today(), text:t}));
+  parsed.notes.forEach(t => S.notes.push(makeNote(t)));
   if (parsed.sleep) dayRec(today()).sleep = parsed.sleep;
   save(); closeSheet(); toast('Записано');
   parsed = null;
