@@ -8,8 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Точка дня">
 <title>Точка дня</title>
-<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%234E7A9E'/%3E%3Ctext x='90' y='78' font-family='Georgia,serif' font-size='30' fill='%23fff' text-anchor='middle'%3E%D0%A2%D0%9E%D0%A7%D0%9A%D0%90%3C/text%3E%3Ctext x='90' y='118' font-family='Georgia,serif' font-size='30' fill='%23fff' text-anchor='middle'%3E%D0%94%D0%9D%D0%AF%3C/text%3E%3C/svg%3E">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234E7A9E'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%23B08347'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -162,7 +163,7 @@ body{padding:0;background:var(--ground);display:block}
 .phone{width:100%;max-width:520px;height:auto;min-height:100vh;margin:0 auto;border:0;border-radius:0;box-shadow:none;background:var(--ground)}
 .status{display:none}
 .appbar{position:sticky;top:0;z-index:5;padding-top:calc(10px + env(safe-area-inset-top))}
-.screen{padding-bottom:170px}
+.screen{padding-bottom:200px}
 .dock{position:fixed;left:50%;transform:translateX(-50%);width:min(492px,calc(100% - 28px));bottom:calc(78px + env(safe-area-inset-bottom))}
 .tabs{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:520px;height:calc(66px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom)}
 .sheet{position:fixed}
@@ -180,11 +181,21 @@ body{padding:0;background:var(--ground);display:block}
   border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 12px;cursor:pointer;
   font-family:'Golos Text',sans-serif;font-size:13px;color:var(--ink)
 }
+.tick{width:26px;height:26px;flex:0 0 26px;border:1.5px solid var(--line);background:#fff;border-radius:50%;
+  cursor:pointer;color:#fff;font-size:14px;line-height:1;padding:0}
+.tick.on{background:var(--ok);border-color:var(--ok)}
 .pick button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
 .toasts{position:fixed;left:50%;transform:translateX(-50%);bottom:150px;z-index:60;display:flex;flex-direction:column;gap:6px;width:min(480px,92%)}
 .toast{background:var(--navy);color:#fff;border-radius:12px;padding:11px 14px;font-size:13px;box-shadow:0 10px 24px -12px rgba(40,66,92,.8)}
 .empty{color:var(--mut);font-size:13px;padding:8px 0}
 .del{border:0;background:transparent;color:var(--stop);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif}
+.backart{width:100%;aspect-ratio:100/160;border-radius:6px;background:var(--navy);
+  border:1px solid rgba(176,131,71,.55);display:flex;align-items:center;justify-content:center;
+  box-shadow:0 3px 10px -4px rgba(40,66,92,.5)}
+.backart span{color:var(--ochre);font-size:26px;line-height:1}
+.flip{animation:flip .5s ease}
+@keyframes flip{from{transform:rotateY(90deg);opacity:.2}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.flip{animation:none}}
 .withmic{display:flex;gap:7px;align-items:stretch}
 .withmic input,.withmic textarea{flex:1}
 .mic{flex:0 0 46px;border:1px solid var(--line);background:#fff;border-radius:11px;font-size:17px;cursor:pointer;color:var(--accent)}
@@ -209,21 +220,20 @@ body{padding:0;background:var(--ground);display:block}
   <section class="screen" id="s-today"></section>
   <section class="screen" id="s-cal" hidden></section>
   <section class="screen" id="s-money" hidden></section>
-  <section class="screen" id="s-food" hidden></section>
+  <section class="screen" id="s-notes" hidden></section>
   <section class="screen" id="s-more" hidden></section>
 
   <div class="dock">
-    <button title="Штрих-код продукта" onclick="openSheet('scan')">📷</button>
     <button title="Чек" onclick="openSheet('check')">🧾</button>
-    <div class="hint" onclick="openSheet('voice')">Скажите или отсканируйте</div>
-    <button class="main" title="Голос" onclick="openSheet('voice')">🎙</button>
+    <div class="hint" id="dock-hint" onclick="openContext()">Записать голосом или текстом</div>
+    <button class="main" id="dock-btn" title="Записать" onclick="openContext()">✎</button>
   </div>
 
   <nav class="tabs">
     <button aria-selected="true" onclick="go(this,'s-today')"><i>◉</i>Сегодня</button>
     <button aria-selected="false" onclick="go(this,'s-cal')"><i>▦</i>Календарь</button>
     <button aria-selected="false" onclick="go(this,'s-money')"><i>₽</i>Деньги</button>
-    <button aria-selected="false" onclick="go(this,'s-food')"><i>🍽</i>Еда</button>
+    <button aria-selected="false" onclick="go(this,'s-notes')"><i>✎</i>Записи</button>
     <button aria-selected="false" onclick="go(this,'s-more')"><i>≡</i>Ещё</button>
   </nav>
 
@@ -235,13 +245,16 @@ body{padding:0;background:var(--ground);display:block}
 <script>
 /* ================= Точка дня — рабочая версия =================
    Один файл. Данные хранятся в браузере телефона, никуда не отправляются.
-   Семья кабинетов: Точка решения / Точка речи / Точка ответа / Точка красоты.
+   Семья приложениеов: Точка решения / Точка речи / Точка ответа / Точка красоты.
    ============================================================== */
 
 const KEY = 'tochka-dnya-v1';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
 const SLOTS = [['b','Завтрак'],['l','Обед'],['s','Перекус'],['d','Ужин']];
 const PLACES = [['home','дома'],['take','с собой'],['cafe','кафе'],['deliv','доставка']];
+const REPEATS = [['none','Не повторять'],['year','Каждый год'],['month','Каждый месяц'],['week','Каждую неделю']];
+const KINDS = [['plain','Дело'],['bd','День рождения'],['pay','Платёж'],['doc','Срок документа']];
+const SLEEP = [['good','Выспалась'],['ok','Нормально'],['bad','Плохо'],['few','Мало спала']];
 const MOODS = [['ok','Хорошо'],['flat','Ровно'],['tired','Устала'],['hard','Тяжело']];
 
 const CURR = [['RUB','₽','Рубль'],['AZN','₼','Манат'],['KZT','₸','Тенге']];
@@ -252,8 +265,8 @@ let S = null, storageOk = true;
 
 function blank(){
   return {
-    settings:{budget:60000, kcal:1800, foodMode:'simple', art:'web', water:8, cur:'RUB'},
-    exp:[], inc:[], ev:[], meals:[], day:{}, savedAt:null, backupAt:null
+    settings:{income:0, save:0, budget:60000, kcal:1800, art:'web', cur:'RUB', notesTab:'note'},
+    exp:[], inc:[], ev:[], meals:[], notes:[], dreams:[], day:{}, savedAt:null, backupAt:null
   };
 }
 function load(){
@@ -310,31 +323,62 @@ function byCat(m){
   expOf(m).forEach(e => { r[e.cat] = (r[e.cat] || 0) + (+e.sum || 0); });
   return Object.entries(r).sort((a,b) => b[1] - a[1]);
 }
-function freeLeft(){
-  const m = monthOf(today());
-  return S.settings.budget - spentMonth(m);
+function budgetOf(){
+  const s = S.settings;
+  if (s.income) return Math.max(0, s.income - (s.save || 0));
+  return s.budget || 0;
 }
+function freeLeft(){ return budgetOf() - spentMonth(monthOf(today())); }
 function daysLeft(){
   const t = new Date(), n = daysInMonth(monthOf(today()));
   return Math.max(1, n - t.getDate() + 1);
 }
 function mealsOf(d){ return S.meals.filter(x => x.date === d); }
 function kcalOf(d){ return mealsOf(d).reduce((s,x) => s + (+x.kcal || 0), 0); }
-function evOf(d){ return S.ev.filter(x => x.date === d).sort((a,b) => (a.time||'').localeCompare(b.time||'')); }
+function occursOn(e, d){
+  if (e.date === d) return true;
+  if (!e.repeat || e.repeat === 'none' || d < e.date) return false;
+  if (e.repeat === 'year')  return e.date.slice(5) === d.slice(5);
+  if (e.repeat === 'month') return e.date.slice(8) === d.slice(8);
+  if (e.repeat === 'week')  return (new Date(d + 'T12:00') - new Date(e.date + 'T12:00')) % (7*86400000) === 0;
+  return false;
+}
+function evOf(d){ return S.ev.filter(x => occursOn(x, d)).sort((a,b) => (a.time||'').localeCompare(b.time||'')); }
+/* ближайшие даты повторяющихся и разовых событий на N дней вперёд */
+function upcoming(days){
+  const out = [];
+  for (let i = 0; i <= days; i++){
+    const d = iso(new Date(Date.now() + i*86400000));
+    evOf(d).forEach(e => out.push({e, date:d, in:i}));
+  }
+  return out;
+}
+function yearsTurning(e, d){
+  if (e.kind !== 'bd' || !e.since) return null;
+  return +d.slice(0,4) - +String(e.since).slice(0,4);
+}
 function dayRec(d){ if (!S.day[d]) S.day[d] = {}; return S.day[d]; }
 function nextEvent(){
-  const now = new Date(), hm = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-  const t = evOf(today()).find(e => (e.time || '99:99') >= hm);
+  const now = new Date().toTimeString().slice(0,5);
+  const t = evOf(today()).find(e => (e.time || '99:99') >= now);
   if (t) return {e:t, when:'сегодня'};
-  const future = S.ev.filter(e => e.date > today()).sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time))[0];
-  return future ? {e:future, when:humanDate(future.date)} : null;
+  const up = upcoming(400).find(x => x.date > today());
+  return up ? {e:up.e, when:humanDate(up.date)} : null;
 }
 function todo(){
   const out = [];
   const d = today();
-  if (!mealsOf(d).some(m => m.slot === 'd')) out.push(['🍽','Ужин не записан','Внести голосом или вручную',"openSheet('meal')"]);
-  const noSum = S.ev.filter(e => e.date >= d && e.plan && !e.done).slice(0,2);
-  noSum.forEach(e => out.push(['📅', e.title + ' — ' + money(e.plan), 'Запланированный расход, ещё не потрачен', null]));
+  upcoming(14).filter(x => x.in > 0).slice(0,4).forEach(x => {
+    const e = x.e, y = yearsTurning(e, x.date);
+    if (e.kind === 'bd' && x.in <= 10)
+      out.push(['🎂', e.title + (y ? ' — ' + y + ' ' + plural(y,'год','года','лет') : ''),
+        'Через ' + x.in + ' ' + plural(x.in,'день','дня','дней') + ' — успеть с подарком', null]);
+    else if (e.kind === 'pay' && x.in <= 3)
+      out.push(['💳', e.title + (e.plan ? ' — ' + money(e.plan) : ''),
+        'Платёж через ' + x.in + ' ' + plural(x.in,'день','дня','дней'), null]);
+    else if (e.kind === 'doc' && x.in <= 14)
+      out.push(['📄', e.title, 'Срок подходит через ' + x.in + ' ' + plural(x.in,'день','дня','дней'), null]);
+  });
   const last = S.backupAt ? (Date.now() - new Date(S.backupAt).getTime()) / 86400000 : 99;
   if (last > 7) out.push(['💾','Резервная копия не делалась','Отправьте копию себе, чтобы не потерять данные',"openSheet('backup')"]);
   return out;
@@ -371,7 +415,11 @@ const MEAL_WORDS = {b:['завтрак','утром'], l:['обед'], s:['пе�
 const PLACE_WORDS = {cafe:['кафе','ресторан','кофейн','столов'], deliv:['доставк','заказал','заказала'], take:['с собой','на работ'], home:['дома','приготовил']};
 const WDAY_WORDS = {'понедельник':1,'вторник':2,'сред':3,'четверг':4,'пятниц':5,'суббот':6,'воскресен':0};
 
-function parseSum(text){
+function parseSum(raw){
+  // выражения времени вырезаем, иначе «в шесть» превращается в шесть рублей
+  const text = String(raw)
+    .replace(/\sв\s+\d{1,2}([:.]\d{2})?(\s+часов|\s+утра|\s+вечера|\s+дня)?/gi,' ')
+    .replace(/\sв\s+(час|два|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать)(\s+часов|\s+утра|\s+вечера|\s+дня)?/gi,' ');
   const digits = text.match(/(\d[\d\s]{0,8})\s*(?:р|₽|руб|тыс)?/i);
   if (digits){
     let v = +digits[1].replace(/\s/g,'');
@@ -392,19 +440,90 @@ function parseSum(text){
   });
   return seen ? total + part : null;
 }
+const HOURWORD = {'час':13,'один':1,'два':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,
+ 'девять':9,'десять':10,'одиннадцать':11,'двенадцать':12,'тринадцать':13,'четырнадцать':14,'пятнадцать':15,
+ 'шестнадцать':16,'семнадцать':17,'восемнадцать':18,'девятнадцать':19,'двадцать':20,'двадцать один':21,
+ 'двадцать два':22,'двадцать три':23};
+const MINWORD = {'ноль ноль':0,'ровно':0,'пятнадцать':15,'тридцать':30,'полтора':30,'сорок пять':45,'десять':10,'двадцать':20,'сорок':40,'пятьдесят':50};
 function parseTime(text){
-  const t = text.match(/(\d{1,2})[:.](\d{2})/);
+  const low = ' ' + String(text).toLowerCase() + ' ';
+  const t = low.match(/(\d{1,2})[:.](\d{2})/);
   if (t) return String(+t[1]).padStart(2,'0') + ':' + t[2];
-  const h = text.match(/в\s+(\d{1,2})\s*(?:час|ч)?/i);
-  if (h && +h[1] <= 23) return String(+h[1]).padStart(2,'0') + ':00';
-  const words = {'шесть':18,'семь':19,'восемь':20,'девять':9,'десять':10,'одиннадцать':11,'двенадцать':12,'час':13,'два':14,'три':15,'четыре':16,'пять':17};
-  for (const w in words) if (new RegExp('в\\s+' + w).test(text.toLowerCase())) return String(words[w]).padStart(2,'0') + ':00';
+  if (/полдень/.test(low)) return '12:00';
+  if (/полноч/.test(low)) return '00:00';
+  const d = low.match(/\sв\s+(\d{1,2})\s*(?:час\w*|ч)?(?:\s+(утра|дня|вечера|ночи))?/);
+  if (d && +d[1] <= 23){
+    let h = +d[1];
+    if (d[2] === 'вечера' && h < 12) h += 12;
+    if (d[2] === 'дня' && h < 12 && h > 4) h += 12;
+    return String(h).padStart(2,'0') + ':00';
+  }
+  // числительными: «в пятнадцать ноль ноль», «в десять тридцать», «в шесть вечера»
+  const keys = Object.keys(HOURWORD).sort((a,b) => b.length - a.length);
+  for (const k of keys){
+    const re = new RegExp('\\s(?:в|на|к)\\s+' + k + '(?:\\s+(ноль ноль|тридцать|пятнадцать|сорок пять|десять|двадцать|сорок|пятьдесят|ровно))?(?:\\s+(утра|дня|вечера|ночи))?', 'i');
+    const m = low.match(re);
+    if (m){
+      let h = HOURWORD[k];
+      const mins = m[1] ? (MINWORD[m[1]] || 0) : 0;
+      const part = m[2];
+      if (part === 'вечера' && h < 12) h += 12;
+      else if (part === 'ночи' && h < 6) h = h;
+      else if (part === 'дня' && h < 12 && h > 4) h += 12;
+      else if (!part && h >= 1 && h <= 8 && k !== 'час') h += 12;  // «в шесть» вечером привычнее
+      return String(Math.min(23,h)).padStart(2,'0') + ':' + String(mins).padStart(2,'0');
+    }
+  }
   return null;
 }
+const ORD = {'первого':1,'второго':2,'третьего':3,'четвёртого':4,'четвертого':4,'пятого':5,'шестого':6,
+ 'седьмого':7,'восьмого':8,'девятого':9,'десятого':10,'одиннадцатого':11,'двенадцатого':12,'тринадцатого':13,
+ 'четырнадцатого':14,'пятнадцатого':15,'шестнадцатого':16,'семнадцатого':17,'восемнадцатого':18,'девятнадцатого':19,
+ 'двадцатого':20,'тридцатого':30,'тридцать первого':31};
+const MONTH_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
 function parseDate(text){
-  const low = text.toLowerCase();
+  const low = ' ' + String(text).toLowerCase() + ' ';
+  const rel = low.match(/через +([0-9]+|две|три|четыре|пять|неделю|месяц|полторы недели)? *(дн[еяй]\w*|недел\w*|месяц\w*)?/);
+  if (rel && (rel[1] || rel[2])){
+    const w = {'две':2,'три':3,'четыре':4,'пять':5}[rel[1]] || +rel[1] || 1;
+    const unit = rel[2] || rel[1] || '';
+    let days = 0;
+    if (/недел/.test(unit)) days = w * 7;
+    else if (/месяц/.test(unit)) days = w * 30;
+    else if (/дн/.test(unit)) days = w;
+    else if (rel[1] === 'неделю') days = 7;
+    else if (rel[1] === 'месяц') days = 30;
+    if (days) return iso(new Date(Date.now() + days*86400000));
+  }
   if (/послезавтра/.test(low)) return iso(new Date(Date.now() + 2*86400000));
   if (/завтра/.test(low)) return iso(new Date(Date.now() + 86400000));
+  // «24 сентября» или «двадцать четвёртого сентября»
+  for (let mi = 0; mi < 12; mi++){
+    if (!low.includes(MONTH_GEN[mi])) continue;
+    let day = null;
+    const dig = low.match(new RegExp('([0-9]{1,2}) +' + MONTH_GEN[mi]));
+    if (dig) day = +dig[1];
+    if (!day){
+      // сначала составные: «двадцать четвёртого», «тридцать первого»
+      const comp = low.match(new RegExp('(двадцать|тридцать) +(перв|втор|треть|четв[её]рт|пят|шест|седьм|восьм|девят)[а-яё]* +' + MONTH_GEN[mi]));
+      if (comp){
+        const base = comp[1] === 'двадцать' ? 20 : 30;
+        const units = {'перв':1,'втор':2,'треть':3,'четв':4,'пят':5,'шест':6,'седьм':7,'восьм':8,'девят':9};
+        for (const u in units) if (comp[2].startsWith(u)){ day = base + units[u]; break; }
+      }
+      if (!day){
+        const keys = Object.keys(ORD).sort((a,b) => b.length - a.length);
+        for (const k of keys)
+          if (new RegExp('(?<!двадцать )(?<!тридцать )' + k + ' +' + MONTH_GEN[mi]).test(low)){ day = ORD[k]; break; }
+      }
+    }
+    if (day){
+      const now = new Date();
+      let y = now.getFullYear();
+      const cand = y + '-' + String(mi+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+      return cand < today() ? (y+1) + cand.slice(4) : cand;
+    }
+  }
   for (const w in WDAY_WORDS){
     if (low.includes(w)){
       const want = WDAY_WORDS[w], d = new Date();
@@ -431,47 +550,201 @@ function pickPlace(text){
   for (const p in PLACE_WORDS) if (PLACE_WORDS[p].some(w => low.includes(w))) return p;
   return 'home';
 }
-/* фраза делится по запятым и союзам: каждая часть разбирается отдельно */
+/* Диктовка на телефоне не ставит знаки препинания, поэтому фразу делим
+   не по запятым, а по словам-переключателям: «потом», «съела», «купила»,
+   «завтра» и подобным. Запятые и точки, если они есть, тоже учитываются. */
+const SPLITTERS = ['потом','затем','после этого','ещё','еще','также','а также','плюс',
+ 'потратила','потратил','купила','купил','заплатила','заплатил','отдала','отдал','перевела',
+ 'съела','съел','поела','поел','позавтракала','пообедала','поужинала','перекусила','выпила','выпил',
+ 'получила','получил','пришла зарплата','пришли деньги','заработала',
+ 'записалась','записался','встреча','созвон','не забыть','надо','нужно','купить','заехать','зайти',
+ 'завтра','послезавтра'];
+function segments(text){
+  let t = ' ' + String(text).replace(/[,;.!?]/g, ' | ').replace(/\s+/g,' ') + ' ';
+  SPLITTERS.forEach(w => {
+    t = t.replace(new RegExp('(?<=[\\s|])' + w + '(?=[\\s|])', 'gi'), m => '| ' + m);
+  });
+  return t.split('|').map(x => x.trim()).filter(x => x.length > 2);
+}
+/* «купила на 1800, творог 200, молоко 90» — общая сумма и позиции внутри неё */
+function splitItems(part){
+  const m = part.match(/([а-яё]{3,}[а-яё\s]{0,20}?)\s+(\d{2,6})(?=\s|$)/gi);
+  return (m && m.length > 1) ? m.map(x => x.trim()) : null;
+}
+/* служебные слова, которые женщина говорит между делом */
+function stripFiller(t){
+  return String(t)
+    .replace(/(^| )(запиши|запишите|пожалуйста|напиши|напомни|напомните|отметь|мне нужно|мне надо|нужно напоминание|напоминание за день|чтобы я не забыла|чтобы я не забыл|чтобы я|я хочу|это самое|короче|теперь дальше|теперь|где-то|о том|когда я приду на работу|во сколько|за день|будет)( |$|,)/gi,' ')
+    .replace(/ {2,}/g,' ').trim();
+}
+/* список покупок — одно предложение целиком, а не куски через запятую */
+function isShoppingList(t){
+  const low = t.toLowerCase();
+  return /куп|не забыть|зайти|заехать|заказать|список покупок|взять в магазин/.test(low) && !/[0-9]{2,}/.test(low);
+}
 function parseSpeech(text){
-  const out = {exp:[], inc:[], meals:[], ev:[], rest:[]};
-  String(text).split(/[,;.]| и потом | а также /i).map(s => s.trim()).filter(Boolean).forEach(part => {
+  const out = {exp:[], inc:[], meals:[], ev:[], notes:[], rest:[], sleep:null};
+  let receipt = null;   // открытый чек: следующие «товар — сумма» станут его составом
+  let lastDate = null;  // дата из предыдущей фразы: «через неделю улетаю… вылет в десять»
+  let pending = null;   // «завтра в десять ноль ноль» без дела — ждём следующего куска
+  const parts = [];
+  String(text).split(/(?<=[.!?])\s+/).forEach(sent => {
+    const clean0 = stripFiller(sent);
+    if (!clean0) return;
+    if (isShoppingList(clean0) && !parseTime(clean0) && !/встреч|прилет|прилёт|приезж|приезд|вылет|улета|врач|запись к|созвон|поезд|рейс|день рожд|годовщин/i.test(clean0)){
+      out.notes.push(tidy(clean0.replace(/[.!?]+$/,'')));
+      return;
+    }
+    segments(clean0).forEach(x => parts.push(x));
+  });
+  parts.forEach(part => {
     const low = part.toLowerCase();
+    // кусок только про время и дату, без дела — придержим для следующего
+    const bareWhen = (parseTime(part) || parseDate(part) !== today()) && clean(part).length < 3;
+    if (bareWhen){
+      pending = {date:parseDate(part), time:parseTime(part)};
+      return;
+    }
     const money = parseSum(part);
+    // продолжение чека: «творог 200», «молоко 90»
+    if (receipt && money && /^[а-яё][а-яё ]{1,22} +[0-9]{2,6} *(руб[а-яё]*|₽)?$/i.test(part.trim())){
+      receipt.items.push(part.trim());
+      return;
+    }
+    if (money && /чек|в магазине|закуп|продукты на|покупк/i.test(low)){
+      const c = pickCat(part);
+      const rec = {cat:c, title:clean(part) || c, sum:money, src:'голосом'};
+      out.exp.push(rec);
+      receipt = {sum:money, items:[]};
+      out.receipts = out.receipts || [];
+      out.receipts.push(receipt);
+      return;
+    }
     const isIncome = /получил|зарплат|аванс|перевели|пришл[аои] деньги|заработал|кэшбэк|premi|прем/i.test(low);
     const isMeal = /съел|ела |поел|завтрак|обед|ужин|перекус|выпил|позавтрак|поужин|пообед/i.test(low);
-    const isEvent = /встреч|созвон|запис|маникюр|педикюр|врач|зал|тренир|поезд|отпуск|день рожд|напомн|позвонить/i.test(low)
-                    && (parseTime(part) || /завтра|послезавтра|понедельник|вторник|сред|четверг|пятниц|суббот|воскресен/i.test(low));
+    const hasDate = parseDate(part) !== today() || /сегодня/i.test(low);
+    const actionVerb = /отправ|написа|позвон|заеха|зайти|зайду|забра|сходи|отвез|оплат|сдать|встрет|привез|отдат|занест|получит|подать|подпис|улета|улечу|улетаю|прилета/i.test(low);
+    const isEvent = /встреч|созвон|запис|маникюр|педикюр|врач|зал|тренир|поезд|вылет|прилет|прилёт|приезж|приезд|рейс|самол[её]т|билет|отпуск|день рожд|позвонить|отправлен/i.test(low)
+                    && (parseTime(part) || hasDate);
+    const isTask = actionVerb && (parseTime(part) || hasDate || pending);
     if (isMeal){
       const kcal = (part.match(/(\d{2,4})\s*(?:ккал|калор)/i) || [])[1];
-      out.meals.push({slot:pickSlot(part), title:clean(part), place:pickPlace(part), kcal:kcal ? +kcal : null});
+      out.meals.push({slot:pickSlot(part), title:clean(part) || 'Приём пищи', place:pickPlace(part), kcal:kcal ? +kcal : null});
       if (money && /кафе|кофейн|ресторан|доставк/i.test(low))
-        out.exp.push({cat:pickCat(part), title:clean(part), sum:money, src:'голосом'});
+        out.exp.push({cat:pickCat(part), title:clean(part) || pickCat(part), sum:money, src:'голосом'});
       return;
     }
-    if (isEvent){
-      out.ev.push({date:parseDate(part), time:parseTime(part), title:clean(part), plan:money || null});
+    if (isEvent || isTask){
+      const realMoney = money && (/руб|₽|тысяч|манат|тенге|стоит|цена/i.test(low) || money >= 100);
+      let d = parseDate(part);
+      let tm = parseTime(part);
+      if (pending){
+        if (d === today() && !/сегодня/i.test(low)) d = pending.date;
+        if (!tm) tm = pending.time;
+        pending = null;
+      }
+      if (d === today() && !/сегодня/i.test(low) && lastDate) d = lastDate;
+      if (d !== today()) lastDate = d;
+      out.ev.push({date:d, time:tm, title:clean(part) || 'Событие',
+                   plan: realMoney ? money : null});
       return;
     }
-    if (money && isIncome){ out.inc.push({title:clean(part), sum:money, src:'голосом'}); return; }
-    if (money){ out.exp.push({cat:pickCat(part), title:clean(part), sum:money, src:'голосом'}); return; }
-    out.rest.push(part);
+    const sleepWord = /(спалось|спала|спал|сон|поспала)/i.test(low);
+    const sleepQual = low.match(/(хорошо|нормально|отлично|плохо|ужасно|так себе|мало|нормас)/);
+    if ((sleepWord && sleepQual) || /выспалась|не выспалась|не спала/i.test(low)){
+      const w = sleepQual ? sleepQual[1] : (/не выспалась|не спала/i.test(low) ? 'плохо' : 'хорошо');
+      out.sleep = /хорошо|отлично|выспалась/.test(w) ? 'good'
+                : /нормально|так себе/.test(w) ? 'ok'
+                : /мало/.test(w) ? 'few' : 'bad';
+      return;
+    }
+    if (!money && isShoppingList(part)){
+      out.notes.push(tidy(part.replace(/\bкупила\b/i,'купить').replace(/\bкупил\b/i,'купить')));
+      return;
+    }
+    if (money && isIncome){ out.inc.push({title:clean(part) || 'Доход', sum:money, src:'голосом'}); return; }
+    if (money){
+      const items = splitItems(part);
+      if (items && /чек|магазин|куплен|купила|потратила|в том числе/i.test(low)){
+        // первая сумма — общая по чеку, остальные позиции уходят в заметку как состав
+        const nums = items.map(x => +(x.match(/\d+/) || [0])[0]);
+        const total = Math.max(...nums);
+        const rest = items.filter(x => +(x.match(/\d+/) || [0])[0] !== total);
+        const c = pickCat(part);
+        out.exp.push({cat:c, title:clean(items[0]) || c, sum:total, src:'голосом'});
+        if (rest.length) out.notes.push(tidy('В чеке на ' + total + ': ' + rest.join(', ')));
+        return;
+      }
+      const c = pickCat(part);
+      out.exp.push({cat:c, title:clean(part) || c, sum:money, src:'голосом'});
+      return;
+    }
+    if (!/^(запиши|запишите|пожалуйста|напиши|напомни|отметь|мне|меня|чтобы я?|ну|вот|и|а|это самое|короче)[.,]?$/i.test(part.trim()))
+      out.rest.push(part);
   });
+  (out.receipts || []).forEach(r => {
+    if (r.items.length) out.notes.push(tidy('В чеке на ' + r.sum + ': ' + r.items.join(', ')));
+  });
+  delete out.receipts;
   return out;
 }
+
+/* ---------- оформление надиктованного текста ----------
+   Диктовка на телефоне не ставит знаков препинания. Здесь текст доводится
+   до читаемого вида: заглавная буква, запятые в перечислениях и перед
+   «потом», «затем», «а», «но», точка в конце длинной фразы. */
+const NUMWORDS = 'ноль|один|одна|одну|два|две|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать|полтора|полторы';
+const PREPS = 'в|во|на|за|с|со|из|от|до|к|по|при|про|для|у|о|об|над|под|около|через';
+function tidy(t){
+  if (!t) return '';
+  let s = String(t).replace(/\s+/g,' ').trim();
+  // запятая перед словами-связками
+  s = s.replace(new RegExp('\\s(потом|затем|после этого|а также|плюс|а|но|однако|зато)\\s','gi'), ', $1 ');
+  // запятая перед «и ещё», «ещё»
+  s = s.replace(/\s(и ещё|и еще|ещё|еще)\s/gi, ', $1 ');
+  // запятая перед числом, если это новый пункт перечисления
+  s = s.replace(new RegExp('(?<!^)(?<!,)\\s(?<!(?:' + PREPS + ')\\s)((?:' + NUMWORDS + '|\\d+)\\s+[а-яё]{3,})','gi'), ', $1');
+  // чистим сдвоенные знаки и пробелы перед ними
+  s = s.replace(/\s*,\s*,+/g, ', ').replace(/\s+,/g, ',').replace(/,\s*$/,'').replace(/\s{2,}/g,' ').trim();
+  if (!s) return '';
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  // точка в конце — только у длинных фраз, чтобы короткие названия не выглядели странно
+  const words = s.split(' ').length;
+  if ((words >= 5 || s.includes(',')) && !/[.!?…]$/.test(s)) s += '.';
+  return s;
+}
+
 function clean(t){
   let s = ' ' + String(t).trim() + ' ';
-  s = s.replace(/\s(потратила|потратил|заплатила|заплатил|купила|купил|съела|съел|поела|поел|позавтракала|пообедала|поужинала|записалась|записался|получила|получил|пришло|перевели)\s/gi,' ');
-  s = s.replace(/\s(в|на|за|во)\s+(понедельник|вторник|среду|четверг|пятницу|субботу|воскресенье|завтра|послезавтра)\s/gi,' ');
-  s = s.replace(/\s(завтра|послезавтра|сегодня|утром|днём|днем|вечером)\s/gi,' ');
-  s = s.replace(/\sв\s+\d{1,2}([:.]\d{2})?\s/gi,' ');
-  s = s.replace(/\sв\s+(час|два|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать)(\s+часов?|\s+утра|\s+вечера)?\s/gi,' ');
-  s = s.replace(/\s\d[\d\s]*\s*(р|₽|руб\w*|рублей|тысяч\w*)?\s/gi,' ');
-  s = s.replace(/\s(ноль|один|одну|два|две|три|четыре|пять|шесть|семь|восемь|девять|десять|сто|двести|триста|четыреста|пятьсот|шестьсот|семьсот|восемьсот|девятьсот|тысяч\w*|полторы)\s/gi,' ');
-  s = s.replace(/\s(на|за|про)\s+$/i,' ').replace(/\s{2,}/g,' ').trim();
-  s = s.replace(/^(на|за|про|в)\s+/i,'');
-  if (!s) s = String(t).trim();
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  const cut = (re) => { s = s.replace(re, ' '); };
+  cut(/ (ко мне|у меня|мне|меня|нам|нас|мы|я|мо[йяею]|мои|наш[аи]?) /gi);
+  cut(new RegExp(' (перв|втор|треть|четв[ёе]рт|пят|шест|седьм|восьм|девят|десят|одиннадцат|двенадцат|двадцат|тридцат)[а-яё]*о?го ', 'gi'));
+  cut(/ (двадцать|тридцать) /gi);
+  cut(new RegExp(' (' + MONTH_GEN.join('|') + ') ', 'gi'));
+  cut(/ [0-9]{1,2}[:.][0-9]{2} /g);
+  cut(/ (ноль ноль|ровно) /gi);
+  cut(/ (в|во|на|к) +[0-9]{1,2} /gi);
+  cut(new RegExp(' (в|во|на|к) +(' + Object.keys(HOURWORD).join('|') + ')( +(утра|дня|вечера|ночи|часов|часа))? ', 'gi'));
+  cut(/ (утра|дня|вечера|ночи|часов|часа) /gi);
+  cut(/ (во сколько|за день|нужно напоминание|напоминание)[^,.]* /gi);
+  cut(/ (потратила|потратил|заплатила|заплатил|купила|купил|съела|съел|поела|поел|позавтракала|пообедала|поужинала|записалась|записался|получила|получил|пришло|перевели|надо|нужно) /gi);
+  cut(/ (в|во|на|за|до|к|с) +(понедельник|вторник|среду|четверг|пятницу|субботу|воскресенье|завтра|послезавтра) /gi);
+  cut(/ (завтра|послезавтра|сегодня|утром|днём|днем|вечером) /gi);
+  cut(/ через +([0-9]+|две|три|четыре|пять)? *(дн[еяй][а-яё]*|недел[а-яё]*|месяц[а-яё]*)? /gi);
+  cut(/^ *(и|а|ну|вот) /gi);
+  cut(/ [0-9][0-9 ]*(руб[а-яё]*|₽|тысяч[а-яё]*)? /gi);
+  cut(/ на [0-9]+ /gi);
+  cut(new RegExp(' (' + Object.keys(WORDNUM).join('|') + ') ', 'gi'));
+  s = s.replace(/ {2,}/g,' ').trim();
+  s = s.replace(/^(в|во|на|за|про|до|к|и|а|с|у)\s+/i,'').trim();
+  for (let n = 0; n < 3; n++)
+    s = s.replace(/[\s,]+(в|во|на|за|про|до|к|и|а|с|у|вечером|утром|днём|днем|ночью|за день|во сколько)[.,]?$/i,'').trim();
+  s = s.replace(/[\s,]+(что|чтобы|когда|где|как|о том)$/i,'').trim();
+  if (s.length < 2) return '';
+  return tidy(s.charAt(0).toUpperCase() + s.slice(1));
 }
+
+
 
 
 /* ===== Карта дня: колода, рисунки и значения перенесены из «Точки ответа» ===== */
@@ -635,7 +908,7 @@ DECK.forEach(function(c){ CARD_BY_ID[c.id] = c; });
 
 /* ================= Рисунок карты ================= */
 /* Карты рисуются кодом: рамка, номер аркана, эмблема или пипсы по масти.
-   Никаких внешних файлов — кабинет остаётся одним файлом и работает офлайн. */
+   Никаких внешних файлов — приложение остаётся одним файлом и работает офлайн. */
 const SUIT_COLOR = {w:'#BE6E4A', c:'#3E6B8F', s:'#28425C', p:'#B08347'};
 const MAJ_LINE = '#A9793F', MAJ_INK = '#28425C';
 const ROMAN = ['0','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX','XXI'];
@@ -820,8 +1093,8 @@ p14:['Состоятельный, надёжный мужчина.','Стаби�
 
 /* ---------- настоящие карты Уэйта ----------
    Колода Райдера—Уэйта—Смит (1909) — общественное достояние.
-   Берётся из папки cards рядом с кабинетом (офлайн) либо с Викисклада.
-   Если картинка не загрузилась — на её место встаёт рисунок кабинета. */
+   Берётся из папки cards рядом с приложениеом (офлайн) либо с Викисклада.
+   Если картинка не загрузилась — на её место встаёт рисунок приложения. */
 const RWS_MAJOR = ['RWS_Tarot_00_Fool','RWS_Tarot_01_Magician','RWS_Tarot_02_High_Priestess','RWS_Tarot_03_Empress',
 'RWS_Tarot_04_Emperor','RWS_Tarot_05_Hierophant','RWS_Tarot_06_Lovers','RWS_Tarot_07_Chariot','RWS_Tarot_08_Strength',
 'RWS_Tarot_09_Hermit','RWS_Tarot_10_Wheel_of_Fortune','RWS_Tarot_11_Justice','RWS_Tarot_12_Hanged_Man','RWS_Tarot_13_Death',
@@ -830,7 +1103,7 @@ const RWS_MAJOR = ['RWS_Tarot_00_Fool','RWS_Tarot_01_Magician','RWS_Tarot_02_Hig
 const RWS_SUIT = {w:'Wands', c:'Cups', s:'Swords', p:'Pents'};
 function pad2(n){ return String(n).padStart(2,'0'); }
 function cardFile(c){ return (c.major ? RWS_MAJOR[c.num] : RWS_SUIT[c.suit] + pad2(c.num)) + '.jpg'; }
-/* 'web' — с Викисклада, 'local' — из папки cards рядом, 'draw' — рисунок кабинета */
+/* 'web' — с Викисклада, 'local' — из папки cards рядом, 'draw' — рисунок приложения */
 function cardImgUrl(cardId){
   const c = CARD_BY_ID[cardId]; if (!c || ART_MODE === 'draw') return null;
   if (ART_MODE === 'local') return 'cards/' + cardFile(c);
@@ -933,7 +1206,30 @@ const DAYTXT = {
 
 /* ================= Экраны ================= */
 
+/* кнопка внизу знает, в каком вы разделе: в календаре пишет событие,
+   в деньгах — трату, в записях — заметку. Разбирать длинную фразу
+   целиком приходится только на «Сегодня», и там об этом сказано прямо. */
+const DOCK = {
+  's-today': ['Расскажите про день — разложу по разделам', 'openSheet(\'voice\')'],
+  's-cal':   ['Событие: что и когда', 'openSheet(\'ev\')'],
+  's-money': ['Трата или доход', 'openSheet(\'exp\')'],
+  's-notes': ['Заметка или сон', 'focusNote()'],
+  's-more':  ['Расскажите свободно', 'openSheet(\'voice\')']
+};
+let curScreen = 's-today';
+function openContext(){
+  const a = (DOCK[curScreen] || DOCK['s-today'])[1];
+  new Function(a)();
+}
+function focusNote(){
+  const el = document.getElementById('n-text');
+  if (el){ el.focus(); el.scrollIntoView({block:'center'}); }
+  else openSheet('voice');
+}
 function go(btn, id){
+  curScreen = id;
+  const h = document.getElementById('dock-hint');
+  if (h) h.textContent = (DOCK[id] || DOCK['s-today'])[0];
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected','false'));
   btn.setAttribute('aria-selected','true');
   document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== id);
@@ -949,20 +1245,34 @@ function renderAll(){
   const d = new Date();
   document.getElementById('today-date').textContent =
     WDAYS[d.getDay()].charAt(0).toUpperCase() + WDAYS[d.getDay()].slice(1) + ', ' + humanDate(today());
-  document.getElementById('saved').textContent = storageOk
-    ? (S.savedAt ? 'сохранено ' + new Date(S.savedAt).toTimeString().slice(0,5) : 'готово к работе')
-    : 'НЕ СОХРАНЯЕТСЯ';
-  renderToday(); renderCal(); renderMoney(); renderFood(); renderMore();
+  document.getElementById('saved').textContent = storageOk ? '' : 'НЕ СОХРАНЯЕТСЯ';
+  renderToday(); renderCal(); renderMoney(); renderNotes(); renderMore();
 }
 
 /* ---------- Сегодня ---------- */
 function renderToday(){
   const d = today(), rec = dayRec(d), free = freeLeft(), perDay = free / daysLeft();
-  const spentPct = S.settings.budget ? spentMonth(monthOf(d)) / S.settings.budget * 100 : 0;
+  const spentPct = budgetOf() ? spentMonth(monthOf(d)) / budgetOf() * 100 : 0;
   let h = '';
 
   if (!storageOk) h += '<div class="warnbar">Браузер не сохраняет данные. Проверьте, не открыт ли режим инкогнито.</div>';
 
+  if (!S.settings.hi){
+    h += card(lab('С чего начать') +
+      '<div style="font-size:14px;margin-bottom:10px">Это ваш день в одном месте. Три вещи, и дальше всё понятно:</div>' +
+      '<div class="item"><div class="ic">1</div><div class="txt"><b>Кнопка внизу</b>' +
+        '<small>Она меняется по разделу: в календаре пишет событие, в деньгах — трату, в записях — заметку</small></div></div>' +
+      '<div class="item"><div class="ic">2</div><div class="txt"><b>Говорите, а не печатайте</b>' +
+        '<small>Микрофон есть у каждого поля. На айфоне он открывает клавиатуру — диктуйте её микрофоном</small></div></div>' +
+      '<div class="item"><div class="ic">3</div><div class="txt"><b>Данные живут в телефоне</b>' +
+        '<small>Никуда не отправляются. Раз в неделю делайте копию в разделе «Ещё»</small></div></div>' +
+      '<button class="btn" style="margin-top:12px" onclick="hideHi()">Понятно, начнём</button>');
+  }
+  if (!S.settings.income)
+    h += card(lab('Настройте за минуту') +
+      '<div class="mut" style="margin-bottom:10px">Скажите, сколько получаете и сколько откладываете — и приложение само посчитает, ' +
+      'сколько можно тратить в день. Пока считаю от ' + money(budgetOf()) + '.</div>' +
+      '<button class="btn ghost" onclick="go(document.querySelector(\'.tabs button:nth-child(5)\'),\'s-more\')">Указать доход</button>');
   const nx = nextEvent();
   h += card(
     '<div class="row" style="align-items:flex-start"><div>' + lab('Ближайшее событие') +
@@ -975,41 +1285,44 @@ function renderToday(){
 
   h += '<div class="grid2">' +
     card(lab('Деньги') + '<div class="big" style="font-size:20px">' + money(free) + '</div>' +
-      '<div class="mut">свободно · ' + money(perDay) + ' в день</div>' + bar(spentPct, 'var(--ochre)')) +
-    card(lab('Еда') + foodTile()) +
+      '<div class="mut">осталось до конца месяца</div>' +
+      bar(spentPct, 'var(--ochre)') +
+      '<div class="mut" style="margin-top:7px;font-size:11px">по ' + money(perDay) + ' в день на ' +
+        daysLeft() + ' ' + plural(daysLeft(),'день','дня','дней') + '</div>') +
+    card(lab('Записи') + '<div class="big" style="font-size:20px">' + (S.notes.length + S.dreams.length) + '</div>' +
+      '<div class="mut">заметок и снов</div>' + bar(Math.min(100,(S.notes.length + S.dreams.length) * 8), 'var(--ok)')) +
     '</div>';
 
   const ev = evOf(d);
   h += card(lab('Назначено на сегодня') +
     (ev.length ? '<div class="dayline"><div class="spine"></div>' + ev.map(e => {
         const past = (e.time || '') < new Date().toTimeString().slice(0,5);
-        return '<div class="tl' + (past ? ' done' : ' next') + '"><div class="tl-dot"></div>' +
+        const done = (S.day[d] || {}).done && S.day[d].done.includes(e.id);
+        return '<div class="tl' + (done ? ' done' : ' next') + '"><div class="tl-dot"></div>' +
           '<div class="tl-time">' + esc(e.time || '—') + '</div>' +
-          '<div class="row"><span class="tl-what">' + esc(e.title) + '</span>' +
-          '<button class="del" onclick="drop(\'ev\',\'' + e.id + '\')">убрать</button></div></div>';
+          '<div class="row"><span class="tl-what"' + (done ? ' style="text-decoration:line-through;color:var(--mut)"' : '') + '>' +
+          esc(e.title) + '</span>' +
+          '<button class="tick' + (done ? ' on' : '') + '" onclick="toggleDone(\'' + e.id + '\')" title="Сделано">' +
+          (done ? '✓' : '') + '</button></div></div>';
       }).join('') + '</div>'
-      : '<div class="empty">На сегодня ничего не назначено.</div>') +
+      : '<div class="empty">На сегодня ничего не назначено. Скажите «завтра врач в десять» — попадёт в календарь.</div>') +
     '<button class="btn ghost" style="margin-top:10px" onclick="openSheet(\'ev\')">Добавить событие</button>');
 
   const te = S.exp.filter(x => x.date === d), tm = mealsOf(d);
-  h += card(lab('Записано сегодня') +
-    '<div class="item"><div class="ic">₽</div><div class="txt"><b>Расходы · ' + te.length + ' ' + plural(te.length,'запись','записи','записей') + '</b>' +
-      '<small>' + (te.length ? esc(te.map(x => x.title).slice(0,3).join(', ')) : 'пока ничего') + '</small></div>' +
-      '<div class="sum">' + (te.length ? '−' + money(sum(te)) : '—') + '</div></div>' +
-    '<div class="item"><div class="ic">🍽</div><div class="txt"><b>Еда · ' + tm.length + ' ' + plural(tm.length,'запись','записи','записей') + '</b>' +
-      '<small>' + (tm.length ? esc(tm.map(x => x.title).slice(0,3).join(', ')) : 'пока ничего') + '</small></div>' +
-      '<div class="sum">' + (kcalOf(d) ? num(kcalOf(d)) + ' ккал' : '—') + '</div></div>');
-
-  h += card(lab('Итог дня') +
-    '<div class="stat"><span>Дела из назначенных</span><b>' + ev.filter(e => (e.time||'') < new Date().toTimeString().slice(0,5)).length + ' из ' + ev.length + '</b></div>' +
-    '<div class="stat"><span>Дневной бюджет</span><b style="color:' + (sum(te) <= perDay ? 'var(--ok)' : 'var(--ochre)') + '">' +
-      (sum(te) <= perDay ? 'в норме' : 'превышен') + '</b></div>' +
-    '<div class="stat"><span>Еда</span><b>' + (tm.length ? esc(tm.map(m => (PLACES.find(p => p[0] === m.place) || ['','—'])[1]).join(', ')) : '—') + '</b></div>' +
-    '<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">' +
-      '<div style="font-size:13px;margin-bottom:8px">А как вы себя чувствуете?</div>' +
+  const evDone = ((rec.done || []).length);
+  const evening = new Date().getHours() >= 18;
+  h += card(lab('Как идёт день') +
+    '<div class="stat"><span>Дела</span><b>' +
+      (ev.length ? (evDone ? evDone + ' из ' + ev.length + ' сделано' : 'впереди ' + ev.length + ' ' + plural(ev.length,'дело','дела','дел')) : '—') +
+    '</b></div>' +
+    '<div class="stat"><span>Потрачено</span><b>' + (te.length ? money(sum(te)) : '—') + '</b></div>' +
+    '<div class="stat"><span>Сон</span><b>' + (rec.sleep ? (SLEEP.find(x => x[0] === rec.sleep)||['','—'])[1] : 'не отмечен') + '</b></div>' +
+    (te.length ? '<div class="mut" style="margin-top:8px">' + esc(te.map(x => x.title).slice(0,4).join(', ')) + '</div>' : '') +
+    (evening || rec.mood ? '<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:12px">' +
+      '<div style="font-size:13px;margin-bottom:8px">Как вы себя чувствуете?</div>' +
       '<div class="pick">' + MOODS.map(m =>
         '<button aria-pressed="' + (rec.mood === m[0]) + '" onclick="setMood(\'' + m[0] + '\')">' + m[1] + '</button>').join('') +
-      '</div></div>');
+      '</div></div>' : ''));
 
   const td = todo();
   if (td.length) h += card(lab('Нужно отметить') + td.map(t =>
@@ -1018,17 +1331,19 @@ function renderToday(){
 
   document.getElementById('s-today').innerHTML = h;
 }
-function foodTile(){
-  const d = today(), m = mealsOf(d);
-  if (S.settings.foodMode === 'full'){
-    const left = S.settings.kcal - kcalOf(d);
-    return '<div class="big" style="font-size:20px">' + num(Math.max(0,left)) + '</div>' +
-      '<div class="mut">ккал осталось</div>' + bar(kcalOf(d) / S.settings.kcal * 100, 'var(--ok)');
-  }
-  return '<div class="big" style="font-size:20px">' + m.length + ' из 4</div>' +
-    '<div class="mut">приёмов отмечено</div>' + bar(m.length / 4 * 100, 'var(--ok)');
+function toggleDone(id){
+  const r = dayRec(today());
+  r.done = r.done || [];
+  const i = r.done.indexOf(id);
+  if (i >= 0) r.done.splice(i,1); else r.done.push(id);
+  save();
 }
+function hideHi(){ S.settings.hi = 1; save(); }
 function setMood(v){ dayRec(today()).mood = v; save(); }
+function addPlace(pl){
+  S.meals.push({id:uid(), date:today(), place:pl, slot:'l', title:(PLACES.find(x=>x[0]===pl)||['','—'])[1]});
+  save(); toast('Отмечено');
+}
 
 /* ---------- Календарь ---------- */
 let calMonth = monthOf(today());
@@ -1040,7 +1355,7 @@ function renderCal(){
   for (let i = 1; i <= n; i++){
     const ds = calMonth + '-' + String(i).padStart(2,'0');
     const marks = [];
-    if (S.ev.some(e => e.date === ds)) marks.push('var(--accent)');
+    if (S.ev.some(e => occursOn(e, ds))) marks.push('var(--accent)');
     if (S.exp.some(e => e.date === ds) || S.inc.some(e => e.date === ds)) marks.push('var(--ok)');
     cells += '<div class="d' + (ds === today() ? ' today' : '') + '" onclick="pickDay(\'' + ds + '\')">' + i +
       (marks.length ? '<span class="mk">' + marks.map(c => '<i style="background:' + (ds === today() ? '#fff' : c) + '"></i>').join('') + '</span>' : '') +
@@ -1060,20 +1375,47 @@ function renderCal(){
       (list.length ? list.map(e =>
         '<div class="item"><div class="ic">📅</div><div class="txt"><b>' + esc(e.title) + '</b>' +
         '<small>' + (e.time ? esc(e.time) : 'без времени') + (e.plan ? ' · ' + money(e.plan) : '') + '</small></div>' +
+        '<button class="del" style="color:var(--accent)" onclick="toPhoneCalendar(\'' + e.id + '\')">напомнить</button>' +
         '<button class="del" onclick="drop(\'ev\',\'' + e.id + '\')">убрать</button></div>').join('')
-        : '<div class="empty">На этот день ничего не назначено.</div>') +
+        : '<div class="empty">На этот день ничего не назначено. Нажмите на любое число, чтобы посмотреть другой день.</div>') +
       '<button class="btn" style="margin-top:11px" onclick="openSheet(\'ev\',\'' + sel + '\')">Добавить событие</button>') +
-    card(lab('Ближайшее') + (function(){
-      const up = S.ev.filter(e => e.date >= today()).sort((a,b) => (a.date+(a.time||'')).localeCompare(b.date+(b.time||''))).slice(0,5);
-      return up.length ? up.map(e =>
-        '<div class="item"><div class="ic">→</div><div class="txt"><b>' + esc(e.title) + '</b>' +
-        '<small>' + humanDate(e.date) + (e.time ? ', ' + esc(e.time) : '') + '</small></div>' +
-        (e.plan ? '<div class="sum">' + money(e.plan) + '</div>' : '') + '</div>').join('')
-        : '<div class="empty">Впереди пока пусто.</div>';
-    })());
+    card(lab('Впереди') + (function(){
+      const up = upcoming(60).slice(0,8);
+      return up.length ? up.map(x => {
+        const e = x.e, y = yearsTurning(e, x.date);
+        const ic = e.kind === 'bd' ? '🎂' : e.kind === 'pay' ? '💳' : e.kind === 'doc' ? '📄' : '→';
+        return '<div class="item"><div class="ic">' + ic + '</div><div class="txt"><b>' + esc(e.title) +
+          (y ? ' · ' + y + ' ' + plural(y,'год','года','лет') : '') + '</b>' +
+          '<small>' + (x.in === 0 ? 'сегодня' : x.in === 1 ? 'завтра' : humanDate(x.date) + ' · через ' + x.in + ' ' + plural(x.in,'день','дня','дней')) +
+          (e.time ? ', ' + esc(e.time) : '') + (e.repeat && e.repeat !== 'none' ? ' · повторяется' : '') + '</small></div>' +
+          (e.plan ? '<div class="sum">' + money(e.plan) + '</div>' : '') +
+          '<button class="del" style="color:var(--accent)" onclick="toPhoneCalendar(\'' + e.id + '\')">напомнить</button></div>';
+      }).join('') : '<div class="empty">Впереди пока пусто.</div>';
+    })()) +
+    card(lab('Что не надо держать в голове') +
+      '<div class="mut" style="margin-bottom:10px">Внесите один раз — приложение напомнит при входе: дни рождения за 10 дней, ' +
+      'платежи за 3 дня, сроки документов за 2 недели. Кнопка «напомнить» у события отправляет его в календарь телефона — ' +
+      'тогда телефон разбудит вас уведомлением за сутки, даже если приложение закрыт.</div>' +
+      '<div class="pick">' +
+      '<button onclick="quickEv(\'bd\')">🎂 День рождения</button>' +
+      '<button onclick="quickEv(\'pay\')">💳 Платёж</button>' +
+      '<button onclick="quickEv(\'doc\')">📄 Срок документа</button>' +
+      '</div>');
 }
 let selDay = null;
 function pickDay(d){ selDay = d; renderCal(); }
+function quickEv(kind){
+  openSheet('ev', selDay || today());
+  setTimeout(() => {
+    const k = document.querySelector('#p-kind button[data-v="' + kind + '"]');
+    if (k) pickOne(k);
+    const rep = kind === 'bd' ? 'year' : kind === 'pay' ? 'month' : 'none';
+    const r = document.querySelector('#p-rep button[data-v="' + rep + '"]');
+    if (r) pickOne(r);
+    const t = document.getElementById('f-title');
+    if (t){ t.placeholder = kind === 'bd' ? 'День рождения мамы' : kind === 'pay' ? 'Квартплата' : 'Заканчивается страховка'; t.focus(); }
+  }, 60);
+}
 function shiftMonth(k){
   const [y,mm] = calMonth.split('-').map(Number);
   const d = new Date(y, mm-1+k, 1);
@@ -1089,7 +1431,7 @@ function renderMoney(){
   const COLORS = ['var(--navy)','var(--accent)','var(--head)','var(--ochre)','#C4D1DC','#9FB4C6','#DCC49A','#8FA9BE','#B9C9D6','#CBB08A'];
 
   let exp = card('<div class="row"><div>' + lab('Потрачено') + '<div class="big">' + money(spent) + '</div></div>' +
-      '<div style="text-align:right">' + lab('Бюджет') + '<div class="num" style="font-size:15px">' + money(S.settings.budget) + '</div></div></div>' +
+      '<div style="text-align:right">' + lab('Бюджет') + '<div class="num" style="font-size:15px">' + money(budgetOf()) + '</div></div></div>' +
       (cats.length ? '<div class="seg">' + cats.map((c,i) =>
         '<i style="width:' + (c[1]/spent*100) + '%;background:' + COLORS[i % COLORS.length] + '"></i>').join('') + '</div>' +
         '<div class="legend">' + cats.map((c,i) =>
@@ -1112,8 +1454,12 @@ function renderMoney(){
 
   const places = {};
   S.meals.filter(x => monthOf(x.date) === m).forEach(x => { places[x.place] = (places[x.place] || 0) + 1; });
-  if (Object.keys(places).length){
-    exp += card(lab('Где вы ели в этом месяце') + PLACES.map(p => {
+  {
+    exp += card(lab('Где вы ели') +
+      '<div class="mut" style="margin-bottom:9px">Отметьте одним касанием — увидите, сколько стоит есть вне дома</div>' +
+      '<div class="pick" style="margin-bottom:12px">' + PLACES.map(pl =>
+        '<button onclick="addPlace(\'' + pl[0] + '\')">' + pl[1].charAt(0).toUpperCase() + pl[1].slice(1) + '</button>').join('') + '</div>' +
+      PLACES.map(p => {
       const c = places[p[0]] || 0; if (!c) return '';
       const spentHere = sum(S.exp.filter(e => monthOf(e.date) === m &&
         ((p[0] === 'cafe' && e.cat === 'Кафе') || (p[0] === 'deliv' && e.cat === 'Доставка') || (p[0] === 'home' && e.cat === 'Продукты'))));
@@ -1130,19 +1476,19 @@ function renderMoney(){
       '<div class="txt"><b>' + esc(e.title) + '</b><small>' + esc(e.cat) + ' · ' + humanDate(e.date) + ' · ' + esc(e.src) + '</small></div>' +
       '<div class="sum">−' + money(e.sum) + '</div>' +
       '<button class="del" onclick="drop(\'exp\',\'' + e.id + '\')">✕</button></div>').join('')
-      : '<div class="empty">Записей пока нет.</div>') +
+      : '<div class="empty">Записей пока нет. Скажите «потратила восемьсот на продукты» — запишу сюда.</div>') +
     '<button class="btn" style="margin-top:11px" onclick="openSheet(\'exp\')">Добавить расход</button>');
 
   const li = S.inc.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,8);
   let inc = card('<div class="row"><div>' + lab('Получено за месяц') + '<div class="big" style="color:var(--ok)">' + money(got) + '</div></div></div>' +
-      bar(got ? Math.min(100, got / Math.max(got, S.settings.budget) * 100) : 0, 'var(--ok)')) +
+      bar(got ? Math.min(100, got / Math.max(got, budgetOf()) * 100) : 0, 'var(--ok)')) +
     card(lab('Поступления') +
       (li.length ? li.map(e =>
         '<div class="item"><div class="ic">' + (e.src === 'голосом' ? '🎙' : '💼') + '</div>' +
         '<div class="txt"><b>' + esc(e.title) + '</b><small>' + humanDate(e.date) + ' · ' + esc(e.src) + '</small></div>' +
         '<div class="sum in">+' + money(e.sum) + '</div>' +
         '<button class="del" onclick="drop(\'inc\',\'' + e.id + '\')">✕</button></div>').join('')
-        : '<div class="empty">Доходов пока не внесено.</div>') +
+        : '<div class="empty">Доходов пока не внесено. Скажите «получила зарплату 96000».</div>') +
       '<button class="btn ok" style="margin-top:11px" onclick="openSheet(\'inc\')">Добавить доход</button>') +
     card(lab('Осталось после всех трат') + '<div class="big">' + money(got - spent) + '</div>' +
       '<div class="mut" style="margin-top:6px">' + (got ? Math.round((got - spent) / got * 100) + ' % дохода' : 'внесите доход, чтобы увидеть долю') + '</div>', 'navy');
@@ -1154,39 +1500,117 @@ function renderMoney(){
 }
 function moneySw(t){ moneyTab = t; renderMoney(); }
 
-/* ---------- Еда ---------- */
-function renderFood(){
-  const d = today(), m = mealsOf(d), mode = S.settings.foodMode;
-  let h = '<div class="switch">' +
-    '<button aria-selected="' + (mode === 'simple') + '" onclick="foodMode(\'simple\')">Просто отмечаю</button>' +
-    '<button aria-selected="' + (mode === 'full') + '" onclick="foodMode(\'full\')">Считаю точно</button></div>';
 
-  if (mode === 'full'){
-    const k = kcalOf(d);
-    h += card('<div class="row"><div>' + lab('Съедено сегодня') + '<div class="big">' + num(k) + '</div></div>' +
-      '<div class="mut">из ' + num(S.settings.kcal) + ' ккал</div></div>' + bar(k / S.settings.kcal * 100, 'var(--ok)'));
-  }
-
-  h += card(lab('Сегодня') +
-    (m.length ? m.map(x =>
-      '<div class="item"><div class="ic">' + (x.slot==='b'?'🌅':x.slot==='l'?'🥗':x.slot==='s'?'🍎':'🌙') + '</div>' +
-      '<div class="txt"><b>' + esc(x.title) + '</b><small>' + (SLOTS.find(s => s[0] === x.slot)||['','—'])[1] +
-        ' · ' + (PLACES.find(p => p[0] === x.place)||['','—'])[1] + (x.kcal ? ' · ' + num(x.kcal) + ' ккал' : '') + '</small></div>' +
-      '<button class="del" onclick="drop(\'meals\',\'' + x.id + '\')">✕</button></div>').join('')
-      : '<div class="empty">Сегодня ещё ничего не отмечено.</div>') +
-    '<button class="btn ok" style="margin-top:11px" onclick="openSheet(\'meal\')">Отметить еду</button>' +
-    (mode === 'full' ? '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'scan\')">Сканировать штрих-код</button>' : ''));
-
-  const mm = monthOf(d), places = {};
-  S.meals.filter(x => monthOf(x.date) === mm).forEach(x => { places[x.place] = (places[x.place] || 0) + 1; });
-  if (Object.keys(places).length)
-    h += card(lab('Месяц в разрезе') + PLACES.map(p => places[p[0]]
-      ? '<div class="cmp"><span>' + p[1].charAt(0).toUpperCase() + p[1].slice(1) + '</span><b>' + places[p[0]] + ' ' + plural(places[p[0]],'раз','раза','раз') + '</b><em></em></div>'
-      : '').join('') + '<div class="mut" style="margin-top:9px">Это тот же учёт, только в тарелках: видно, где уходят деньги на еду.</div>');
-
-  document.getElementById('s-food').innerHTML = h;
+/* ---------- отправка события в календарь телефона ----------
+   Приложение в браузере не может присылать уведомления сам — для этого нужен
+   сервер. Поэтому событие уходит файлом в родной календарь телефона,
+   и напоминает уже он: за сутки и за два часа. */
+function icsDate(d, t){
+  const [y,m,dd] = d.split('-');
+  if (!t) return y+m+dd;
+  return y+m+dd+'T'+t.replace(':','')+'00';
 }
-function foodMode(v){ S.settings.foodMode = v; save(); }
+function eventICS(e){
+  const allDay = !e.time;
+  const start = icsDate(e.date, e.time);
+  const end = e.time ? icsDate(e.date, String(Math.min(23, +e.time.slice(0,2)+1)).padStart(2,'0') + e.time.slice(2)) : start;
+  const rule = e.repeat === 'year' ? 'RRULE:FREQ=YEARLY\r\n'
+             : e.repeat === 'month' ? 'RRULE:FREQ=MONTHLY\r\n'
+             : e.repeat === 'week' ? 'RRULE:FREQ=WEEKLY\r\n' : '';
+  const alarm = (mins, txt) =>
+    'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:' + txt + '\r\nTRIGGER:-PT' + mins + 'M\r\nEND:VALARM\r\n';
+  return 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Точка дня//RU\r\nCALSCALE:GREGORIAN\r\n' +
+    'BEGIN:VEVENT\r\nUID:' + e.id + '@tochka-dnya\r\n' +
+    'DTSTAMP:' + icsDate(today(), '00:00') + 'Z\r\n' +
+    (allDay ? 'DTSTART;VALUE=DATE:' + start + '\r\nDTEND;VALUE=DATE:' + start + '\r\n'
+            : 'DTSTART:' + start + '\r\nDTEND:' + end + '\r\n') +
+    rule +
+    'SUMMARY:' + String(e.title).replace(/[,;]/g,' ') + '\r\n' +
+    (e.plan ? 'DESCRIPTION:Планируемый расход ' + e.plan + '\r\n' : '') +
+    alarm(1440, 'Завтра: ' + String(e.title).replace(/[,;]/g,' ')) +
+    (e.time ? alarm(120, 'Через два часа') : '') +
+    'END:VEVENT\r\nEND:VCALENDAR\r\n';
+}
+async function toPhoneCalendar(id){
+  const e = S.ev.find(x => x.id === id);
+  if (!e) return;
+  const file = new File([eventICS(e)], 'sobytie.ics', {type:'text/calendar'});
+  if (navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:e.title}); toast('Откройте файл — событие добавится в календарь телефона'); return; }
+    catch(err){ if (err && err.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(file);
+  const a = document.createElement('a'); a.href = url; a.download = 'sobytie.ics'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  toast('Файл сохранён — откройте его, событие добавится в календарь с напоминанием');
+}
+
+/* ---------- Записи: заметки и сны ---------- */
+function renderNotes(){
+  const tab = S.settings.notesTab || 'note';
+  const list = tab === 'note' ? S.notes : S.dreams;
+  const q = (noteQuery || '').toLowerCase();
+  const found = q ? list.filter(x => (x.text || '').toLowerCase().includes(q)) : list;
+  const sorted = found.slice().sort((a,b) => (b.date + b.id).localeCompare(a.date + a.id));
+
+  let h = '<div class="switch">' +
+    '<button aria-selected="' + (tab === 'note') + '" onclick="notesTab(\'note\')">Заметки</button>' +
+    '<button aria-selected="' + (tab === 'dream') + '" onclick="notesTab(\'dream\')">Сны</button></div>';
+
+  h += card(lab(tab === 'note' ? 'Новая заметка' : 'Что снилось') +
+    '<div class="withmic"><textarea id="n-text" rows="3" placeholder="' +
+      (tab === 'note' ? 'Мысль, список, что сказал врач…' : 'Расскажите сон, пока помните…') + '"></textarea>' +
+      micBtn('n-text','raw') + '</div>' +
+    '<button class="btn" style="margin-top:10px" onclick="saveNote()">Записать</button>' +
+    '<div class="mut" style="margin-top:8px">' +
+      (tab === 'note' ? 'Всё, что незачем держать в голове.'
+                      : 'Сны забываются за минуты — надиктуйте сразу. Приложение ничего не толкует — оно хранит и ищет.') +
+    '</div>');
+
+  if (list.length > 3)
+    h += card(lab('Поиск') + '<input id="n-q" value="' + esc(noteQuery || '') + '" placeholder="Слово из записи" oninput="noteFind(this.value)">');
+
+  h += card(lab(tab === 'note' ? 'Заметки' : 'Дневник снов') +
+    (sorted.length ? sorted.map(x =>
+      '<div class="item" style="align-items:flex-start"><div class="ic">' + (tab === 'note' ? '✎' : '☾') + '</div>' +
+      '<div class="txt"><b style="font-weight:400;font-size:14px;white-space:pre-wrap">' + esc(x.text) + '</b>' +
+      '<small>' + humanDate(x.date) + '</small></div>' +
+      '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button></div>').join('')
+      : '<div class="empty">' + (q ? 'Ничего не нашлось.'
+          : (tab === 'note' ? 'Пока пусто. Сюда — списки покупок, мысли, что сказал врач, что подарить.'
+                            : 'Пока пусто. Наговорите сон сразу после пробуждения, пока помните.')) + '</div>'));
+
+  if (tab === 'dream' && S.dreams.length >= 5) h += card(lab('Наблюдение') + dreamHint(), 'navy');
+  document.getElementById('s-notes').innerHTML = h;
+}
+let noteQuery = '';
+function notesTab(t){ S.settings.notesTab = t; noteQuery = ''; save(); }
+function noteFind(v){ noteQuery = v; renderNotes(); const el = document.getElementById('n-q'); if (el){ el.focus(); el.setSelectionRange(v.length, v.length); } }
+function saveNote(){
+  const t = tidy(val('n-text'));
+  if (!t){ toast('Сначала запишите или надиктуйте'); return; }
+  const rec = {id:uid(), date:today(), text:t};
+  (S.settings.notesTab === 'dream' ? S.dreams : S.notes).push(rec);
+  save(); toast('Записано');
+}
+function dropNote(id){
+  const k = S.settings.notesTab === 'dream' ? 'dreams' : 'notes';
+  S[k] = S[k].filter(x => x.id !== id); save(); toast('Удалено');
+}
+/* что повторяется в снах — считается из её же записей, без толкований */
+function dreamHint(){
+  const stop = new Set(['и','в','на','с','а','но','что','как','это','мне','меня','был','была','было','были',
+    'сне','сон','снилось','снился','снилась','очень','потом','когда','где','там','тут','его','её','ее','они','мы','я','ты','он','она','не','по','из','за','то','же','бы','уже','ещё','еще']);
+  const freq = {};
+  S.dreams.forEach(d => (d.text || '').toLowerCase().split(/[^а-яё]+/).forEach(w => {
+    if (w.length > 3 && !stop.has(w)) freq[w] = (freq[w] || 0) + 1;
+  }));
+  const top = Object.entries(freq).filter(x => x[1] > 1).sort((a,b) => b[1] - a[1]).slice(0,3);
+  if (!top.length) return '<div class="mut">Записей пока мало для наблюдений. Продолжайте — через пару недель здесь появится то, что повторяется.</div>';
+  return '<div style="font-size:14px">В ' + S.dreams.length + ' ' + plural(S.dreams.length,'записи','записях','записях') +
+    ' чаще всего повторяется: ' + top.map(t => esc(t[0]) + ' (' + t[1] + ')').join(', ') + '.</div>' +
+    '<div class="mut" style="margin-top:7px">Это просто подсчёт слов из ваших записей. Никаких толкований.</div>';
+}
 
 /* ---------- Ещё ---------- */
 function renderMore(){
@@ -1207,30 +1631,31 @@ function renderMore(){
       '<div class="stat"><span>Дней отмечено по самочувствию</span><b>' + moods.length + ' из 7</b></div>' +
       (moods.length ? '<div class="mut" style="margin-top:9px">Спокойных дней: ' + good + ' из ' + moods.length + '.</div>' : ''), 'navy') +
     card(lab('Настройки') +
-      '<div class="fld"><label>Бюджет на месяц, ' + sign() + '</label><input type="number" inputmode="numeric" value="' + S.settings.budget + '" onchange="setNum(\'budget\',this.value)"></div>' +
-      '<div class="fld"><label>Дневная норма калорий</label><input type="number" inputmode="numeric" value="' + S.settings.kcal + '" onchange="setNum(\'kcal\',this.value)"></div>' +
+      '<div class="fld"><label>Обычный доход в месяц, ' + sign() + '</label><input type="number" inputmode="numeric" value="' + (S.settings.income || '') + '" onchange="setNum(\'income\',this.value)"></div>' +
+      '<div class="fld"><label>Сколько хотите откладывать, ' + sign() + '</label><input type="number" inputmode="numeric" value="' + (S.settings.save || '') + '" onchange="setNum(\'save\',this.value)"></div>' +
+      '<div class="mut">На жизнь остаётся ' + money(budgetOf()) + ' в месяц. Это и есть ваш бюджет — считать самой не нужно.</div>' +
       '<div class="fld"><label>Валюта</label><div class="pick" id="p-cur">' +
         CURR.map(c => '<button aria-pressed="' + (c[0] === cur()[0]) + '" onclick="setCur(\'' + c[0] + '\')">' + c[2] + ' ' + c[1] + '</button>').join('') +
       '</div></div>') +
     card(lab('Карты дня') +
       '<div class="item"><div class="ic">🃏</div><div class="txt"><b>Вид карт</b><small id="artmode-note">' +
-        (ART_MODE === 'web' ? 'Настоящие карты Уэйта' : 'Рисунок кабинета, работает без интернета') + '</small></div></div>' +
+        (ART_MODE === 'web' ? 'Настоящие карты Уэйта' : 'Рисунок приложения, работает без интернета') + '</small></div></div>' +
       '<div style="display:flex;gap:7px;margin-top:10px">' +
       '<button class="btn ghost" style="flex:1" onclick="setArt(\'web\')">Настоящие</button>' +
-      '<button class="btn ghost" style="flex:1" onclick="setArt(\'draw\')">Рисунок кабинета</button></div>') +
+      '<button class="btn ghost" style="flex:1" onclick="setArt(\'draw\')">Рисунок приложения</button></div>') +
     card(lab('Сохранность данных') +
-      '<div class="mut" style="margin-bottom:10px">Данные лежат в браузере этого телефона и никуда не отправляются. ' +
+      '<div class="mut" style="margin-bottom:10px">Всё хранится в вашем телефоне и никуда не отправляются. ' +
         (S.backupAt ? 'Последняя копия — ' + humanDate(iso(new Date(S.backupAt))) + '.' : 'Копию ещё не делали.') + '</div>' +
       '<button class="btn" onclick="openSheet(\'backup\')">Резервная копия</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="document.getElementById(\'restore\').click()">Загрузить копию</button>' +
       '<input type="file" id="restore" accept="application/json,.json" hidden onchange="restoreFile(this)">') +
-    card(lab('Кабинет') +
+    card(lab('Приложение') +
       '<div class="item"><div class="ic">📱</div><div class="txt"><b>Иконка на экране телефона</b><small>Меню браузера → «На экран „Домой“»</small></div></div>' +
       '<div class="item" onclick="myProducts()" style="cursor:pointer"><div class="ic">🏷</div><div class="txt"><b>Мои продукты</b>' +
         '<small>' + Object.keys(S.products || {}).length + ' в справочнике · пополняется сканированием</small></div></div>' +
       '<div class="item"><div class="ic">💬</div><div class="txt"><b>Рассказать подругам</b><small>Отправить ссылку на приложение</small></div>' +
       '<button class="del" style="color:var(--accent)" onclick="shareApp()">отправить</button></div>') +
-    card(lab('Важно') + '<div class="mut">Кабинет считает то, что вы вносите, и не ставит диагнозов. ' +
+    card(lab('Важно') + '<div class="mut">Приложение считает то, что вы вносите, и не ставит диагнозов. ' +
       'Нормы калорий и любые ограничения обсуждайте с врачом.</div>');
 }
 function setCur(c){ S.settings.cur = c; save(); toast('Валюта: ' + cur()[2]); }
@@ -1270,8 +1695,15 @@ const SHEETS = {
 
   ev: (d) => '<h3>Событие</h3>' +
     fldMic('Что', '<input id="f-title" placeholder="Маникюр">', 'f-title') +
+    '<div class="fld"><label>Что это</label><div class="pick" id="p-kind">' +
+      KINDS.map((k,i) => '<button data-v="' + k[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + k[1] + '</button>').join('') +
+    '</div></div>' +
     '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (d || today()) + '"></div>' +
     fldMic('Время', '<input id="f-time" type="time">', 'f-time', 'time') +
+    '<div class="fld"><label>Повторять</label><div class="pick" id="p-rep">' +
+      REPEATS.map((r,i) => '<button data-v="' + r[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + r[1] + '</button>').join('') +
+    '</div></div>' +
+    '<div class="fld"><label>Год рождения — если это день рождения</label><input id="f-since" type="number" inputmode="numeric" placeholder="1990"></div>' +
     '<div class="fld"><label>Планируемый расход, ' + sign() + ' — необязательно</label><input id="f-sum" type="number" inputmode="decimal" placeholder="3200"></div>' +
     '<button class="btn" onclick="saveEv()">Добавить в календарь</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
@@ -1282,17 +1714,22 @@ const SHEETS = {
       SLOTS.map(s => '<button data-v="' + s[0] + '" onclick="pickOne(this)">' + s[1] + '</button>').join('') + '</div></div>' +
     '<div class="fld"><label>Где</label><div class="pick" id="p-place">' +
       PLACES.map(p => '<button data-v="' + p[0] + '" onclick="pickOne(this)">' + p[1] + '</button>').join('') + '</div></div>' +
-    (S.settings.foodMode === 'full'
-      ? '<div class="fld"><label>Калории — если знаете</label><input id="f-kcal" type="number" inputmode="numeric" placeholder="320"></div>' : '') +
+
     '<button class="btn ok" onclick="saveMeal()">Отметить</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
   voice: () => '<h3>Расскажите свободно</h3>' +
-    '<div class="mut">Скажите всё подряд — про траты, еду и планы. Разложу по разделам.</div>' +
-    '<div class="fld" style="margin-top:10px"><div class="withmic">' +
+    '<div class="mut">Скажите всё подряд — про дела, траты и планы. Разложу по разделам.</div>' +
+    '<div class="card" style="margin:10px 0;background:#F4F8FB"><div class="lab">Например</div>' +
+      '<div class="mut">«Завтра врач в десять» · «Потратила восемьсот на продукты» · ' +
+      '«Не забыть купить творог и яйца» · «Через неделю приезжает дочь»</div></div>' +
+    '<div class="fld"><div class="withmic">' +
       '<textarea id="f-speech" rows="4" placeholder="Потратила восемьсот на продукты, съела омлет, в пятницу маникюр в шесть"></textarea>' +
       micBtn('f-speech','raw') + '</div></div>' +
-    '<div class="mut" style="margin-bottom:10px">' + (micWhyNot() || 'Нажмите микрофон справа или диктуйте с клавиатуры телефона.') + '</div>' +
+    '<div class="mut" style="margin-bottom:10px">' + (micWhyNot() || 'Нажмите микрофон справа или диктуйте с клавиатуры телефона.') +
+      ' Говорите как удобно. Что не разберётся — сохраню в заметки целиком, ничего не потеряется.</div>' +
+    '<div class="mut" style="margin-bottom:10px">Точнее всего получается, когда вы записываете прямо в разделе: ' +
+      'в календаре — событие, в деньгах — трату, в записях — мысль. Кнопка внизу подстраивается под открытый раздел.</div>' +
     '<button class="btn" onclick="doParse()">Разложить по полям</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
@@ -1320,25 +1757,29 @@ function picked(id, dflt){
 function saveExp(){
   const s = +val('f-sum');
   if (!s){ toast('Впишите сумму'); return; }
-  addExp({title: val('f-title') || 'Расход', sum: s, cat: val('f-cat'), date: val('f-date') || today()});
+  addExp({title: tidy(val('f-title')) || 'Расход', sum: s, cat: val('f-cat'), date: val('f-date') || today()});
   closeSheet(); toast('Расход записан');
 }
 function saveInc(){
   const s = +val('f-sum');
   if (!s){ toast('Впишите сумму'); return; }
-  addInc({title: val('f-title') || 'Доход', sum: s, date: val('f-date') || today()});
+  addInc({title: tidy(val('f-title')) || 'Доход', sum: s, date: val('f-date') || today()});
   closeSheet(); toast('Доход записан');
 }
 function saveEv(){
   const t = val('f-title');
   if (!t){ toast('Впишите, что за событие'); return; }
-  addEv({title: t, date: val('f-date') || today(), time: val('f-time') || null, plan: +val('f-sum') || null});
-  closeSheet(); toast('Добавлено в календарь');
+  const kind = picked('p-kind','plain');
+  addEv({title: tidy(t), date: val('f-date') || today(), time: val('f-time') || null,
+         plan: +val('f-sum') || null, kind: kind,
+         repeat: picked('p-rep', kind === 'bd' ? 'year' : 'none'),
+         since: val('f-since') || null});
+  closeSheet(); toast(kind === 'bd' ? 'День рождения запомнен — напомню за 10 дней' : 'Добавлено в календарь');
 }
 function saveMeal(){
   const t = val('f-title');
   if (!t){ toast('Впишите, что съели'); return; }
-  addMeal({title: t, slot: picked('p-slot','l'), place: picked('p-place','home'), kcal: +val('f-kcal') || null});
+  addMeal({title: tidy(t), slot: picked('p-slot','l'), place: picked('p-place','home'), kcal: +val('f-kcal') || null});
   closeSheet(); toast('Отмечено');
 }
 
@@ -1354,6 +1795,8 @@ function doParse(){
   parsed.inc.forEach(e => rows += line('💰', e.title + ' · ' + money(e.sum), 'Доход'));
   parsed.meals.forEach(e => rows += line('🍽', e.title + ' · ' + (PLACES.find(p => p[0] === e.place)||['','—'])[1], 'Еда'));
   parsed.ev.forEach(e => rows += line('📅', e.title + ' · ' + humanDate(e.date) + (e.time ? ', ' + e.time : ''), 'Календарь'));
+  parsed.notes.forEach(t => rows += line('✎', t, 'Заметки'));
+  if (parsed.sleep) rows += line('☾', (SLEEP.find(x => x[0] === parsed.sleep)||['','—'])[1], 'Сон');
   const nothing = !rows;
   document.getElementById('sheet-in').innerHTML =
     '<h3>Разложено</h3>' +
@@ -1362,7 +1805,14 @@ function doParse(){
     (parsed.rest.length ? '<div class="card" style="margin:0"><div class="lab">Не разобрано</div><div class="mut">' +
         esc(parsed.rest.join('. ')) + '</div></div>' : '') +
     (nothing ? '' : '<button class="btn" style="margin-top:12px" onclick="applyParse()">Записать</button>') +
+    (parsed.rest.length ? '<button class="btn ghost" style="margin-top:8px" onclick="restToNote()">Остаток — в заметки</button>' : '') +
     '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'voice\')">Сказать заново</button>';
+}
+function restToNote(){
+  if (!parsed || !parsed.rest.length) return;
+  S.notes.push({id:uid(), date:today(), text:tidy(parsed.rest.join('. '))});
+  parsed.rest = [];
+  save(); closeSheet(); toast('Сохранено в заметки — ничего не потерялось');
 }
 function applyParse(){
   if (!parsed) return;
@@ -1370,6 +1820,8 @@ function applyParse(){
   parsed.inc.forEach(e => S.inc.push(Object.assign({id:uid(), date:today()}, e)));
   parsed.meals.forEach(e => S.meals.push(Object.assign({id:uid(), date:today()}, e)));
   parsed.ev.forEach(e => S.ev.push(Object.assign({id:uid()}, e)));
+  parsed.notes.forEach(t => S.notes.push({id:uid(), date:today(), text:t}));
+  if (parsed.sleep) dayRec(today()).sleep = parsed.sleep;
   save(); closeSheet(); toast('Записано');
   parsed = null;
 }
@@ -1417,7 +1869,7 @@ function restoreFile(input){
 }
 function shareApp(){
   const url = location.href.split('#')[0];
-  if (navigator.share) navigator.share({title:'Точка дня', text:'Кабинет для денег, еды и планов', url}).catch(()=>{});
+  if (navigator.share) navigator.share({title:'Точка дня', text:'Приложение для денег, еды и планов', url}).catch(()=>{});
   else { navigator.clipboard && navigator.clipboard.writeText(url); toast('Ссылка скопирована'); }
 }
 
@@ -1433,9 +1885,25 @@ let ART_MODE = 'web';
 function setArt(mode){ ART_MODE = mode; S.settings.art = mode; save(); }
 function dayCardHtml(){
   const c = cardOfDay(), rec = dayRec(today());
+  if (!rec.opened){
+    return '<div class="daycard">' +
+      (rec.sleep ? '' :
+        '<div style="border-bottom:1px solid var(--line);margin-bottom:12px;padding-bottom:12px">' +
+        '<div style="font-size:13px;margin-bottom:8px">Как спалось?</div>' +
+        '<div class="pick">' + SLEEP.map(x =>
+          '<button onclick="setSleep(\'' + x[0] + '\')">' + x[1] + '</button>').join('') + '</div></div>') +
+      '<div class="row" style="align-items:center;gap:14px">' +
+        '<div class="tarot"><div class="backart"><span>✦</span></div></div>' +
+        '<div style="flex:1">' + lab('Карта дня') +
+          '<div style="font-family:\'Spectral\',serif;font-size:17px;font-weight:600">Карта ждёт</div>' +
+          '<div class="mut" style="margin-top:4px">Откройте её сами — одна карта на день.</div>' +
+        '</div></div>' +
+      '<button class="btn" style="margin-top:11px" onclick="openDayCard()">Открыть карту дня</button>' +
+      '<div class="mut" style="margin-top:9px;font-size:11px">Для настроения. Завтра будет новая.</div></div>';
+  }
   return '<div class="daycard">' +
     '<div class="row" style="align-items:center;gap:14px">' +
-      '<div class="tarot">' + cardArt(c.id) + '</div>' +
+      '<div class="tarot' + (rec.justOpened ? ' flip' : '') + '">' + cardArt(c.id) + '</div>' +
       '<div style="flex:1">' + lab('Карта дня') +
         '<div style="font-family:\'Spectral\',serif;font-size:17px;font-weight:600">' + esc(c.n) + '</div>' +
         '<div class="mut" style="margin-top:4px">' + esc(DAYTXT[c.id] || c.u) + '</div>' +
@@ -1445,9 +1913,17 @@ function dayCardHtml(){
       '<div style="font-size:13px;margin-bottom:8px">Вечером: карта была про ваш день?</div>' +
       '<div class="pick"><button aria-pressed="' + (rec.card === 'hit') + '" onclick="markCard(\'hit\')">Совпало</button>' +
       '<button aria-pressed="' + (rec.card === 'miss') + '" onclick="markCard(\'miss\')">Мимо</button></div></div>' +
-    '<div class="mut" style="margin-top:9px;font-size:11px">Для настроения. Новая карта каждое утро.</div></div>';
+    '<div class="mut" style="margin-top:9px;font-size:11px">Для настроения. Завтра будет новая карта.</div></div>';
+}
+function openDayCard(){
+  const rec = dayRec(today());
+  rec.opened = new Date().toISOString();
+  rec.justOpened = true;
+  save();
+  setTimeout(() => { const r = dayRec(today()); delete r.justOpened; }, 600);
 }
 function markCard(v){ dayRec(today()).card = v; save(); }
+function setSleep(v){ dayRec(today()).sleep = v; save(); }
 function openAdvice(){
   const c = cardOfDay(), e = EXT[c.id];
   document.getElementById('sheet-in').innerHTML =
@@ -1466,34 +1942,44 @@ function openAdvice(){
 
 
 /* ================= Голосовое заполнение полей =================
-   Встроенное распознавание речи есть в Chrome и требует открытия кабинета
+   Встроенное распознавание речи есть в Chrome и требует открытия приложения
    по адресу в сети (не файлом с диска). Где его нет — подсказываем диктовку
    с клавиатуры телефона: результат тот же, надёжность выше. */
-function micOn(){ return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+/* на айфоне распознавание речи Apple отдаёт только своей клавиатуре,
+   поэтому кнопка не притворяется микрофоном, а открывает клавиатуру */
+function micOn(){ return !isIOS() && !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
 function inFrame(){ try{ return window.self !== window.top; }catch(e){ return true; } }
 function secureOrigin(){ return location.protocol === 'https:' || location.hostname === 'localhost'; }
 function micWhyNot(){
-  if (inFrame()) return 'Во встроенном окне просмотра микрофон недоступен — откройте кабинет отдельной страницей.';
+  if (isIOS()) return 'На айфоне диктует клавиатура: нажмите поле, затем микрофон на клавиатуре.';
+  if (inFrame()) return 'Во встроенном окне просмотра микрофон недоступен — откройте приложение отдельной страницей.';
   if (!secureOrigin()) return 'Микрофон работает только с адреса в сети (https), не с файла на диске.';
   if (!micOn()) return 'Этот браузер не умеет распознавать речь — нажмите микрофон на клавиатуре телефона.';
   return null;
 }
 function micBtn(targetId, mode){
-  return '<button type="button" class="mic" title="Сказать голосом" onclick="micStart(this,\'' + targetId + '\',\'' + (mode || 'text') + '\')">🎙</button>';
+  const kb = isIOS();
+  return '<button type="button" class="mic" title="' + (kb ? 'Открыть клавиатуру с микрофоном' : 'Сказать голосом') +
+    '" onclick="micStart(this,\'' + targetId + '\',\'' + (mode || 'text') + '\')">' + (kb ? '⌨' : '🎙') + '</button>';
 }
 function fldMic(labelText, inputHtml, targetId, mode){
-  return '<div class="fld"><label>' + labelText + '</label><div class="withmic">' + inputHtml + micBtn(targetId, mode) + '</div></div>';
+  return '<div class="fld"><label>' + labelText +
+    ' <span style="color:var(--accent)">· можно голосом</span></label><div class="withmic">' +
+    inputHtml + micBtn(targetId, mode) + '</div></div>';
 }
 let rec = null;
 function micStart(btn, targetId, mode){
   const el = document.getElementById(targetId);
   if (!el) return;
-  const why = micWhyNot();
-  if (why){
-    toast(why + ' Пока диктуйте микрофоном на клавиатуре телефона.');
+  if (isIOS()){
     el.focus();
+    toast('Нажмите микрофон на клавиатуре — на айфоне диктует она');
     return;
   }
+  const why = micWhyNot();
+  if (why){ toast(why + ' Пока диктуйте микрофоном на клавиатуре телефона.'); el.focus(); return; }
   if (rec){ try{ rec.stop(); }catch(e){} rec = null; btn.dataset.on = '0'; return; }
   const R = window.SpeechRecognition || window.webkitSpeechRecognition;
   rec = new R();
@@ -1509,13 +1995,15 @@ function micStart(btn, targetId, mode){
       const t = parseTime(said);
       if (t) el.value = t; else toast('Не расслышала время: «' + said + '»');
     } else {
-      el.value = (el.value ? el.value + ', ' : '') + (mode === 'raw' ? said : clean(said));
+      el.value = mode === 'raw'
+        ? tidy((el.value ? el.value + ' ' : '') + said)
+        : (el.value ? el.value + ', ' : '') + clean(said);
     }
   };
   rec.onerror = ev => {
     btn.dataset.on = '0'; rec = null;
     toast(ev.error === 'not-allowed'
-      ? (inFrame() ? 'Во встроенном окне просмотра микрофон недоступен — откройте кабинет отдельной страницей.'
+      ? (inFrame() ? 'Во встроенном окне просмотра микрофон недоступен — откройте приложение отдельной страницей.'
                    : 'Микрофон запрещён — разрешите доступ браузеру.')
       : 'Не получилось расслышать. Попробуйте микрофон на клавиатуре телефона.');
   };
@@ -1547,7 +2035,7 @@ async function camStart(kinds, onCode){
     await video.play();
   }catch(e){
     document.getElementById('cam-note').textContent = inFrame()
-      ? 'Во встроенном окне просмотра камера недоступна — откройте кабинет отдельной страницей.'
+      ? 'Во встроенном окне просмотра камера недоступна — откройте приложение отдельной страницей.'
       : (!secureOrigin() ? 'Камера работает только с адреса в сети (https), не с файла на диске.'
                          : 'Камера запрещена — разрешите доступ браузеру или внесите вручную.');
     return;
@@ -1586,7 +2074,7 @@ function parseReceiptQR(raw){
 function openCheck(){
   if (!camSupported()){
     document.getElementById('sheet-in').innerHTML =
-      '<h3>Чек</h3><div class="mut">Этот браузер не умеет читать коды камерой. На айфоне откройте кабинет в Chrome ' +
+      '<h3>Чек</h3><div class="mut">Этот браузер не умеет читать коды камерой. На айфоне откройте приложение в Chrome ' +
       'или внесите сумму вручную — она есть на чеке крупно.</div>' +
       '<button class="btn" style="margin-top:12px" onclick="openSheet(\'exp\')">Внести сумму</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'voice\')">Сказать голосом</button>' +
@@ -1622,7 +2110,7 @@ function saveCheck(sum, date){
 }
 
 /* ---------- штрих-код продукта ---------- */
-/* Своего справочника производителей нет — он платный. Поэтому кабинет
+/* Своего справочника производителей нет — он платный. Поэтому приложение
    запоминает продукты сам: незнакомый код вносится один раз и дальше узнаётся. */
 function products(){ if (!S.products) S.products = {}; return S.products; }
 function openScan(){
@@ -1657,7 +2145,7 @@ function scanKnown(code, p){
 function scanNew(code){
   document.getElementById('sheet-in').innerHTML =
     '<h3>Новый продукт</h3>' +
-    '<div class="mut">Этот код кабинету пока незнаком. Впишите один раз — дальше он будет узнаваться сам.</div>' +
+    '<div class="mut">Этот код приложениеу пока незнаком. Впишите один раз — дальше он будет узнаваться сам.</div>' +
     fldMic('Название', '<input id="f-name" placeholder="Хлеб «Бородинский»">', 'f-name') +
     '<div class="fld"><label>Калорийность на 100 г — с упаковки</label><input id="f-kcal100" type="number" inputmode="numeric" placeholder="208"></div>' +
     '<button class="btn" onclick="saveProduct(\'' + code + '\')">Запомнить продукт</button>' +
