@@ -508,6 +508,8 @@ function parseDate(text){
     else if (rel[1] === 'месяц') days = 30;
     if (days) return iso(new Date(Date.now() + days*86400000));
   }
+  if (/позавчера/.test(low)) return iso(new Date(Date.now() - 2*86400000));
+  if (/вчера/.test(low)) return iso(new Date(Date.now() - 86400000));
   if (/послезавтра/.test(low)) return iso(new Date(Date.now() + 2*86400000));
   if (/завтра/.test(low)) return iso(new Date(Date.now() + 86400000));
   // «24 сентября» или «двадцать четвёртого сентября»
@@ -742,19 +744,26 @@ function clean(t){
   cut(/ (во сколько|за день|нужно напоминание|напоминание)[^,.]* /gi);
   cut(/ (потратила|потратил|заплатила|заплатил|купила|купил|съела|съел|поела|поел|позавтракала|пообедала|поужинала|записалась|записался|получила|получил|пришло|перевели|надо|нужно) /gi);
   cut(/ (в|во|на|за|до|к|с) +(понедельник|вторник|среду|четверг|пятницу|субботу|воскресенье|завтра|послезавтра) /gi);
-  cut(/ (завтра|послезавтра|сегодня|утром|днём|днем|вечером) /gi);
+  cut(/ (завтра|послезавтра|вчера|позавчера|сегодня|утром|днём|днем|вечером) /gi);
   cut(/ через +([0-9]+|две|три|четыре|пять)? *(дн[еяй][а-яё]*|недел[а-яё]*|месяц[а-яё]*)? /gi);
   cut(/^ *(и|а|ну|вот) /gi);
   cut(/ [0-9][0-9 ]*(руб[а-яё]*|₽|тысяч[а-яё]*)? /gi);
   cut(/ на [0-9]+ /gi);
-  cut(new RegExp(' (' + Object.keys(WORDNUM).join('|') + ') ', 'gi'));
-  cut(/ (тысяч[а-яё]*|миллион[а-яё]*|руб[а-яё]*|₽|манат[а-яё]*|тенге) /gi);
+  // числительные идут подряд («сорок пять тысяч»), поэтому пробел справа
+  // не съедаем — иначе следующее слово остаётся без пробела и уцелеет
+  cut(new RegExp(' (' + Object.keys(WORDNUM).join('|') + ')(?= )', 'gi'));
+  cut(/ (тысяч[а-яё]*|миллион[а-яё]*|руб[а-яё]*|₽|манат[а-яё]*|тенге)(?= )/gi);
   s = s.replace(/ {2,}/g,' ').trim();
   s = s.replace(/^(в|во|на|за|про|до|к|и|а|с|у)\s+/i,'').trim();
   for (let n = 0; n < 3; n++)
     s = s.replace(/[\s,]+(в|во|на|за|про|до|к|и|а|с|у|вечером|утром|днём|днем|ночью|за день|во сколько)[.,]?$/i,'').trim();
   s = s.replace(/[\s,]+(что|чтобы|когда|где|как|о том)$/i,'').trim();
   s = s.replace(/[\s,.;]+$/,'').replace(/^[\s,.;]+/,'').trim();
+  // «получила зарплату» → название «Зарплата», а не «Зарплату»
+  const NOM = {'зарплату':'зарплата','премию':'премия','пенсию':'пенсия','стипендию':'стипендия',
+    'подработку':'подработка','предоплату':'предоплата','доплату':'доплата','надбавку':'надбавка',
+    'квартплату':'квартплата','страховку':'страховка','аренду':'аренда'};
+  s = s.replace(/^[а-яё]+/i, w => NOM[w.toLowerCase()] || w);
   if (s.length < 2) return '';
   return tidy(s.charAt(0).toUpperCase() + s.slice(1));
 }
@@ -1689,7 +1698,7 @@ function renderMore(){
 
       '<div class="item"><div class="ic">💬</div><div class="txt"><b>Рассказать подругам</b><small>Отправить ссылку на приложение</small></div>' +
       '<button class="del" style="color:var(--accent)" onclick="shareApp()">отправить</button></div>') +
-    card(lab('Версия') + '<div class="mut">Сборка от 29.08 14:16. Если цифры ведут себя странно — ' +
+    card(lab('Версия') + '<div class="mut">Сборка от 29.08 17:45. Если цифры ведут себя странно — ' +
       'проверьте, что открыт этот файл, а не старая копия.</div>' +
       '<button class="btn ghost" style="margin-top:10px" onclick="resetMoneyDefaults()">Сбросить старые настройки денег</button>') +
     card(lab('Важно') + '<div class="mut">Приложение считает только то, что вы вносите сами. ' +
@@ -1752,7 +1761,8 @@ const SHEETS = {
   },
 
   exp: () => '<h3>Расход</h3>' +
-    fldMic('На что', '<input id="f-title" placeholder="Продукты в Пятёрочке">', 'f-title') +
+    fldMic('На что · можно сказать сразу с суммой',
+      '<input id="f-title" placeholder="Продукты в Пятёрочке 800" onblur="spillTitle(this)">', 'f-title') +
     fldMic('Сколько, ' + sign(), '<input id="f-sum" type="text" placeholder="800 или «восемьсот»" onblur="fixSum(this)">', 'f-sum', 'sum') +
     '<div class="fld"><label>Категория · подставится сама по названию</label><select id="f-cat" onchange="catTouched=1">' +
       CATS.map(c => '<option>' + c + '</option>').join('') + '</select></div>' +
@@ -1761,14 +1771,18 @@ const SHEETS = {
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
   inc: () => '<h3>Доход</h3>' +
-    fldMic('Откуда', '<input id="f-title" placeholder="Зарплата">', 'f-title') +
+    fldMic('Откуда · можно сказать сразу с суммой',
+      '<input id="f-title" placeholder="Зарплата 100 000" onblur="spillTitle(this)">', 'f-title') +
     fldMic('Сколько, ' + sign(), '<input id="f-sum" type="text" placeholder="96000 или «девяносто шесть тысяч»" onblur="fixSum(this)">', 'f-sum', 'sum') +
     '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + today() + '"></div>' +
+    '<div class="mut" style="margin:-4px 0 10px;font-size:11px">Скажите всю фразу целиком — «получила зарплату сто тысяч». ' +
+      'Сумма и дата разойдутся по своим полям сами.</div>' +
     '<button class="btn ok" onclick="saveInc()">Записать доход</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
   ev: (d) => '<h3>Событие</h3>' +
-    fldMic('Что', '<input id="f-title" placeholder="Маникюр">', 'f-title') +
+    fldMic('Что · можно сказать сразу с датой и временем',
+      '<input id="f-title" placeholder="Маникюр завтра в шесть" onblur="spillTitle(this)">', 'f-title') +
     '<div class="fld"><label>Что это</label><div class="pick" id="p-kind">' +
       KINDS.map((k,i) => '<button data-v="' + k[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + k[1] + '</button>').join('') +
     '</div></div>' +
@@ -1852,8 +1866,44 @@ function saveIncEdit(){
   e.title = tidy(t); e.sum = sum; e.date = val('f-date') || e.date;
   editId = null; save(); closeSheet(); toast('Изменено');
 }
+/* ---------- разбор фразы, надиктованной в первое поле ----------
+   Клавиатура телефона кладёт весь распознанный текст туда, где стоит курсор.
+   Поэтому из первого поля вынимаем сумму, дату и время и раскладываем их
+   по своим полям, а в названии оставляем только суть. */
+function spillTitle(el){
+  if (!el) return;
+  const raw = (el.value || '').trim();
+  if (!raw) return;
+  const sumEl = document.getElementById('f-sum');
+  const dateEl = document.getElementById('f-date');
+  const timeEl = document.getElementById('f-time');
+  const moved = [];
+  if (sumEl && !sumEl.value.trim()){
+    const v = parseSum(' ' + raw + ' ');
+    if (v){ sumEl.value = v; moved.push('сумма ' + num(v) + ' ' + sign()); }
+  }
+  if (dateEl && dateEl.value === today()){
+    const d = parseDate(raw);
+    if (d && d !== today()){ dateEl.value = d; moved.push('дата ' + humanDate(d)); }
+  }
+  if (timeEl && !timeEl.value.trim()){
+    const tm = parseTime(' ' + raw + ' ');
+    if (tm){ timeEl.value = tm; moved.push('время ' + tm); }
+  }
+  if (!moved.length){ el.value = tidy(raw); return; }
+  el.value = clean(raw) || tidy(raw);
+  toast('Разложила: ' + moved.join(', '));
+}
+/* если поле не успело потерять фокус, разбираем прямо при нажатии кнопки */
+function spillBeforeSave(){
+  const t = document.getElementById('f-title');
+  const s = document.getElementById('f-sum');
+  if (t && s && !s.value.trim()) spillTitle(t);
+}
+
 let catTouched = 0;
 function saveExp(){
+  spillBeforeSave();
   const s = +val('f-sum');
   if (!s){ toast('Впишите сумму'); return; }
   const t = tidy(val('f-title')) || 'Расход';
@@ -1864,6 +1914,7 @@ function saveExp(){
   closeSheet(); toast('Расход записан');
 }
 function saveInc(){
+  spillBeforeSave();
   const s = +val('f-sum');
   if (!s){ toast('Впишите сумму'); return; }
   addInc({title: tidy(val('f-title')) || 'Доход', sum: s, date: val('f-date') || today()});
