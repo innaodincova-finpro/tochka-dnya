@@ -30,6 +30,7 @@
   --stop:#A85147;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{max-width:100%;overflow-x:hidden}
 body{
   margin:0;background:var(--ground);color:var(--ink);
   font-family:'Golos Text',system-ui,-apple-system,sans-serif;line-height:1.45;
@@ -101,7 +102,11 @@ body{
 .legend span{display:flex;align-items:center;gap:5px}
 .dot{width:8px;height:8px;border-radius:2px}
 
-.chip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:99px;background:#EDF3F8;font-size:12px;color:var(--accent);font-weight:500}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border:none;border-radius:99px;background:#EDF3F8;
+  font-family:inherit;font-size:12px;color:var(--accent);font-weight:600;cursor:pointer}
+.chip:active{background:#DCE8F3}
+.card.tap{cursor:pointer}
+.card.tap:active{background:#F7FAFC}
 .chip.ok{background:#E7F1EA;color:var(--ok)}
 .chip.warn{background:#F6EEE1;color:var(--ochre)}
 
@@ -133,13 +138,13 @@ body{
 .cmp em{font-style:normal;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mut);min-width:82px;text-align:right}
 .cmp em.down{color:var(--ok)}
 .cmp em.up{color:var(--ochre)}
-.textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font-family:'Golos Text',sans-serif;font-size:13px;resize:none;background:#FBFDFE}
+.textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px;font-family:'Golos Text',sans-serif;font-size:16px;resize:none;background:#FBFDFE}
 
 /* строка ввода */
-.dock{position:absolute;left:14px;right:14px;bottom:74px;background:var(--navy);border-radius:16px;padding:8px;display:flex;align-items:center;gap:7px;box-shadow:0 12px 26px -12px rgba(40,66,92,.7)}
-.dock .hint{flex:1;color:rgba(255,255,255,.6);font-size:12px;padding-left:6px}
-.dock button{width:38px;height:38px;border:0;border-radius:11px;cursor:pointer;background:rgba(255,255,255,.12);color:#fff;font-size:15px}
-.dock button.main{background:var(--ochre);width:42px;height:42px;font-size:17px}
+.fab{position:absolute;right:16px;bottom:76px;width:54px;height:54px;border:0;border-radius:50%;
+  background:var(--ochre);color:#fff;font-size:21px;cursor:pointer;
+  box-shadow:0 8px 20px -6px rgba(176,131,71,.6);z-index:5}
+.fab:active{transform:scale(.95)}
 
 .tabs{position:absolute;left:0;right:0;bottom:0;height:66px;background:rgba(255,255,255,.96);border-top:1px solid var(--line);display:flex;align-items:center;padding:0 4px}
 .tabs button{flex:1;border:0;background:transparent;cursor:pointer;padding:5px 0;font-family:'Golos Text',sans-serif;font-size:10px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:3px}
@@ -159,20 +164,24 @@ body{
 .note{max-width:600px;width:100%;margin-top:22px;font-size:13px;color:var(--mut);text-align:center}
 
 /* ---- рабочая версия: формы, поля, всплывающие сообщения ---- */
-body{padding:0;background:var(--ground);display:block}
+html{overflow-x:hidden}
+body{padding:0;background:var(--ground);display:block;overflow-x:hidden;width:100%}
+.screen{overflow-x:hidden}
+.card,.item,.parse,.daycard{max-width:100%}
+.item .txt b,.item .txt small,.mut,.empty{overflow-wrap:anywhere}
 .phone{width:100%;max-width:520px;height:auto;min-height:100vh;margin:0 auto;border:0;border-radius:0;box-shadow:none;background:var(--ground)}
 .status{display:none}
 .appbar{position:sticky;top:0;z-index:5;padding-top:calc(10px + env(safe-area-inset-top))}
-.screen{padding-bottom:200px}
-.dock{position:fixed;left:50%;transform:translateX(-50%);width:min(492px,calc(100% - 28px));bottom:calc(78px + env(safe-area-inset-bottom))}
+.screen{padding-bottom:150px}
+.fab{position:fixed;right:max(16px,calc(50% - 230px));bottom:calc(80px + env(safe-area-inset-bottom))}
 .tabs{position:fixed;left:50%;transform:translateX(-50%);width:100%;max-width:520px;height:calc(66px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom)}
 .sheet{position:fixed}
 .sheet-in{max-width:520px;margin:0 auto;max-height:88vh;overflow-y:auto;padding-bottom:calc(22px + env(safe-area-inset-bottom))}
 .fld{margin-bottom:10px}
 .fld label{display:block;font-size:11px;color:var(--mut);margin-bottom:4px;font-weight:500}
-.fld input,.fld select,.fld textarea{
+.fld input,.fld select,.fld textarea,input,textarea,select{
   width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;
-  font-family:'Golos Text',sans-serif;font-size:15px;background:#FBFDFE;color:var(--ink)
+  font-family:'Golos Text',sans-serif;font-size:16px;background:#FBFDFE;color:var(--ink)
 }
 .fld textarea{resize:vertical;min-height:78px}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
@@ -223,11 +232,7 @@ body{padding:0;background:var(--ground);display:block}
   <section class="screen" id="s-notes" hidden></section>
   <section class="screen" id="s-more" hidden></section>
 
-  <div class="dock">
-    <button title="Чек" onclick="openSheet('check')">🧾</button>
-    <div class="hint" id="dock-hint" onclick="openContext()">Записать голосом или текстом</div>
-    <button class="main" id="dock-btn" title="Записать" onclick="openContext()">✎</button>
-  </div>
+  <button class="fab" id="dock-btn" title="Записать" onclick="openContext()" aria-label="Записать">✎</button>
 
   <nav class="tabs">
     <button aria-selected="true" onclick="go(this,'s-today')"><i>◉</i>Сегодня</button>
@@ -265,7 +270,7 @@ let S = null, storageOk = true;
 
 function blank(){
   return {
-    settings:{income:0, save:0, budget:60000, kcal:1800, art:'web', cur:'RUB', notesTab:'note'},
+    settings:{income:0, save:0, budget:0, art:'web', cur:'RUB', notesTab:'note'},
     exp:[], inc:[], ev:[], meals:[], notes:[], dreams:[], day:{}, savedAt:null, backupAt:null
   };
 }
@@ -278,6 +283,7 @@ function load(){
   for (const k in b) if (S[k] === undefined) S[k] = b[k];
   for (const k in b.settings) if (S.settings[k] === undefined) S.settings[k] = b.settings[k];
 }
+function saveQuiet(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 function save(){
   S.savedAt = new Date().toISOString();
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }
@@ -325,8 +331,7 @@ function byCat(m){
 }
 function budgetOf(){
   const s = S.settings;
-  if (s.income) return Math.max(0, s.income - (s.save || 0));
-  return s.budget || 0;
+  return s.income ? Math.max(0, s.income - (s.save || 0)) : 0;
 }
 function freeLeft(){ return budgetOf() - spentMonth(monthOf(today())); }
 function daysLeft(){
@@ -358,12 +363,16 @@ function yearsTurning(e, d){
   return +d.slice(0,4) - +String(e.since).slice(0,4);
 }
 function dayRec(d){ if (!S.day[d]) S.day[d] = {}; return S.day[d]; }
+/* на первом экране показываем только то, что в ближайшую неделю:
+   событие через месяц утром не нужно, оно живёт в календаре */
 function nextEvent(){
   const now = new Date().toTimeString().slice(0,5);
   const t = evOf(today()).find(e => (e.time || '99:99') >= now);
   if (t) return {e:t, when:'сегодня'};
-  const up = upcoming(400).find(x => x.date > today());
-  return up ? {e:up.e, when:humanDate(up.date)} : null;
+  const up = upcoming(7).find(x => x.date > today());
+  if (up) return {e:up.e, when:humanDate(up.date)};
+  const far = upcoming(400).find(x => x.date > today());
+  return far ? {far:true, e:far.e, when:humanDate(far.date), days:far.in} : null;
 }
 function todo(){
   const out = [];
@@ -380,7 +389,6 @@ function todo(){
       out.push(['📄', e.title, 'Срок подходит через ' + x.in + ' ' + plural(x.in,'день','дня','дней'), null]);
   });
   const last = S.backupAt ? (Date.now() - new Date(S.backupAt).getTime()) / 86400000 : 99;
-  if (last > 7) out.push(['💾','Резервная копия не делалась','Отправьте копию себе, чтобы не потерять данные',"openSheet('backup')"]);
   return out;
 }
 
@@ -721,7 +729,7 @@ function clean(t){
   cut(new RegExp(' (перв|втор|треть|четв[ёе]рт|пят|шест|седьм|восьм|девят|десят|одиннадцат|двенадцат|двадцат|тридцат)[а-яё]*о?го ', 'gi'));
   cut(/ (двадцать|тридцать) /gi);
   cut(new RegExp(' (' + MONTH_GEN.join('|') + ') ', 'gi'));
-  cut(/ [0-9]{1,2}[:.][0-9]{2} /g);
+  s = s.replace(/[0-9]{1,2}[:.][0-9]{2}/g,' ');
   cut(/ (ноль ноль|ровно) /gi);
   cut(/ (в|во|на|к) +[0-9]{1,2} /gi);
   cut(new RegExp(' (в|во|на|к) +(' + Object.keys(HOURWORD).join('|') + ')( +(утра|дня|вечера|ночи|часов|часа))? ', 'gi'));
@@ -740,6 +748,7 @@ function clean(t){
   for (let n = 0; n < 3; n++)
     s = s.replace(/[\s,]+(в|во|на|за|про|до|к|и|а|с|у|вечером|утром|днём|днем|ночью|за день|во сколько)[.,]?$/i,'').trim();
   s = s.replace(/[\s,]+(что|чтобы|когда|где|как|о том)$/i,'').trim();
+  s = s.replace(/[\s,.;]+$/,'').replace(/^[\s,.;]+/,'').trim();
   if (s.length < 2) return '';
   return tidy(s.charAt(0).toUpperCase() + s.slice(1));
 }
@@ -1111,8 +1120,13 @@ function cardImgUrl(cardId){
 }
 function artFail(img){
   const box = img.parentNode; if (!box || !box.getAttribute) return;
-  box.outerHTML = cardArtDrawn(box.getAttribute('data-card'), false);
+  const id = box.getAttribute('data-card');
+  ART_FAILED = true;
+  box.outerHTML = cardArtDrawn(id, false);
+  const note = document.getElementById('art-note');
+  if (note) note.style.display = 'block';
 }
+let ART_FAILED = false;
 function cardArt(cardId){
   const url = cardImgUrl(cardId);
   if (!url) return cardArtDrawn(cardId, false);
@@ -1228,8 +1242,8 @@ function focusNote(){
 }
 function go(btn, id){
   curScreen = id;
-  const h = document.getElementById('dock-hint');
-  if (h) h.textContent = (DOCK[id] || DOCK['s-today'])[0];
+  const b = document.getElementById('dock-btn');
+  if (b) b.title = (DOCK[id] || DOCK['s-today'])[0];
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected','false'));
   btn.setAttribute('aria-selected','true');
   document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== id);
@@ -1258,63 +1272,66 @@ function renderToday(){
   if (!storageOk) h += '<div class="warnbar">Браузер не сохраняет данные. Проверьте, не открыт ли режим инкогнито.</div>';
 
   if (!S.settings.hi){
-    h += card(lab('С чего начать') +
-      '<div style="font-size:14px;margin-bottom:10px">Это ваш день в одном месте. Три вещи, и дальше всё понятно:</div>' +
-      '<div class="item"><div class="ic">1</div><div class="txt"><b>Кнопка внизу</b>' +
-        '<small>Она меняется по разделу: в календаре пишет событие, в деньгах — трату, в записях — заметку</small></div></div>' +
-      '<div class="item"><div class="ic">2</div><div class="txt"><b>Говорите, а не печатайте</b>' +
-        '<small>Микрофон есть у каждого поля. На айфоне он открывает клавиатуру — диктуйте её микрофоном</small></div></div>' +
-      '<div class="item"><div class="ic">3</div><div class="txt"><b>Данные живут в телефоне</b>' +
-        '<small>Никуда не отправляются. Раз в неделю делайте копию в разделе «Ещё»</small></div></div>' +
-      '<button class="btn" style="margin-top:12px" onclick="hideHi()">Понятно, начнём</button>');
+    h += card('<div style="font-size:14px;margin-bottom:10px">Говорите — кнопка внизу запишет. В календаре она пишет событие, ' +
+      'в деньгах трату, в записях мысль.</div>' +
+      '<div class="row" style="gap:8px">' +
+      '<button class="btn ghost" style="flex:1" onclick="hideHi()">Понятно</button>' +
+      '<button class="btn" style="flex:1" onclick="openSheet(\'hi\')">Подробнее</button></div>');
   }
-  if (!S.settings.income)
-    h += card(lab('Настройте за минуту') +
-      '<div class="mut" style="margin-bottom:10px">Скажите, сколько получаете и сколько откладываете — и приложение само посчитает, ' +
-      'сколько можно тратить в день. Пока считаю от ' + money(budgetOf()) + '.</div>' +
-      '<button class="btn ghost" onclick="go(document.querySelector(\'.tabs button:nth-child(5)\'),\'s-more\')">Указать доход</button>');
   const nx = nextEvent();
   h += card(
     '<div class="row" style="align-items:flex-start"><div>' + lab('Ближайшее событие') +
-    (nx ? '<div style="font-family:\'Spectral\',serif;font-size:18px;font-weight:600">' + esc(nx.e.title) + '</div>' +
-          '<div class="mut" style="margin-top:3px">' + (nx.e.time ? esc(nx.e.time) + ' · ' : '') + esc(nx.when) + '</div>'
+    (nx && !nx.far
+      ? '<div style="font-family:\'Spectral\',serif;font-size:18px;font-weight:600">' + esc(nx.e.title) + '</div>' +
+        '<div class="mut" style="margin-top:3px">' + (nx.e.time ? esc(nx.e.time) + ' · ' : '') + esc(nx.when) + '</div>'
+      : nx && nx.far
+        ? '<div class="mut">На ближайшую неделю ничего не назначено.</div>' +
+          '<div class="mut" style="margin-top:5px;font-size:11px">Следующее — «' + esc(nx.e.title) + '», ' + esc(nx.when) +
+          '. Напомню ближе к дате.</div>'
         : '<div class="mut">Ничего не назначено. Добавьте встречу или напоминание.</div>') +
-    '</div><span class="chip">Календарь</span></div>', nx ? 'now' : '');
+    '</div><button class="chip" onclick="go(document.querySelector(\'.tabs button:nth-child(2)\'),\'s-cal\')">Календарь →</button></div>', (nx && !nx.far) ? 'now' : '');
 
   h += dayCardHtml();
 
   h += '<div class="grid2">' +
-    card(lab('Деньги') + '<div class="big" style="font-size:20px">' + money(free) + '</div>' +
-      '<div class="mut">осталось до конца месяца</div>' +
-      bar(spentPct, 'var(--ochre)') +
-      '<div class="mut" style="margin-top:7px;font-size:11px">по ' + money(perDay) + ' в день на ' +
-        daysLeft() + ' ' + plural(daysLeft(),'день','дня','дней') + '</div>') +
-    card(lab('Записи') + '<div class="big" style="font-size:20px">' + (S.notes.length + S.dreams.length) + '</div>' +
-      '<div class="mut">заметок и снов</div>' + bar(Math.min(100,(S.notes.length + S.dreams.length) * 8), 'var(--ok)')) +
-    '</div>';
+    '<div class="card tap" onclick="go(document.querySelector(\'.tabs button:nth-child(3)\'),\'s-money\')">' +
+      lab('Деньги →') +
+      (budgetOf()
+        ? '<div class="big" style="font-size:20px">' + money(free) + '</div>' +
+          '<div class="mut">осталось до конца месяца</div>' + bar(spentPct, 'var(--ochre)') +
+          '<div class="mut" style="margin-top:7px;font-size:11px">по ' + money(perDay) + ' в день на ' +
+            daysLeft() + ' ' + plural(daysLeft(),'день','дня','дней') + '</div>'
+        : '<div class="big" style="font-size:20px">' + money(spentMonth(monthOf(d))) + '</div>' +
+          '<div class="mut">потрачено в этом месяце</div>' +
+          '<div class="mut" style="margin-top:7px;font-size:11px">Укажите доход в «Ещё» — посчитаю остаток</div>') +
+      '</div>' +
+    '<div class="card tap" onclick="go(document.querySelector(\'.tabs button:nth-child(4)\'),\'s-notes\')">' +
+      lab('Записи →') + '<div class="big" style="font-size:20px">' + (S.notes.length + S.dreams.length) + '</div>' +
+      '<div class="mut">заметок и снов</div>' +
+      bar(Math.min(100,(S.notes.length + S.dreams.length) * 8), 'var(--ok)') + '</div>' +
+  '</div>';
 
   const ev = evOf(d);
   h += card(lab('Назначено на сегодня') +
-    (ev.length ? '<div class="dayline"><div class="spine"></div>' + ev.map(e => {
-        const past = (e.time || '') < new Date().toTimeString().slice(0,5);
-        const done = (S.day[d] || {}).done && S.day[d].done.includes(e.id);
+    (ev.length ? ev.map(e => {
+        const done = (rec.done || []).includes(e.id);
         return '<div class="tl' + (done ? ' done' : ' next') + '"><div class="tl-dot"></div>' +
           '<div class="tl-time">' + esc(e.time || '—') + '</div>' +
           '<div class="row"><span class="tl-what"' + (done ? ' style="text-decoration:line-through;color:var(--mut)"' : '') + '>' +
           esc(e.title) + '</span>' +
           '<button class="tick' + (done ? ' on' : '') + '" onclick="toggleDone(\'' + e.id + '\')" title="Сделано">' +
           (done ? '✓' : '') + '</button></div></div>';
-      }).join('') + '</div>'
+      }).join('')
       : '<div class="empty">На сегодня ничего не назначено. Скажите «завтра врач в десять» — попадёт в календарь.</div>') +
     '<button class="btn ghost" style="margin-top:10px" onclick="openSheet(\'ev\')">Добавить событие</button>');
 
-  const te = S.exp.filter(x => x.date === d), tm = mealsOf(d);
-  const evDone = ((rec.done || []).length);
+  const te = S.exp.filter(x => x.date === d);
+  const evDone = (rec.done || []).length;
   const evening = new Date().getHours() >= 18;
   h += card(lab('Как идёт день') +
     '<div class="stat"><span>Дела</span><b>' +
-      (ev.length ? (evDone ? evDone + ' из ' + ev.length + ' сделано' : 'впереди ' + ev.length + ' ' + plural(ev.length,'дело','дела','дел')) : '—') +
-    '</b></div>' +
+      (ev.length ? (evDone ? evDone + ' из ' + ev.length + ' сделано'
+                           : 'впереди ' + ev.length + ' ' + plural(ev.length,'дело','дела','дел')) : '—') + '</b></div>' +
     '<div class="stat"><span>Потрачено</span><b>' + (te.length ? money(sum(te)) : '—') + '</b></div>' +
     '<div class="stat"><span>Сон</span><b>' + (rec.sleep ? (SLEEP.find(x => x[0] === rec.sleep)||['','—'])[1] : 'не отмечен') + '</b></div>' +
     (te.length ? '<div class="mut" style="margin-top:8px">' + esc(te.map(x => x.title).slice(0,4).join(', ')) + '</div>' : '') +
@@ -1323,6 +1340,11 @@ function renderToday(){
       '<div class="pick">' + MOODS.map(m =>
         '<button aria-pressed="' + (rec.mood === m[0]) + '" onclick="setMood(\'' + m[0] + '\')">' + m[1] + '</button>').join('') +
       '</div></div>' : ''));
+
+  const records = S.exp.length + S.ev.length + S.notes.length + S.dreams.length;
+  const sinceBackup = S.backupAt ? Math.floor((Date.now() - new Date(S.backupAt)) / 86400000) : 99;
+  if (records >= 12 && sinceBackup > 7)
+    h += '<div class="tip" style="cursor:pointer" onclick="openSheet(\'backup\')">Давно не делали копию данных →</div>';
 
   const td = todo();
   if (td.length) h += card(lab('Нужно отметить') + td.map(t =>
@@ -1395,7 +1417,7 @@ function renderCal(){
     card(lab('Что не надо держать в голове') +
       '<div class="mut" style="margin-bottom:10px">Внесите один раз — приложение напомнит при входе: дни рождения за 10 дней, ' +
       'платежи за 3 дня, сроки документов за 2 недели. Кнопка «напомнить» у события отправляет его в календарь телефона — ' +
-      'тогда телефон разбудит вас уведомлением за сутки, даже если приложение закрыт.</div>' +
+      'тогда телефон разбудит вас уведомлением за сутки, даже если приложение закрыто.</div>' +
       '<div class="pick">' +
       '<button onclick="quickEv(\'bd\')">🎂 День рождения</button>' +
       '<button onclick="quickEv(\'pay\')">💳 Платёж</button>' +
@@ -1431,7 +1453,9 @@ function renderMoney(){
   const COLORS = ['var(--navy)','var(--accent)','var(--head)','var(--ochre)','#C4D1DC','#9FB4C6','#DCC49A','#8FA9BE','#B9C9D6','#CBB08A'];
 
   let exp = card('<div class="row"><div>' + lab('Потрачено') + '<div class="big">' + money(spent) + '</div></div>' +
-      '<div style="text-align:right">' + lab('Бюджет') + '<div class="num" style="font-size:15px">' + money(budgetOf()) + '</div></div></div>' +
+      (budgetOf()
+      ? '<div style="text-align:right">' + lab('Бюджет') + '<div class="num" style="font-size:15px">' + money(budgetOf()) + '</div></div>'
+      : '<div style="text-align:right">' + lab('Бюджет') + '<div class="mut" style="font-size:11px;max-width:120px">не задан — укажите доход в «Ещё»</div></div>') + '</div>' +
       (cats.length ? '<div class="seg">' + cats.map((c,i) =>
         '<i style="width:' + (c[1]/spent*100) + '%;background:' + COLORS[i % COLORS.length] + '"></i>').join('') + '</div>' +
         '<div class="legend">' + cats.map((c,i) =>
@@ -1477,7 +1501,8 @@ function renderMoney(){
       '<div class="sum">−' + money(e.sum) + '</div>' +
       '<button class="del" onclick="drop(\'exp\',\'' + e.id + '\')">✕</button></div>').join('')
       : '<div class="empty">Записей пока нет. Скажите «потратила восемьсот на продукты» — запишу сюда.</div>') +
-    '<button class="btn" style="margin-top:11px" onclick="openSheet(\'exp\')">Добавить расход</button>');
+    '<button class="btn" style="margin-top:11px" onclick="openSheet(\'exp\')">Добавить расход</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'check\')">Считать чек камерой</button>');
 
   const li = S.inc.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,8);
   let inc = card('<div class="row"><div>' + lab('Получено за месяц') + '<div class="big" style="color:var(--ok)">' + money(got) + '</div></div></div>' +
@@ -1621,19 +1646,21 @@ function renderMore(){
   const good = moods.filter(x => x === 'ok' || x === 'flat').length;
 
   document.getElementById('s-more').innerHTML =
-    card(lab('Записать голосом') +
+    card(lab('Рассказать про день') +
       '<div class="mut" style="margin-bottom:8px">Скажите всё подряд — приложение разложит по разделам.</div>' +
-      '<button class="btn" onclick="openSheet(\'voice\')">Открыть разбор</button>' +
-      '<div class="mut" style="margin-top:8px">Диктовать удобнее микрофоном на клавиатуре телефона.</div>') +
+      '<button class="btn" onclick="openSheet(\'voice\')">Рассказать</button>') +
     card(lab('Неделя') +
       '<div class="stat"><span>Потрачено за 7 дней</span><b>' + money(wExp) + '</b></div>' +
-      '<div class="stat"><span>Записей о еде</span><b>' + S.meals.filter(x => week.includes(x.date)).length + '</b></div>' +
-      '<div class="stat"><span>Дней отмечено по самочувствию</span><b>' + moods.length + ' из 7</b></div>' +
+      '<div class="stat"><span>Записей и снов</span><b>' +
+        (S.notes.filter(x => week.includes(x.date)).length + S.dreams.filter(x => week.includes(x.date)).length) + '</b></div>' +
+      '<div class="stat"><span>Отмечено самочувствие</span><b>' + (moods.length ? moods.length + ' ' + plural(moods.length,'день','дня','дней') : 'ещё нет') + '</b></div>' +
       (moods.length ? '<div class="mut" style="margin-top:9px">Спокойных дней: ' + good + ' из ' + moods.length + '.</div>' : ''), 'navy') +
     card(lab('Настройки') +
       '<div class="fld"><label>Обычный доход в месяц, ' + sign() + '</label><input type="number" inputmode="numeric" value="' + (S.settings.income || '') + '" onchange="setNum(\'income\',this.value)"></div>' +
       '<div class="fld"><label>Сколько хотите откладывать, ' + sign() + '</label><input type="number" inputmode="numeric" value="' + (S.settings.save || '') + '" onchange="setNum(\'save\',this.value)"></div>' +
-      '<div class="mut">На жизнь остаётся ' + money(budgetOf()) + ' в месяц. Это и есть ваш бюджет — считать самой не нужно.</div>' +
+      (S.settings.income
+        ? '<div class="mut">На жизнь остаётся ' + money(budgetOf()) + ' в месяц. Это и есть ваш бюджет — считать самой не нужно.</div>'
+        : '<div class="mut">Заполните оба поля — и приложение само посчитает, сколько остаётся на жизнь.</div>') +
       '<div class="fld"><label>Валюта</label><div class="pick" id="p-cur">' +
         CURR.map(c => '<button aria-pressed="' + (c[0] === cur()[0]) + '" onclick="setCur(\'' + c[0] + '\')">' + c[2] + ' ' + c[1] + '</button>').join('') +
       '</div></div>') +
@@ -1651,12 +1678,19 @@ function renderMore(){
       '<input type="file" id="restore" accept="application/json,.json" hidden onchange="restoreFile(this)">') +
     card(lab('Приложение') +
       '<div class="item"><div class="ic">📱</div><div class="txt"><b>Иконка на экране телефона</b><small>Меню браузера → «На экран „Домой“»</small></div></div>' +
-      '<div class="item" onclick="myProducts()" style="cursor:pointer"><div class="ic">🏷</div><div class="txt"><b>Мои продукты</b>' +
-        '<small>' + Object.keys(S.products || {}).length + ' в справочнике · пополняется сканированием</small></div></div>' +
+
       '<div class="item"><div class="ic">💬</div><div class="txt"><b>Рассказать подругам</b><small>Отправить ссылку на приложение</small></div>' +
       '<button class="del" style="color:var(--accent)" onclick="shareApp()">отправить</button></div>') +
-    card(lab('Важно') + '<div class="mut">Приложение считает то, что вы вносите, и не ставит диагнозов. ' +
-      'Нормы калорий и любые ограничения обсуждайте с врачом.</div>');
+    card(lab('Версия') + '<div class="mut">Сборка от 29.08 08:32. Если цифры ведут себя странно — ' +
+      'проверьте, что открыт этот файл, а не старая копия.</div>' +
+      '<button class="btn ghost" style="margin-top:10px" onclick="resetMoneyDefaults()">Сбросить старые настройки денег</button>') +
+    card(lab('Важно') + '<div class="mut">Приложение считает только то, что вы вносите сами. ' +
+      'Оно ничего не советует по здоровью и никуда не отправляет ваши записи.</div>');
+}
+function resetMoneyDefaults(){
+  delete S.settings.budget; delete S.settings.kcal; delete S.settings.water;
+  S.settings.income = 0; S.settings.save = 0;
+  save(); toast('Настройки денег очищены — впишите свой доход');
 }
 function setCur(c){ S.settings.cur = c; save(); toast('Валюта: ' + cur()[2]); }
 function setNum(k, v){ S.settings[k] = Math.max(0, +v || 0); save(); toast('Сохранено'); }
@@ -1678,18 +1712,27 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet()
 function val(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
 const SHEETS = {
+  hi: () => '<h3>Как это работает</h3>' +
+    '<div class="item"><div class="ic">1</div><div class="txt"><b>Кнопка внизу</b>' +
+      '<small>Меняется по разделу: событие, трата или заметка</small></div></div>' +
+    '<div class="item"><div class="ic">2</div><div class="txt"><b>Говорите, а не печатайте</b>' +
+      '<small>На айфоне нажмите поле и микрофон на клавиатуре</small></div></div>' +
+    '<div class="item"><div class="ic">3</div><div class="txt"><b>Данные в телефоне</b>' +
+      '<small>Никуда не отправляются. Раз в неделю делайте копию в «Ещё»</small></div></div>' +
+    '<button class="btn" style="margin-top:12px" onclick="hideHi();closeSheet()">Понятно</button>',
+
   exp: () => '<h3>Расход</h3>' +
     fldMic('На что', '<input id="f-title" placeholder="Продукты в Пятёрочке">', 'f-title') +
     fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" placeholder="800">', 'f-sum', 'sum') +
     '<div class="fld"><label>Категория</label><select id="f-cat">' + CATS.map(c => '<option>' + c + '</option>').join('') + '</select></div>' +
-    '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + today() + '"></div>' +
+    '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + today() + '"></div>' +
     '<button class="btn" onclick="saveExp()">Записать расход</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
   inc: () => '<h3>Доход</h3>' +
     fldMic('Откуда', '<input id="f-title" placeholder="Зарплата">', 'f-title') +
     fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" placeholder="96000">', 'f-sum', 'sum') +
-    '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + today() + '"></div>' +
+    '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + today() + '"></div>' +
     '<button class="btn ok" onclick="saveInc()">Записать доход</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
@@ -1698,8 +1741,10 @@ const SHEETS = {
     '<div class="fld"><label>Что это</label><div class="pick" id="p-kind">' +
       KINDS.map((k,i) => '<button data-v="' + k[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + k[1] + '</button>').join('') +
     '</div></div>' +
-    '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (d || today()) + '"></div>' +
-    fldMic('Время', '<input id="f-time" type="time">', 'f-time', 'time') +
+    '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + (d || today()) + '"></div>' +
+    fldMic('Время', '<input id="f-time" type="text" inputmode="numeric" placeholder="10:00 или «в десять ноль ноль»" ' +
+      'onblur="fixTime(this)">', 'f-time', 'time') +
+    '<div class="mut" style="margin-top:-6px;margin-bottom:10px;font-size:11px">Можно сказать голосом: «в десять ноль ноль», «в шесть вечера»</div>' +
     '<div class="fld"><label>Повторять</label><div class="pick" id="p-rep">' +
       REPEATS.map((r,i) => '<button data-v="' + r[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + r[1] + '</button>').join('') +
     '</div></div>' +
@@ -1766,11 +1811,27 @@ function saveInc(){
   addInc({title: tidy(val('f-title')) || 'Доход', sum: s, date: val('f-date') || today()});
   closeSheet(); toast('Доход записан');
 }
+function fixTime(el){
+  const raw = (el.value || '').trim();
+  if (!raw) return;
+  let t = parseTime(' в ' + raw + ' ') || parseTime(' ' + raw + ' ');
+  if (!t){
+    const m = raw.match(/^([0-9]{1,2})[^0-9]?([0-9]{2})?$/);
+    if (m) t = String(+m[1]).padStart(2,'0') + ':' + (m[2] || '00');
+  }
+  if (t) el.value = t;
+  else { el.value = ''; toast('Не поняла время — напишите как 10:00'); }
+}
 function saveEv(){
-  const t = val('f-title');
-  if (!t){ toast('Впишите, что за событие'); return; }
+  const raw = val('f-title');
+  if (!raw){ toast('Впишите, что за событие'); return; }
   const kind = picked('p-kind','plain');
-  addEv({title: tidy(t), date: val('f-date') || today(), time: val('f-time') || null,
+  // если дату и время сказали прямо в названии — вынимаем их оттуда
+  const saidDate = parseDate(raw), saidTime = parseTime(' ' + raw + ' ');
+  const t = clean(raw) || tidy(raw);
+  addEv({title: t,
+         date: val('f-date') && val('f-date') !== today() ? val('f-date') : (saidDate || today()),
+         time: val('f-time') || saidTime || null,
          plan: +val('f-sum') || null, kind: kind,
          repeat: picked('p-rep', kind === 'bd' ? 'year' : 'none'),
          since: val('f-since') || null});
@@ -1929,14 +1990,9 @@ function openAdvice(){
   document.getElementById('sheet-in').innerHTML =
     '<h3>' + esc(c.n) + '</h3><div class="mut">Карта дня</div>' +
     '<div class="parse"><div style="font-size:14px">' + esc(DAYTXT[c.id] || c.u) + '</div></div>' +
-    (e ? '<div class="card" style="margin:0">' +
-      '<div class="stat"><span>Отношения</span></div><div class="mut" style="padding:4px 0 8px">' + esc(e[0]) + '</div>' +
-      '<div class="stat"><span>Работа и деньги</span></div><div class="mut" style="padding:4px 0 8px">' + esc(e[1]) + '</div>' +
-      '<div class="stat"><span>Состояние</span></div><div class="mut" style="padding:4px 0 8px">' + esc(e[2]) + '</div>' +
-      '<div class="stat"><span>Совет карты</span></div><div style="font-size:13px;padding:4px 0 8px">' + esc(e[3]) + '</div>' +
-      '<div class="stat" style="border:0"><span>Что означает сама карта</span></div><div class="mut" style="padding-top:4px">' + esc(c.u) + '</div>' +
-      '</div>' : '') +
-    '<button class="btn" style="margin-top:12px" onclick="closeSheet()">Закрыть</button>';
+    (e && e[3] ? '<div class="mut" style="margin-top:12px">Совет</div>' +
+      '<div style="font-size:14px;margin-top:4px">' + esc(e[3]) + '</div>' : '') +
+    '<button class="btn" style="margin-top:14px" onclick="closeSheet()">Закрыть</button>';
   document.getElementById('sheet').classList.add('open');
 }
 
@@ -2183,6 +2239,32 @@ function forgetProduct(code){ delete products()[code]; save(); myProducts(); }
 /* ---------- запуск ---------- */
 load();
 ART_MODE = S.settings.art || 'web';
+
+/* старое значение бюджета по умолчанию (60 000) осталось у тех,
+   кто открывал ранние версии — стираем, чтобы не показывать чужую цифру */
+if (S.settings.budget){ delete S.settings.budget; saveQuiet(); }
+
+/* разовая починка старых записей: если дата и время остались внутри названия,
+   раскладываем их по местам — событие «Парикмахер, 29 сентября 10:00» становится
+   событием «Парикмахер» на 29 сентября в 10:00 */
+(function fixOldEvents(){
+  if (S.settings.fixedEv) return;
+  let changed = 0;
+  S.ev.forEach(e => {
+    const t = String(e.title || '');
+    const hasDate = new RegExp('(' + MONTH_GEN.join('|') + ')', 'i').test(t);
+    const hasTime = /[0-9]{1,2}[:.][0-9]{2}/.test(t) || /ноль ноль|часов|утра|вечера/i.test(t);
+    if (!hasDate && !hasTime) return;
+    const d = parseDate(t), tm = parseTime(' ' + t + ' ');
+    const nice = clean(t);
+    if (nice) e.title = nice;
+    if (hasDate && d) e.date = d;
+    if (tm) e.time = tm;
+    changed++;
+  });
+  S.settings.fixedEv = 1;
+  if (changed) save(); else saveQuiet();
+})();
 renderAll();
 if (!storageOk) toast('Браузер не сохраняет данные — работайте в обычном режиме, не в инкогнито');
 
