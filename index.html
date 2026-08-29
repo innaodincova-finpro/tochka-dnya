@@ -145,6 +145,11 @@ body{
   background:var(--ochre);color:#fff;font-size:21px;cursor:pointer;
   box-shadow:0 8px 20px -6px rgba(176,131,71,.6);z-index:5}
 .fab:active{transform:scale(.95)}
+.mini{border:1px solid var(--line);background:#fff;color:var(--accent);border-radius:8px;
+  padding:5px 9px;font-size:11px;font-family:inherit;cursor:pointer;margin-left:6px;white-space:nowrap}
+.mini:active{background:#EAF1F7}
+.item.tapline{cursor:pointer}
+.item.tapline:active{background:#F5F9FC}
 
 .tabs{position:absolute;left:0;right:0;bottom:0;height:66px;background:rgba(255,255,255,.96);border-top:1px solid var(--line);display:flex;align-items:center;padding:0 4px}
 .tabs button{flex:1;border:0;background:transparent;cursor:pointer;padding:5px 0;font-family:'Golos Text',sans-serif;font-size:10px;color:var(--mut);display:flex;flex-direction:column;align-items:center;gap:3px}
@@ -1496,11 +1501,13 @@ function renderMoney(){
   const last = S.exp.slice().sort((a,b) => b.date.localeCompare(a.date)).slice(0,8);
   exp += card(lab('Последние операции') +
     (last.length ? last.map(e =>
-      '<div class="item"><div class="ic">' + (e.src === 'голосом' ? '🎙' : e.src === 'из чека' ? '🧾' : '₽') + '</div>' +
-      '<div class="txt" style="cursor:pointer" onclick="editExp(\'' + e.id + '\')"><b>' + esc(e.title) + '</b>' +
-      '<small>' + esc(e.cat) + ' · ' + humanDate(e.date) + ' · изменить</small></div>' +
-      '<div class="sum" style="cursor:pointer" onclick="editExp(\'' + e.id + '\')">−' + money(e.sum) + '</div>' +
-      '<button class="del" onclick="drop(\'exp\',\'' + e.id + '\')">✕</button></div>').join('')
+      '<div class="item tapline" onclick="editExp(\'' + e.id + '\')">' +
+      '<div class="ic">' + (e.src === 'голосом' ? '🎙' : e.src === 'из чека' ? '🧾' : '₽') + '</div>' +
+      '<div class="txt"><b>' + esc(e.title) + '</b>' +
+      '<small>' + esc(e.cat) + ' · ' + humanDate(e.date) + '</small></div>' +
+      '<div class="sum">−' + money(e.sum) + '</div>' +
+      '<button class="mini" onclick="event.stopPropagation();editExp(\'' + e.id + '\')">изменить</button>' +
+      '<button class="del" onclick="event.stopPropagation();drop(\'exp\',\'' + e.id + '\')">✕</button></div>').join('')
       : '<div class="empty">Записей пока нет. Скажите «потратила восемьсот на продукты» — запишу сюда.</div>') +
     '<button class="btn" style="margin-top:11px" onclick="openSheet(\'exp\')">Добавить расход</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'check\')">Считать чек камерой</button>');
@@ -1682,7 +1689,7 @@ function renderMore(){
 
       '<div class="item"><div class="ic">💬</div><div class="txt"><b>Рассказать подругам</b><small>Отправить ссылку на приложение</small></div>' +
       '<button class="del" style="color:var(--accent)" onclick="shareApp()">отправить</button></div>') +
-    card(lab('Версия') + '<div class="mut">Сборка от 29.08 13:52. Если цифры ведут себя странно — ' +
+    card(lab('Версия') + '<div class="mut">Сборка от 29.08 14:06. Если цифры ведут себя странно — ' +
       'проверьте, что открыт этот файл, а не старая копия.</div>' +
       '<button class="btn ghost" style="margin-top:10px" onclick="resetMoneyDefaults()">Сбросить старые настройки денег</button>') +
     card(lab('Важно') + '<div class="mut">Приложение считает только то, что вы вносите сами. ' +
@@ -1726,7 +1733,7 @@ const SHEETS = {
     const e = S.exp.find(x => x.id === editId) || {};
     return '<h3>Изменить расход</h3>' +
       fldMic('На что', '<input id="f-title" value="' + esc(e.title || '') + '">', 'f-title') +
-      fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" value="' + (e.sum || '') + '">', 'f-sum', 'sum') +
+      fldMic('Сколько, ' + sign(), '<input id="f-sum" type="text" value="' + (e.sum || '') + '" onblur="fixSum(this)">', 'f-sum', 'sum') +
       '<div class="fld"><label>Категория</label><select id="f-cat">' +
         CATS.map(c => '<option' + (c === e.cat ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>' +
       '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + (e.date || today()) + '"></div>' +
@@ -1738,7 +1745,7 @@ const SHEETS = {
     const e = S.inc.find(x => x.id === editId) || {};
     return '<h3>Изменить доход</h3>' +
       fldMic('Откуда', '<input id="f-title" value="' + esc(e.title || '') + '">', 'f-title') +
-      fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" value="' + (e.sum || '') + '">', 'f-sum', 'sum') +
+      fldMic('Сколько, ' + sign(), '<input id="f-sum" type="text" value="' + (e.sum || '') + '" onblur="fixSum(this)">', 'f-sum', 'sum') +
       '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + (e.date || today()) + '"></div>' +
       '<button class="btn ok" onclick="saveIncEdit()">Сохранить</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
@@ -1746,7 +1753,7 @@ const SHEETS = {
 
   exp: () => '<h3>Расход</h3>' +
     fldMic('На что', '<input id="f-title" placeholder="Продукты в Пятёрочке">', 'f-title') +
-    fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" placeholder="800">', 'f-sum', 'sum') +
+    fldMic('Сколько, ' + sign(), '<input id="f-sum" type="text" placeholder="800 или «восемьсот»" onblur="fixSum(this)">', 'f-sum', 'sum') +
     '<div class="fld"><label>Категория · подставится сама по названию</label><select id="f-cat" onchange="catTouched=1">' +
       CATS.map(c => '<option>' + c + '</option>').join('') + '</select></div>' +
     '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + today() + '"></div>' +
@@ -1755,7 +1762,7 @@ const SHEETS = {
 
   inc: () => '<h3>Доход</h3>' +
     fldMic('Откуда', '<input id="f-title" placeholder="Зарплата">', 'f-title') +
-    fldMic('Сколько, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" placeholder="96000">', 'f-sum', 'sum') +
+    fldMic('Сколько, ' + sign(), '<input id="f-sum" type="text" placeholder="96000 или «девяносто шесть тысяч»" onblur="fixSum(this)">', 'f-sum', 'sum') +
     '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + today() + '"></div>' +
     '<button class="btn ok" onclick="saveInc()">Записать доход</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
@@ -1766,14 +1773,14 @@ const SHEETS = {
       KINDS.map((k,i) => '<button data-v="' + k[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + k[1] + '</button>').join('') +
     '</div></div>' +
     '<div class="fld"><label>Дата · выберите в календарике</label><input id="f-date" type="date" value="' + (d || today()) + '"></div>' +
-    fldMic('Время', '<input id="f-time" type="text" inputmode="numeric" placeholder="10:00 или «в десять ноль ноль»" ' +
+    fldMic('Время', '<input id="f-time" type="text" placeholder="10:00 или «в десять ноль ноль»" ' +
       'onblur="fixTime(this)">', 'f-time', 'time') +
     '<div class="mut" style="margin-top:-6px;margin-bottom:10px;font-size:11px">Можно сказать голосом: «в десять ноль ноль», «в шесть вечера»</div>' +
     '<div class="fld"><label>Повторять</label><div class="pick" id="p-rep">' +
       REPEATS.map((r,i) => '<button data-v="' + r[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + r[1] + '</button>').join('') +
     '</div></div>' +
     '<div class="fld"><label>Год рождения — если это день рождения</label><input id="f-since" type="number" inputmode="numeric" placeholder="1990"></div>' +
-    '<div class="fld"><label>Планируемый расход, ' + sign() + ' — необязательно</label><input id="f-sum" type="number" inputmode="decimal" placeholder="3200"></div>' +
+    '<div class="fld"><label>Планируемый расход, ' + sign() + ' — необязательно</label><input id="f-sum" type="text" placeholder="3200 · можно голосом" onblur="fixSum(this)"></div>' +
     '<button class="btn" onclick="saveEv()">Добавить в календарь</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
@@ -1858,6 +1865,14 @@ function saveInc(){
   if (!s){ toast('Впишите сумму'); return; }
   addInc({title: tidy(val('f-title')) || 'Доход', sum: s, date: val('f-date') || today()});
   closeSheet(); toast('Доход записан');
+}
+function fixSum(el){
+  const raw = (el.value || '').trim();
+  if (!raw) return;
+  if (/^[0-9]+([.,][0-9]+)?$/.test(raw.replace(/\s/g,''))){ el.value = raw.replace(/\s/g,'').replace(',','.'); return; }
+  const n = parseSum(' ' + raw + ' ');
+  if (n) el.value = n;
+  else { el.value = ''; toast('Не поняла сумму — скажите «восемьсот» или напишите цифрами'); }
 }
 function fixTime(el){
   const raw = (el.value || '').trim();
