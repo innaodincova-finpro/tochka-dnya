@@ -135,6 +135,20 @@ body{
 .plan-toggle span:last-child{color:var(--accent);font-size:12px}
 .plan-calendar[hidden]{display:none}
 .plan-count{position:absolute;right:2px;top:2px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--rose);color:#fff;font:9px/15px 'IBM Plex Mono',monospace}
+.calendar-stream{display:flex;flex-direction:column;gap:12px}
+.month-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 10px}
+.month-title{font-family:'Spectral',Georgia,serif;font-size:19px;font-weight:600;margin:0 4px 12px;color:var(--ink)}
+.continuous-cal{gap:3px;align-items:stretch}
+.continuous-cal .d{aspect-ratio:auto;min-height:66px;border-radius:9px;align-items:stretch;justify-content:flex-start;padding:6px 4px;text-align:left;overflow:hidden}
+.continuous-cal .d.out{min-height:66px}
+.continuous-cal .day-num{font:500 12px/1.2 'IBM Plex Mono',monospace;text-align:right;padding-right:2px}
+.continuous-cal .day-preview{display:block;margin-top:6px;font:500 9px/1.25 'Golos Text',sans-serif;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.continuous-cal .d.has-plan{background:linear-gradient(145deg,#F4E8FA,#FCEAF1);border-color:#B98BD4;box-shadow:inset 0 0 0 1px rgba(128,81,179,.12)}
+.continuous-cal .d.has-plan .day-preview{color:#704395}
+.continuous-cal .d.today{background:linear-gradient(145deg,#8051B3,#C7688A);border-color:transparent;color:#fff}
+.continuous-cal .d.today .day-preview{color:rgba(255,255,255,.9)}
+.day-sheet-date{font-family:'Spectral',Georgia,serif;font-size:20px;font-weight:600;margin-bottom:4px}
+.day-sheet-empty{padding:18px 0;color:var(--mut);font-size:13px;text-align:center}
 .plan-group{position:relative;padding-left:22px;margin:14px 0 18px}
 .plan-group:before{content:'';position:absolute;left:5px;top:5px;bottom:-18px;width:2px;background:var(--line)}
 .plan-group:last-child:before{bottom:8px}
@@ -353,7 +367,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
   </div>
 
   <section class="screen" id="s-today"></section>
-  <section class="screen" id="s-cal" hidden></section>
+  <section class="screen" id="s-cal" hidden onscroll="calendarScroll(this)"></section>
   <section class="screen" id="s-notes" hidden></section>
   <section class="screen" id="s-money" hidden></section>
   <section class="screen" id="s-more" hidden></section>
@@ -380,7 +394,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.3';
 const APP_UPDATED = '4 сентября 2026';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
 const REPEATS = [['none','Не повторять'],['year','Каждый год'],['month','Каждый месяц'],['week','Каждую неделю']];
@@ -1112,70 +1126,48 @@ function toggleDone(id){
 }
 function hideHi(){ S.settings.hi = 1; save(); }
 
-/* ---------- План: период управляет и календарём, и списком ---------- */
-let calMonth = monthOf(today());
-let planPeriod = 'week', planFrom = today(), planTo = today(), planCalOpen = false;
-let planWeekStart = (function(){ const d=new Date(today()+'T12:00'); d.setDate(d.getDate()-((d.getDay()+6)%7)); return iso(d); })();
-let selDay = null;
-function planDates(){
-  if (planPeriod === 'custom') return [planFrom || today(), planTo || today()].sort();
-  if (planPeriod === 'month') return [calMonth+'-01',calMonth+'-'+String(daysInMonth(calMonth)).padStart(2,'0')];
-  return [planWeekStart,iso(new Date(new Date(planWeekStart+'T12:00').getTime()+6*86400000))];
-}
-function planSet(period){ planPeriod=period; planCalOpen=false; renderCal(); }
-function planCustom(k,v){ if(k==='from')planFrom=v;else planTo=v; planPeriod='custom'; renderCal(); }
-function togglePlanCalendar(){ planCalOpen=!planCalOpen; renderCal(); }
+/* ---------- План: непрерывный календарь ---------- */
+let selDay = today(), calendarMonthCount = 12;
 function planDone(date,id){ return !!(S.day[date]&&S.day[date].done&&(S.day[date].done||[]).includes(id)); }
 function togglePlanDone(date,id){ const r=dayRec(date);r.done=r.done||[];r.doneAt=r.doneAt||{};const i=r.done.indexOf(id);if(i>=0){r.done.splice(i,1);delete r.doneAt[id];}else{r.done.push(id);r.doneAt[id]=today();}save(); }
-function planCount(date){ return evOf(date).length+S.notes.filter(n=>n.due===date&&!n.done).length; }
-function planCalendar(){
-  const [y,mm]=calMonth.split('-').map(Number), heads='<div class="dw">пн</div><div class="dw">вт</div><div class="dw">ср</div><div class="dw">чт</div><div class="dw">пт</div><div class="dw">сб</div><div class="dw">вс</div>';
-  let cells='';
-  const day=ds=>{const count=planCount(ds);return '<button type="button" class="d'+(ds===today()?' today':'')+'" onclick="pickDay(\''+ds+'\')" aria-label="'+humanDate(ds)+', записей: '+count+'">'+(+ds.slice(8))+(count?'<span class="plan-count">'+count+'</span>':'')+'</button>'};
-  if(planPeriod==='week'){const d=new Date(planWeekStart+'T12:00');for(let i=0;i<7;i++)cells+=day(iso(new Date(d.getTime()+i*86400000)));}
-  else{const shift=(new Date(y,mm-1,1).getDay()+6)%7;for(let i=0;i<shift;i++)cells+='<div class="d out"></div>';for(let i=1;i<=daysInMonth(calMonth);i++)cells+=day(calMonth+'-'+String(i).padStart(2,'0'));}
-  return '<div class="row" style="margin-bottom:10px"><b style="font-size:14px">'+(planPeriod==='week'?'Неделя':MONTHS_N[mm-1]+' '+y)+'</b><span><button class="mini" onclick="shiftMonth(-1)">‹</button> <button class="mini" onclick="shiftMonth(1)">›</button></span></div><div class="cal">'+heads+cells+'</div><div class="mut" style="margin-top:9px;font-size:11px">Число на дате показывает количество записей.</div>';
+function planCount(date){ return evOf(date).length+S.notes.filter(n=>n.due===date).length; }
+function addMonths(key, amount){ const p=key.split('-').map(Number);return iso(new Date(p[0],p[1]-1+amount,1)).slice(0,7); }
+function calendarEntries(date){
+  return evOf(date).map(e=>({title:e.title,e:e})).concat(S.notes.filter(n=>n.due===date).map(n=>({title:noteTitle(n),note:n})));
 }
-function planList(){
-  const [from,to]=planDates(), rows=[];
-  for(let d=new Date(from+'T12:00');d<=new Date(to+'T12:00');d.setDate(d.getDate()+1)){
-    const date=iso(d);evOf(date).forEach(e=>rows.push({date,e}));
-    S.notes.filter(n=>n.due===date).forEach(note=>rows.push({date,note}));
+function monthCalendar(key){
+  const p=key.split('-').map(Number),y=p[0],mm=p[1];
+  const heads='<div class="dw">пн</div><div class="dw">вт</div><div class="dw">ср</div><div class="dw">чт</div><div class="dw">пт</div><div class="dw">сб</div><div class="dw">вс</div>';
+  let cells='',shift=(new Date(y,mm-1,1).getDay()+6)%7;
+  for(let i=0;i<shift;i++)cells+='<div class="d out"></div>';
+  for(let i=1;i<=daysInMonth(key);i++){
+    const ds=key+'-'+String(i).padStart(2,'0'),entries=calendarEntries(ds),count=entries.length;
+    const preview=entries.slice(0,2).map(x=>'<span class="day-preview">• '+esc(x.title)+'</span>').join('')+(count>2?'<span class="day-preview">ещё '+(count-2)+'</span>':'');
+    cells+='<button type="button" class="d'+(ds===today()?' today':'')+(count?' has-plan':'')+'" onclick="openDay(\''+ds+'\')" aria-label="'+humanDate(ds)+', записей: '+count+'"><span class="day-num">'+i+'</span>'+preview+'</button>';
   }
-  rows.sort((a,b)=>a.date.localeCompare(b.date)||((a.e&&a.e.time)||'99:99').localeCompare((b.e&&b.e.time)||'99:99'));
-  if(!rows.length)return '<div class="plan-empty">На выбранный период планов нет.</div>';
-  return [...new Set(rows.map(x=>x.date))].map(date=>{
-    const title=date===today()?'Сегодня · '+humanDate(date):date===iso(new Date(Date.now()+86400000))?'Завтра · '+humanDate(date):humanDate(date);
-    return '<div class="plan-group"><div class="plan-group-title">'+title+'</div>'+rows.filter(x=>x.date===date).map(x=>{
-      if(x.note){const n=x.note,task=!n.items&&(n.kind||'task')==='task',done=!!n.done;return '<div class="plan-event'+(done?' done':'')+'"><span class="plan-time">весь день</span><span class="plan-name" onclick="editNote(\''+n.id+'\')">'+esc(noteTitle(n))+'<small class="plan-meta">'+(n.items?'Список из заметок':task?'Задача из заметок':'Напоминание из заметок')+'</small></span><span class="plan-actions">'+(task?'<button class="tick'+(done?' on':'')+'" onclick="toggleNoteDone(\''+n.id+'\')" aria-label="'+(done?'Вернуть в работу':'Отметить выполненным')+'">'+(done?'✓':'')+'</button>':n.items?'<button class="mini" onclick="editNote(\''+n.id+'\')">открыть</button>':'🔔')+'</span></div>'}
-      const e=x.e,done=planDone(date,e.id),task=(e.kind||'plain')==='plain',doneDate=S.day[date]&&S.day[date].doneAt&&S.day[date].doneAt[e.id];return '<div class="plan-event'+(done?' done':'')+'"><span class="plan-time">'+esc(e.time||'без времени')+'</span><span class="plan-name" onclick="editEv(\''+e.id+'\')">'+esc(e.title)+'<small class="plan-meta">'+(doneDate?'Выполнено '+humanDate(doneDate):repeatLabel(e)?'Повторяется: '+repeatLabel(e):e.kind==='bd'?'День рождения':e.kind==='doc'?'Важная дата':'Дело или событие')+'</small></span><span class="plan-actions">'+(task?'<button class="tick'+(done?' on':'')+'" onclick="togglePlanDone(\''+date+'\',\''+e.id+'\')" aria-label="'+(done?'Вернуть в работу':'Отметить выполненным')+'">'+(done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editEv(\''+e.id+'\')">изменить</button></span></div>'}).join('')+'</div>';
-  }).join('');
-}
-function planSummary(){
-  const [from,to]=planDates();let total=0,done=0;
-  for(let d=new Date(from+'T12:00');d<=new Date(to+'T12:00');d.setDate(d.getDate()+1)){
-    const date=iso(d),tasks=evOf(date).filter(e=>(e.kind||'plain')==='plain');
-    total+=tasks.length;done+=tasks.filter(e=>planDone(date,e.id)).length;
-  }
-  S.notes.filter(n=>n.due&&n.due>=from&&n.due<=to).forEach(n=>{
-    if(n.items){total+=n.items.length;done+=n.items.filter(i=>i.done).length;}
-    else if((n.kind||'task')==='task'){total++;if(n.done)done++;}
-  });
-  if(!total)return '';
-  const left=total-done;
-  return '<div class="mut" style="margin-top:12px;padding-top:11px;border-top:1px solid var(--line)"><b style="color:var(--ink)">Выполнено '+done+' из '+total+'</b> · осталось '+left+'</div>';
+  return '<div class="month-card"><div class="month-title">'+MONTHS_N[mm-1]+' '+y+'</div><div class="cal continuous-cal">'+heads+cells+'</div></div>';
 }
 function renderCal(){
-  const [from,to]=planDates(), label=planPeriod==='week'?humanDate(from)+' — '+humanDate(to):planPeriod==='month'?MONTHS_N[+calMonth.slice(5)-1]+' '+calMonth.slice(0,4):humanDate(from)+' — '+humanDate(to);
-  document.getElementById('s-cal').innerHTML='<div class="switch">'+[['week','Неделя'],['month','Месяц'],['custom','Период']].map(x=>'<button aria-selected="'+(planPeriod===x[0])+'" onclick="planSet(\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div>'+
-    (planPeriod==='custom'?card('<div class="grid2"><div class="fld" style="margin:0"><label>С даты</label><input type="date" value="'+(planFrom||today())+'" onchange="planCustom(\'from\',this.value)"></div><div class="fld" style="margin:0"><label>По дату</label><input type="date" value="'+(planTo||today())+'" onchange="planCustom(\'to\',this.value)"></div></div><div class="mut" style="font-size:11px">Выберите начало и конец — список ниже обновится автоматически.</div>'):
-      '<button class="plan-toggle" onclick="togglePlanCalendar()"><span>'+label+'</span><span>'+(planCalOpen?'Скрыть календарь ↑':'Показать календарь ↓')+'</span></button>'+(planCalOpen?card(planCalendar(),'plan-calendar'):''))+
-    card(lab(planPeriod==='week'?'Планы на неделю':planPeriod==='month'?'Планы на месяц':'Планы за выбранный период')+planList()+planSummary());
+  const host=document.getElementById('s-cal'),scroll=host.scrollTop,start=monthOf(today());
+  let h='<div class="calendar-stream">';for(let i=0;i<calendarMonthCount;i++)h+=monthCalendar(addMonths(start,i));
+  host.innerHTML=h+'</div>';host.scrollTop=scroll;
 }
-function pickDay(d){selDay=d;planPeriod='custom';planFrom=d;planTo=d;planCalOpen=false;renderCal();}
-function shiftMonth(k){
-  if(planPeriod==='week'){const d=new Date(planWeekStart+'T12:00');d.setDate(d.getDate()+k*7);planWeekStart=iso(d);calMonth=monthOf(planWeekStart);}
-  else{const [y,m]=calMonth.split('-').map(Number);calMonth=iso(new Date(y,m-1+k,1)).slice(0,7);}renderCal();
+function calendarScroll(el){
+  if(el.scrollHeight-el.scrollTop-el.clientHeight<450&&calendarMonthCount<120){calendarMonthCount+=12;renderCal();}
+}
+function openDay(date){selDay=date;openSheet('day',date);}
+function togglePlanDoneInDay(date,id){togglePlanDone(date,id);openSheet('day',date);}
+function toggleNoteDoneInDay(date,id){toggleNoteDone(id);openSheet('day',date);}
+function mapsUrl(address){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address||'');}
+function daySheet(date){
+  const entries=calendarEntries(date);
+  let h='<div class="day-sheet-date">'+humanDate(date)+' '+date.slice(0,4)+'</div><div class="mut" style="margin-bottom:12px">'+WDAYS[new Date(date+'T12:00').getDay()]+'</div>';
+  if(!entries.length)h+='<div class="day-sheet-empty">На эту дату записей пока нет.</div>';
+  entries.forEach(x=>{
+    if(x.e){const e=x.e,done=planDone(date,e.id),task=(e.kind||'plain')==='plain';h+='<div class="plan-event'+(done?' done':'')+'"><span class="plan-time">'+esc(e.time||'без времени')+'</span><span class="plan-name" onclick="editEv(\''+e.id+'\')">'+esc(e.title)+(e.address?'<small class="plan-meta">'+esc(e.address)+'</small>':'')+'</span><span class="plan-actions">'+(task?'<button class="tick'+(done?' on':'')+'" onclick="togglePlanDoneInDay(\''+date+'\',\''+e.id+'\')">'+(done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editEv(\''+e.id+'\')">изменить</button></span></div>'+(e.address?'<a class="mini" style="display:inline-block;margin:5px 0 8px 60px;text-decoration:none" target="_blank" rel="noopener" href="'+mapsUrl(e.address)+'">Открыть в картах →</a>':'');}
+    else{const n=x.note,task=!n.items&&(n.kind||'task')==='task';h+='<div class="plan-event'+(n.done?' done':'')+'"><span class="plan-time">заметка</span><span class="plan-name" onclick="editNote(\''+n.id+'\')">'+esc(noteTitle(n))+'</span><span class="plan-actions">'+(task?'<button class="tick'+(n.done?' on':'')+'" onclick="toggleNoteDoneInDay(\''+date+'\',\''+n.id+'\')">'+(n.done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editNote(\''+n.id+'\')">изменить</button></span></div>';}
+  });
+  return h+'<button class="btn" style="margin-top:14px" onclick="openSheet(\'ev\',\''+date+'\')">Добавить на '+humanDate(date)+'</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
 }
 
 /* ---------- Финансы: самостоятельный учёт расходов ---------- */
@@ -1658,6 +1650,12 @@ function eventInput(value, parseOnBlur){
     (parseOnBlur ? ' onblur="spillTitle(this)"' : '') + ' autocomplete="off">' +
     '<datalist id="event-suggestions">' + hints.map(x => '<option value="' + esc(x) + '"></option>').join('') + '</datalist>';
 }
+function addressInput(value){
+  const used=(S&&S.ev?S.ev.slice().reverse().map(e=>tidy(e.address||'')):[]).filter(Boolean);
+  const hints=[...new Set(used)].slice(0,20);
+  return '<input id="f-address" list="address-suggestions" value="'+esc(value||'')+'" placeholder="Например: ул. Ленина, 10" autocomplete="street-address">'+
+    '<datalist id="address-suggestions">'+hints.map(x=>'<option value="'+esc(x)+'"></option>').join('')+'</datalist>';
+}
 const EXPENSE_HINTS = ['Продукты','Кафе','Доставка','Коммунальные услуги','Маникюр','Аптека','Такси','Бензин','Одежда','Подарки'];
 function expenseHints(){
   const stats = {};
@@ -1716,6 +1714,7 @@ function finishWelcome(){
 }
 
 const SHEETS = {
+  day: (d) => daySheet(d || today()),
   welcome: () => '<h3>Добро пожаловать в «Точку дня»</h3>' +
     '<div class="mut" style="margin-bottom:12px">Сначала настройте только два пункта. Остальное добавляется по мере необходимости.</div>' +
     '<div class="fld"><label>Ваше имя</label><input id="f-welcome-name" maxlength="40" placeholder="Например: Анастасия" autocomplete="name"></div>' +
@@ -1806,6 +1805,7 @@ const SHEETS = {
     '</div></div>' +
     '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (d || today()) + '"></div>' +
     fldMic('Время', timeSelect(''), 'f-time', 'time') +
+    '<div class="fld"><label>Адрес — необязательно</label>'+addressInput('')+'</div>' +
     '<div class="fld"><label>Повторять</label><div class="pick" id="p-rep">' +
       REPEATS.map((r,i) => '<button data-v="' + r[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + r[1] + '</button>').join('') +
     '</div></div>' +
@@ -1822,6 +1822,7 @@ const SHEETS = {
       '</div></div>' +
       '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (e.date || today()) + '"></div>' +
       fldMic('Время', timeSelect(e.time || ''), 'f-time', 'time') +
+      '<div class="fld"><label>Адрес — необязательно</label>'+addressInput(e.address || '')+'</div>' +
       '<div class="fld"><label>Повторять</label><div class="pick" id="p-rep">' +
         REPEATS.map(r => '<button data-v="' + r[0] + '" aria-pressed="' + (r[0] === (e.repeat || 'none')) + '" onclick="pickOne(this)">' + r[1] + '</button>').join('') +
       '</div></div>' +
@@ -1909,6 +1910,7 @@ function saveEvEdit(){
   e.kind = picked('p-kind', e.kind || 'plain');
   e.date = val('f-date') || e.date || today();
   e.time = val('f-time') || null;
+  e.address = tidy(val('f-address')) || null;
   e.repeat = picked('p-rep', e.repeat || 'none');
   delete e.since;
   editId = null; save(); closeSheet(); toast('Событие изменено');
@@ -2026,6 +2028,7 @@ function saveEv(){
   addEv({title: t,
          date: val('f-date') && val('f-date') !== today() ? val('f-date') : (saidDate || today()),
          time: val('f-time') || saidTime || null,
+         address: tidy(val('f-address')) || null,
          plan: +val('f-sum') || null, kind: kind,
          repeat: picked('p-rep', kind === 'bd' ? 'year' : 'none')});
   closeSheet(); toast(kind === 'bd' ? 'День рождения запомнен — напомню за 10 дней' : 'Добавлено в календарь');
