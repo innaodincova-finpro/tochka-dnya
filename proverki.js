@@ -32,6 +32,8 @@ async function run() {
   w.eval("S = blank(); S.settings.onboarded = 1; S.settings.name = 'Анастасия';");
   w.renderAll();
   assert(w.document.body.textContent.includes('Анастасия'), 'имя отображается в приветствии');
+  w.eval("save()");
+  assert(w.document.getElementById('saved').textContent.includes('автосохранено'), 'статус автосохранения виден пользователю');
 
   const event = {
     id: 'test-event', title: 'Маникюр', date: w.today(), time: '10:15',
@@ -53,6 +55,8 @@ async function run() {
   w.eval(`S.exp.push({ id: 'test-expense', what: 'Продукты', sum: 800, cat: 'Продукты', date: today(), cur: 'RUB' })`);
   w.renderAll();
   assert(w.document.body.textContent.includes('800'), 'расход отображается после сохранения');
+  w.eval("S.firstDataAt = new Date(Date.now() - 8*86400000).toISOString(); S.backupAt = null");
+  assert(w.backupDue(), 'через семь дней появляется напоминание о резервной копии');
 
   assert(html.includes('Автор идеи и концепции приложения — Одинцова И. В.'),
     'авторство указано в приложении');
