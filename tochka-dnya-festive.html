@@ -379,7 +379,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '3.1';
+const APP_VERSION = '3.2';
 const APP_UPDATED = '4 сентября 2026';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
 const REPEATS = [['none','Не повторять'],['year','Каждый год'],['month','Каждый месяц'],['week','Каждую неделю']];
@@ -394,7 +394,7 @@ let S = null, storageOk = true;
 function blank(){
   return {
     settings:{income:0, save:0, budget:0, art:'web', cur:'RUB', notesTab:'note', name:'', showDone:1, onboarded:0, hi:1},
-    exp:[], inc:[], ev:[], notes:[], day:{}, savedAt:null, backupAt:null
+    exp:[], inc:[], ev:[], notes:[], day:{}, savedAt:null, backupAt:null, firstDataAt:null
   };
 }
 function load(){
@@ -408,6 +408,8 @@ function load(){
 }
 function saveQuiet(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 function save(){
+  const hasData = S.exp.length || S.inc.length || S.ev.length || S.notes.length || Object.keys(S.day || {}).length;
+  if (hasData && !S.firstDataAt) S.firstDataAt = new Date().toISOString();
   S.savedAt = new Date().toISOString();
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }
   catch(e){ storageOk = false; }
@@ -1005,7 +1007,9 @@ function renderAll(){
   const d = new Date();
   document.getElementById('today-date').textContent =
     WDAYS[d.getDay()].charAt(0).toUpperCase() + WDAYS[d.getDay()].slice(1) + ', ' + humanDate(today());
-  document.getElementById('saved').textContent = storageOk ? '' : 'НЕ СОХРАНЯЕТСЯ';
+  document.getElementById('saved').textContent = storageOk
+    ? (S.savedAt ? '✓ автосохранено ' + new Date(S.savedAt).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : 'автосохранение включено')
+    : 'НЕ СОХРАНЯЕТСЯ';
   renderToday(); renderCal(); renderNotes(); renderMoney(); renderMore();
 }
 
@@ -1072,10 +1076,8 @@ function renderToday(){
     ((n.kind || 'task') === 'task' ? '<button class="tick" onclick="toggleNoteDone(\'' + n.id + '\')" title="Отметить выполненным"></button>' :
       '<button class="del" style="color:var(--accent)" onclick="clearDue(\'' + n.id + '\')">снять</button>') + '</div>').join(''));
 
-  const records = S.ev.length + S.notes.length;
-  const sinceBackup = S.backupAt ? Math.floor((Date.now() - new Date(S.backupAt)) / 86400000) : 99;
-  if (records >= 12 && sinceBackup > 7)
-    h += '<div class="tip" style="cursor:pointer" onclick="openSheet(\'backup\')">Давно не делали копию данных →</div>';
+  if (backupDue())
+    h += '<div class="tip" style="cursor:pointer" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохранить сейчас →</div>';
 
   const td = todo();
   if (td.length) h += card(lab('Нужно отметить') + td.map(t =>
@@ -1578,6 +1580,8 @@ function obsOn(){
 
 /* ---------- Ещё: только настройки, инструкция и данные ---------- */
 function renderMore(){
+  const backupWarning = backupDue()
+    ? '<div class="tip" style="margin-bottom:10px;cursor:pointer" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</div>' : '';
   document.getElementById('s-more').innerHTML =
     card(lab('Настройки приложения') +
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +
@@ -1589,6 +1593,7 @@ function renderMore(){
       CURR.map(c=>'<option value="'+c[0]+'"'+(c[0]===cur()[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('') + '</select></div>' +
       '<div class="mut">Расходы в разных валютах не складываются между собой.</div>') +
     card(lab('Данные приложения') +
+      '<div style="margin-bottom:8px;font-size:13px;color:var(--ok)">✓ Все изменения сохраняются автоматически</div>' + backupWarning +
       '<div class="mut" style="margin-bottom:10px">Все записи хранятся только в этом браузере и никуда не отправляются. ' +
         (S.backupAt ? 'Последняя копия — ' + humanDate(iso(new Date(S.backupAt))) + '.' : 'Копию ещё не делали.') + '</div>' +
       '<button class="btn" onclick="openSheet(\'backup\')">Резервная копия</button>' +
@@ -1599,6 +1604,13 @@ function renderMore(){
       '<div class="mut" style="margin-top:6px">Версия ' + APP_VERSION + ' · обновлено ' + APP_UPDATED + '.</div>' +
       '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;line-height:1.55;color:var(--mut)">' +
         'Автор идеи и концепции приложения — Одинцова И. В. © 2026. Все права защищены.</div>');
+}
+function backupDue(){
+  const records = S.exp.length + S.inc.length + S.ev.length + S.notes.length + Object.keys(S.day || {}).length;
+  if (!records) return false;
+  const from = S.backupAt || S.firstDataAt || S.savedAt;
+  if (!from) return false;
+  return Date.now() - new Date(from).getTime() >= 7 * 86400000;
 }
 function setText(k,v){ S.settings[k] = String(v || '').trim(); save(); toast('Сохранено'); }
 function setBool(k,v){ S.settings[k] = v === '1' ? 1 : 0; save(); toast('Сохранено'); }
