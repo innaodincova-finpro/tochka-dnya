@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v3.2.0';
+const CACHE = 'tochka-dnya-v3.3.0';
 const APP_SHELL = [
   './',
   './index.html',

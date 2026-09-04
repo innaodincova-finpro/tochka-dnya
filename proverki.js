@@ -42,6 +42,11 @@ async function run() {
   w.eval(`S.ev.push(${JSON.stringify(event)})`);
   w.renderAll();
   assert(w.document.body.textContent.includes('10:15'), 'время события показывается в интерфейсе');
+  assert(w.document.querySelector('#s-cal .d.has-plan'), 'дата с записью заметно выделяется в календаре');
+  assert(w.document.querySelector('#s-cal').textContent.includes('Маникюр'), 'название записи видно прямо на дате');
+
+  w.eval(`S.ev[0].address = 'ул. Ленина, 10'`);
+  assert(w.daySheet(w.today()).includes('ул. Ленина, 10'), 'адрес отображается в окне выбранного дня');
 
   w.togglePlanDone(w.today(), 'test-event');
   assert(w.eval(`S.day[today()].done.includes('test-event')`), 'дело отмечается выполненным');
