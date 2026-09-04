@@ -387,6 +387,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
   </div>
   <div class="toasts" id="toasts"></div>
 </div>
+<script src="supabase.js"></script>
 <script>
 /* ================= Точка дня — рабочая версия =================
    Один файл. Данные хранятся в браузере телефона, никуда не отправляются.
@@ -394,8 +395,10 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '3.3';
+const APP_VERSION = '4.0';
 const APP_UPDATED = '4 сентября 2026';
+const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
 const REPEATS = [['none','Не повторять'],['year','Каждый год'],['month','Каждый месяц'],['week','Каждую неделю']];
 const KINDS = [['plain','Событие'],['bd','День рождения'],['doc','Важная дата']];
@@ -428,8 +431,88 @@ function save(){
   S.savedAt = new Date().toISOString();
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }
   catch(e){ storageOk = false; }
+  renderAll(); scheduleCloudSync();
+}
+
+/* ---------- автоматическое облачное сохранение ---------- */
+let cloudClient=null,cloudUser=null,cloudTimer=null,cloudState='local',cloudError='';
+function hasUserData(data){
+  return !!(data&&(data.exp.length||data.inc.length||data.ev.length||data.notes.length||Object.keys(data.day||{}).length));
+}
+function cloudLabel(){
+  if(!storageOk)return 'НЕ СОХРАНЯЕТСЯ';
+  if(cloudState==='syncing')return '⟳ сохраняю в облако';
+  if(cloudState==='synced')return '✓ сохранено в облаке';
+  if(cloudState==='offline')return '○ без сети · сохранено на телефоне';
+  if(cloudState==='error')return '! облако временно недоступно';
+  return S&&S.savedAt?'✓ на телефоне '+new Date(S.savedAt).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'автосохранение включено';
+}
+function setCloudState(state,error){cloudState=state;cloudError=error||'';const el=document.getElementById('saved');if(el)el.textContent=cloudLabel();}
+function scheduleCloudSync(){
+  if(!cloudUser)return;
+  clearTimeout(cloudTimer);
+  if(!navigator.onLine){setCloudState('offline');return;}
+  setCloudState('syncing');
+  cloudTimer=setTimeout(pushCloud,900);
+}
+async function pushCloud(){
+  if(!cloudClient||!cloudUser)return;
+  if(!navigator.onLine){setCloudState('offline');return;}
+  try{
+    const payload=JSON.parse(JSON.stringify(S));
+    const result=await cloudClient.from('user_app_data').upsert({user_id:cloudUser.id,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+    if(result.error)throw result.error;
+    setCloudState('synced');
+  }catch(e){setCloudState('error',e&&e.message);}
+}
+async function connectCloudUser(user){
+  cloudUser=user;setCloudState('syncing');
+  try{
+    const result=await cloudClient.from('user_app_data').select('payload,updated_at').eq('user_id',user.id).maybeSingle();
+    if(result.error)throw result.error;
+    const remote=result.data&&result.data.payload;
+    if(remote&&hasUserData(remote)){
+      const localTime=S.savedAt?new Date(S.savedAt).getTime():0,remoteTime=remote.savedAt?new Date(remote.savedAt).getTime():0;
+      if(!hasUserData(S)||remoteTime>localTime){S=remote;saveQuiet();renderAll();}
+      else await pushCloud();
+    }else await pushCloud();
+    setCloudState('synced');
+  }catch(e){setCloudState(navigator.onLine?'error':'offline',e&&e.message);}
   renderAll();
 }
+async function initCloud(){
+  if(!window.supabase||!window.supabase.createClient){setCloudState('local');return;}
+  cloudClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  const sessionResult=await cloudClient.auth.getSession();
+  if(sessionResult.data&&sessionResult.data.session)await connectCloudUser(sessionResult.data.session.user);
+  cloudClient.auth.onAuthStateChange((event,session)=>{
+    if(session&&(!cloudUser||cloudUser.id!==session.user.id))setTimeout(()=>connectCloudUser(session.user),0);
+    if(!session){cloudUser=null;setCloudState('local');renderAll();}
+  });
+}
+async function cloudLogin(){
+  const email=val('cloud-email').toLowerCase(),password=val('cloud-password');
+  if(!email||password.length<8){toast('Введите почту и пароль не короче 8 символов');return;}
+  setCloudState('syncing');
+  const result=await cloudClient.auth.signInWithPassword({email,password});
+  if(result.error){setCloudState('error',result.error.message);toast('Не удалось войти. Проверьте почту и пароль');return;}
+  closeSheet();toast('Вход выполнен. Данные сохраняются в облаке');
+}
+async function cloudRegister(){
+  const email=val('cloud-email').toLowerCase(),password=val('cloud-password');
+  if(!email||password.length<8){toast('Введите почту и пароль не короче 8 символов');return;}
+  setCloudState('syncing');
+  const result=await cloudClient.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});
+  if(result.error){setCloudState('error',result.error.message);toast('Не удалось создать аккаунт: '+result.error.message);return;}
+  if(result.data&&result.data.session){closeSheet();toast('Аккаунт создан. Данные отправляются в облако');}
+  else toast('Откройте письмо подтверждения, затем вернитесь и войдите');
+}
+async function cloudSignOut(){
+  if(!window.confirm('Выйти из облачного аккаунта? Данные на этом телефоне останутся.'))return;
+  await cloudClient.auth.signOut();cloudUser=null;setCloudState('local');renderAll();toast('Вы вышли. Автосохранение на телефоне продолжает работать');
+}
+window.addEventListener('online',()=>scheduleCloudSync());
+window.addEventListener('offline',()=>{if(cloudUser)setCloudState('offline')});
 
 /* ---------- вспомогательное ---------- */
 function esc(t){ return String(t == null ? '' : t).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
@@ -1022,9 +1105,7 @@ function renderAll(){
   const d = new Date();
   document.getElementById('today-date').textContent =
     WDAYS[d.getDay()].charAt(0).toUpperCase() + WDAYS[d.getDay()].slice(1) + ', ' + humanDate(today());
-  document.getElementById('saved').textContent = storageOk
-    ? (S.savedAt ? '✓ автосохранено ' + new Date(S.savedAt).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : 'автосохранение включено')
-    : 'НЕ СОХРАНЯЕТСЯ';
+  document.getElementById('saved').textContent = cloudLabel();
   renderToday(); renderCal(); renderNotes(); renderMoney(); renderMore();
 }
 
@@ -1034,6 +1115,7 @@ function renderToday(){
   let h = greetingCard();
 
   if (!storageOk) h += '<div class="warnbar">Браузер не сохраняет данные. Проверьте, не открыт ли режим инкогнито.</div>';
+  if (!cloudUser) h += '<div class="tip" style="cursor:pointer" onclick="openSheet(\'cloudAuth\')">Защитите записи от потери: подключить облачное сохранение →</div>';
 
   if (!S.settings.hi){
     h += card('<div style="font-size:14px;margin-bottom:10px">Здесь собраны планы на сегодня. Отмечайте выполненное галочкой, а новые дела, события и заметки добавляйте одной кнопкой.</div>' +
@@ -1575,8 +1657,11 @@ function obsOn(){
 function renderMore(){
   const backupWarning = backupDue()
     ? '<div class="tip" style="margin-bottom:10px;cursor:pointer" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</div>' : '';
+  const cloudCard = cloudUser
+    ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
+    : card(lab('Облачное сохранение')+'<div class="mut" style="margin-bottom:10px">Войдите один раз, чтобы записи автоматически восстанавливались после удаления приложения или замены телефона.</div><button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
   document.getElementById('s-more').innerHTML =
-    card(lab('Настройки приложения') +
+    cloudCard + card(lab('Настройки приложения') +
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +
       '<div class="fld"><label>Выполненные дела на экране «Сегодня»</label><select onchange="setBool(\'showDone\',this.value)">' +
         '<option value="1"' + (S.settings.showDone ? ' selected' : '') + '>Показывать</option>' +
@@ -1714,6 +1799,13 @@ function finishWelcome(){
 }
 
 const SHEETS = {
+  cloudAuth: () => '<h3>Облачное сохранение</h3>'+
+    '<div class="mut" style="margin-bottom:12px">Войдите в существующий аккаунт или создайте новый. Текущие записи с телефона сохранятся и после входа будут перенесены в облако.</div>'+
+    '<div class="fld"><label>Электронная почта</label><input id="cloud-email" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com"></div>'+
+    '<div class="fld"><label>Пароль — не менее 8 символов</label><input id="cloud-password" type="password" autocomplete="current-password" minlength="8" placeholder="Введите пароль"></div>'+
+    '<button class="btn" onclick="cloudLogin()">Войти</button>'+
+    '<button class="btn ghost" style="margin-top:8px" onclick="cloudRegister()">Создать аккаунт</button>'+
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Пока не подключать</button>',
   day: (d) => daySheet(d || today()),
   welcome: () => '<h3>Добро пожаловать в «Точку дня»</h3>' +
     '<div class="mut" style="margin-bottom:12px">Сначала настройте только два пункта. Остальное добавляется по мере необходимости.</div>' +
@@ -2322,6 +2414,7 @@ if (S.settings.budget){ delete S.settings.budget; saveQuiet(); }
 })();
 renderAll();
 setDock(curScreen);
+initCloud();
 if (!S.settings.onboarded) setTimeout(() => openSheet('welcome'), 120);
 setInterval(() => {
   if (!document.getElementById('s-today').hidden) renderToday();
