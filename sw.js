@@ -1,8 +1,9 @@
-const CACHE = 'tochka-dnya-v3.3.0';
+const CACHE = 'tochka-dnya-v4.0.0';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
+  './supabase.js',
   './icon-180-v2.png',
   './icon-192-v2.png',
   './icon-512-v2.png'

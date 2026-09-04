@@ -1,11 +1,14 @@
 {
   "name": "tochka-dnya",
-  "version": "3.3.0",
+  "version": "4.0.0",
   "private": true,
   "scripts": {
     "test": "node proverki.js"
   },
   "devDependencies": {
     "jsdom": "^26.1.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.115.0"
   }
 }

@@ -33,7 +33,9 @@ async function run() {
   w.renderAll();
   assert(w.document.body.textContent.includes('Анастасия'), 'имя отображается в приветствии');
   w.eval("save()");
-  assert(w.document.getElementById('saved').textContent.includes('автосохранено'), 'статус автосохранения виден пользователю');
+  assert(/телефоне|облаке/.test(w.document.getElementById('saved').textContent), 'статус автосохранения виден пользователю');
+  assert(w.document.body.textContent.includes('подключить облачное сохранение'), 'предложение облачной защиты видно до входа');
+  assert(w.eval("SUPABASE_KEY.startsWith('sb_publishable_')"), 'в приложении используется только публичный ключ облака');
 
   const event = {
     id: 'test-event', title: 'Маникюр', date: w.today(), time: '10:15',
