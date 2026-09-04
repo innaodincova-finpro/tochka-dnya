@@ -1,0 +1,11 @@
+{
+  "name": "tochka-dnya",
+  "version": "3.1.0",
+  "private": true,
+  "scripts": {
+    "test": "node proverki.js"
+  },
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
+}
