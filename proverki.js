@@ -1200,6 +1200,29 @@ async function run() {
   assert(html.includes('stampCurrency') && html.includes('fixOldEvents'),
     'починка старых записей при запуске не потеряна');
 
+  // ---- слова в клетке календаря не рвутся дефисом ----
+  assert(!html.includes('hyphens:auto'),
+    'автоматический перенос по слогам выключен — он давал «Гинеко-лог»');
+  assert(html.includes('hyphens:none') && html.includes('word-break:keep-all'),
+    'слова переносятся целиком, а не по буквам');
+
+  assert(w.previewSize('Врач') === '' && w.previewSize('Маникюр') === '',
+    'короткое название набирается обычным размером');
+  assert(w.previewSize('Гинеколог') === 'p-s' && w.previewSize('Стоматолог') === 'p-s',
+    'слово подлиннее набирается мельче, чтобы поместиться целиком');
+  assert(w.previewSize('Парикмахерская') === 'p-xs',
+    'совсем длинное — ещё мельче');
+  assert(w.previewSize('Врач гинеколог') === 'p-s',
+    'размер выбирается по самому длинному слову, а не по всей строке');
+
+  w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1;
+    S.ev = [{id:'gin', date:today(), title:'Гинеколог'}];
+    dropIndex(); renderAll(); goScreen('s-cal');`);
+  const cellText = w.document.querySelector('#s-cal .d.has-plan .day-preview');
+  assert(cellText && cellText.textContent.includes('Гинеколог') && !cellText.textContent.includes('-'),
+    'название стоит в клетке целиком, без дефиса');
+  assert(cellText.className.includes('p-s'), 'и уменьшено, чтобы влезть');
+
   assert(html.includes('Автор идеи и концепции приложения — Одинцова И. В.'),
     'авторство указано в приложении');
   assert(!/год рождения/i.test(html), 'поле года рождения удалено');

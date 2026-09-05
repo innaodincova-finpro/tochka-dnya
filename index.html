@@ -137,11 +137,13 @@ body{
 .continuous-cal .d{aspect-ratio:auto;min-height:72px;border-radius:9px;align-items:stretch;justify-content:flex-start;padding:6px 4px;text-align:left;overflow:hidden}
 .continuous-cal .d.out{min-height:72px}
 .continuous-cal .day-num{font:500 12px/1.2 'IBM Plex Mono',monospace;text-align:right;padding-right:2px}
-/* в одну строку помещалось семь знаков и «Врач ги…» — даём две строки
-   и разрешаем перенос по слогам, клетка при этом не разъезжается */
+/* Две строки, слова целиком. Перенос по слогам выключен: он давал «Гинеко-лог».
+   Длинное слово не рвётся, а набирается мельче — так оно помещается целиком. */
 .continuous-cal .day-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-  margin-top:5px;font:500 9px/1.2 'Golos Text',sans-serif;color:var(--mut);
-  overflow:hidden;overflow-wrap:anywhere;hyphens:auto}
+  margin-top:5px;font:500 9px/1.25 'Golos Text',sans-serif;color:var(--mut);
+  overflow:hidden;word-break:keep-all;overflow-wrap:normal;hyphens:none;letter-spacing:-.01em}
+.continuous-cal .day-preview.p-s{font-size:8px;letter-spacing:-.02em}
+.continuous-cal .day-preview.p-xs{font-size:7px;letter-spacing:-.03em}
 .continuous-cal .d.has-plan{background:linear-gradient(145deg,#F4E8FA,#FCEAF1);border-color:#B98BD4;box-shadow:inset 0 0 0 1px rgba(128,81,179,.12)}
 .continuous-cal .d.has-plan .day-preview{color:#704395}
 /* впереди — спокойный сиреневый; прошло и не отмечено — тёплый тревожный;
@@ -1540,6 +1542,14 @@ function dayStateWord(state, count){
   if (state === 'day-missed') return ', прошло и не отмечено';
   return count ? ', запланировано' : '';
 }
+/* «Гинеколог» не влезал в строку, и браузер рвал его дефисом: «Гинеко-лог».
+   Слова не рвём — вместо этого подбираем размер под самое длинное слово. */
+function previewSize(title){
+  const longest = String(title || '').split(/\s+/).reduce((a,b) => a.length >= b.length ? a : b, '');
+  if (longest.length <= 8) return '';
+  if (longest.length <= 11) return 'p-s';
+  return 'p-xs';
+}
 function monthCalendar(key){
   const p=key.split('-').map(Number),y=p[0],mm=p[1];
   const heads='<div class="dw">пн</div><div class="dw">вт</div><div class="dw">ср</div><div class="dw">чт</div><div class="dw">пт</div><div class="dw">сб</div><div class="dw">вс</div>';
@@ -1547,7 +1557,7 @@ function monthCalendar(key){
   for(let i=0;i<shift;i++)cells+='<div class="d out"></div>';
   for(let i=1;i<=daysInMonth(key);i++){
     const ds=key+'-'+String(i).padStart(2,'0'),entries=calendarEntries(ds),count=entries.length;
-    const preview=entries.slice(0,2).map(x=>'<span class="day-preview">• '+esc(x.title)+'</span>').join('')+(count>2?'<span class="day-preview">ещё '+(count-2)+'</span>':'');
+    const preview=entries.slice(0,2).map(x=>'<span class="day-preview '+previewSize(x.title)+'">• '+esc(x.title)+'</span>').join('')+(count>2?'<span class="day-preview">ещё '+(count-2)+'</span>':'');
     const st=dayState(ds,entries);
     cells+='<button type="button" class="d'+(ds===today()?' today':'')+(count?' has-plan':'')+(st?' '+st:'')+'" onclick="openDay(\''+ds+'\')" aria-label="'+(count?humanDate(ds)+', записей: '+count+dayStateWord(st,count):humanDate(ds))+'"><span class="day-num">'+i+'</span>'+preview+'</button>';
   }
