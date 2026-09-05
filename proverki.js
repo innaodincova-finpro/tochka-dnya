@@ -674,15 +674,15 @@ async function run() {
   assert(notesText().includes('Аджика на зиму') && !notesText().includes('варите 60 минут'),
     'длинная заметка показана первой строкой, а не целиком');
   const more = w.document.querySelector('.note-more');
-  assert(more && more.textContent.includes('читать целиком'),
+  assert(more && more.textContent.includes('Открыть'),
     'есть кнопка, чтобы раскрыть');
   const collapsed = notesText().length;
 
   w.eval("toggleNoteText('long')");
   assert(notesText().includes('варите 60 минут'), 'по нажатию текст раскрывается целиком');
   assert(notesText().length > collapsed, 'развёрнутый вид длиннее свёрнутого');
-  assert(w.document.querySelector('.note-more').textContent.includes('свернуть'),
-    'и её же можно свернуть обратно');
+  assert(w.document.querySelector('.note-full') && w.document.querySelector('.fold-close').textContent.includes('Свернуть'),
+    'текст читается в отдельной области и сворачивается одной кнопкой');
   w.eval("toggleNoteText('long')");
   assert(!notesText().includes('варите 60 минут'), 'сворачивание работает');
 
@@ -793,7 +793,7 @@ async function run() {
   const one = w.document.querySelector('.note-block').textContent;
   assert((one.match(/Аджика на зиму/g) || []).length === 1,
     'у развёрнутой заметки начало текста не показано дважды');
-  assert(one.includes('свернуть'), 'кнопка сворачивания на месте');
+  assert(/свернуть/i.test(one), 'кнопка сворачивания на месте');
 
   // ---- вкладка и форма — один выбор, а не два независимых ----
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; noteQuery = '';
@@ -801,10 +801,10 @@ async function run() {
   const formText = () => w.document.getElementById('s-notes').children[1].textContent.replace(/\s+/g, ' ');
 
   w.eval("setNotesTab('task'); toggleFold('new-task');");
-  assert(formText().includes('Новое дело') && formText().includes('Сохранить дело'),
+  assert(formText().includes('Новое дело') && formText().includes('Сохранить'),
     'на вкладке дел форма создаёт дело');
   w.eval("setNotesTab('note'); toggleFold('new-note');");
-  assert(formText().includes('Новая заметка') && formText().includes('Сохранить заметку'),
+  assert(formText().includes('Новая заметка') && formText().includes('Сохранить'),
     'на вкладке заметок форма создаёт заметку');
   w.eval("setNotesTab('list'); toggleFold('new-list');");
   assert(formText().includes('Создать список') && !w.document.getElementById('n-text'),
@@ -863,11 +863,11 @@ async function run() {
   assert(!wasFirst.includes('Аджика'), 'сначала порядок обычный');
   w.eval("togglePin('ap1')");
   assert(firstNote().includes('Аджика'), 'закреплённая поднимается наверх');
-  assert(w.document.querySelector('.pin.on'), 'закреплённая помечена звездой');
+  assert(w.document.querySelector('.pin.on') && firstNote().includes('Открепить'), 'закрепление обозначено понятным действием');
   assert(w.document.querySelector('.note-block.pinned'), 'и выделена фоном');
   w.eval("togglePin('ap1')");
   assert(!firstNote().includes('Аджика'), 'открепление возвращает обычный порядок');
-  assert(!w.document.querySelector('.pin.on'), 'и звезда гаснет');
+  assert(!w.document.querySelector('.pin.on'), 'и состояние закрепления снимается');
 
   // ---- тема: не папка, а необязательная подпись с отбором ----
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; S.settings.notesTab = 'note';
@@ -897,8 +897,8 @@ async function run() {
 
   // новая запись наследует открытую тему
   w.eval("setTheme('Ремонт')");
-  assert(w.document.getElementById('f-theme').value === 'Ремонт',
-    'при открытой теме форма подставляет её сама');
+  assert(!w.document.getElementById('f-theme'),
+    'быстрая форма не показывает лишнее поле темы');
   w.document.getElementById('n-text').value = 'Купить плинтус';
   w.eval('saveNote()');
   assert(w.eval("S.notes.some(n => n.text.indexOf('плинтус') >= 0 && n.theme === 'Ремонт')"),
@@ -1263,15 +1263,14 @@ async function run() {
   const formBox = w.document.getElementById('s-notes').children[1];
   const formWords = formBox.textContent.replace(/\s+/g, ' ').trim();
 
-  assert(formWords.includes('Новое дело') && formWords.includes('Сохранить дело'),
+  assert(formWords.includes('Новое дело') && formWords.includes('Сохранить'),
     'в форме остались только название и кнопка');
   assert(!formWords.includes('записать то, что нужно'),
     'пересказ названия рядом с названием убран');
   assert(!formBox.querySelector('.fold-close'),
     'у короткой формы нет кнопки «свернуть» внизу');
-  assert(w.document.getElementById('f-theme').placeholder === 'Тема — необязательно' &&
-         !formWords.includes('Например: заготовки'),
-    'у поля темы одна подпись вместо двух');
+  assert(!w.document.getElementById('f-theme'),
+    'необязательная тема не перегружает форму быстрого ввода');
 
   assert(html.includes('Автор идеи и концепции приложения — Одинцова И. В.'),
     'авторство указано в приложении');

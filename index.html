@@ -247,11 +247,18 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .hint-row:active{background:#F3ECF8}
 .note-search{width:100%;margin-bottom:11px;padding:13px 14px;border:1px solid var(--line);
   border-radius:14px;background:rgba(255,255,255,.85);font:400 15px 'Golos Text',sans-serif;color:var(--ink)}
+.quick-note{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:8px;align-items:end}
+.quick-note textarea{min-height:52px;max-height:150px;padding:14px 15px;line-height:1.4;resize:vertical}
+.quick-note textarea:only-child{grid-column:1/-1}
+.quick-note .mic{height:52px;flex-basis:44px;font-size:0}
+.quick-note .mic:after{content:'🎙';font-size:17px}
+.quick-note-actions{display:flex;align-items:center;justify-content:flex-end;margin-top:10px}
+.quick-note-actions .btn{width:auto;min-width:132px;margin:0;padding:11px 18px}
 /* Кнопки стояли в одной строке с текстом и отнимали у него ширину:
    на телефоне от заметки оставалась колонка в три слова. */
 .note-row{width:100%}
-.note-tools{display:flex;align-items:center;justify-content:flex-end;gap:4px;
-  flex-wrap:wrap;padding:2px 0 8px}
+.note-tools{display:flex;align-items:center;justify-content:flex-end;gap:6px;
+  flex-wrap:wrap;padding:9px 0 10px;border-top:1px solid rgba(228,215,232,.72)}
 .fold{padding:0;overflow:hidden}
 .fold-head{display:flex;width:100%;align-items:center;gap:9px;border:0;background:transparent;
   padding:15px 16px;cursor:pointer;text-align:left;font:inherit}
@@ -262,9 +269,8 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .fold-body{padding:0 16px 15px}
 /* Кнопка сворачивания была только сверху: дочитав длинный текст, человек
    оказывался внизу и вернуть блок в свёрнутый вид было нечем. */
-.fold-close{display:block;width:100%;margin-top:12px;padding:11px;border:1px solid var(--line);
-  border-radius:12px;background:rgba(255,255,255,.6);cursor:pointer;
-  font:500 13px 'Golos Text',sans-serif;color:var(--accent)}
+.fold-close{display:block;margin:10px 0 0 auto;padding:7px 2px;border:0;
+  background:transparent;cursor:pointer;font:500 12px 'Golos Text',sans-serif;color:var(--accent)}
 .steps{margin:14px 0 0;padding-left:20px;font:400 13px/1.5 'Golos Text',sans-serif;color:var(--ink)}
 .steps li{margin-bottom:5px}
 #f-feed{font:400 11px 'IBM Plex Mono',monospace;color:var(--mut)}
@@ -277,9 +283,10 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .pin.on{color:var(--ochre)}
 .note-block.pinned{background:linear-gradient(135deg,rgba(212,119,148,.07),rgba(118,82,168,.05));
   border-radius:12px;padding:0 8px;margin:0 -8px}
-.note-block{border-bottom:1px solid var(--line)}
+.note-block{border-bottom:1px solid var(--line);padding:4px 0}
 .note-block:last-child{border-bottom:0}
-.note-full{font:400 14px/1.55 'Golos Text',sans-serif;color:var(--ink);padding:2px 2px 12px;margin-top:-4px}
+.note-full{font:400 16px/1.58 'Golos Text',sans-serif;color:var(--ink);padding:12px 2px 4px;
+  max-height:48vh;overflow:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--line)}
 .note-full .nt-p{margin:0 0 9px}
 .note-full .nt-h1{font:600 17px/1.3 'Spectral',serif;color:var(--navy);margin:14px 0 7px}
 .note-full .nt-h2{font:600 15px/1.3 'Spectral',serif;color:var(--navy);margin:13px 0 6px}
@@ -292,6 +299,11 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .note-full a{color:var(--accent);word-break:break-all}
 .note-more{display:block;margin:6px 0 2px;border:0;background:transparent;padding:0;cursor:pointer;
   font:500 12px 'Golos Text',sans-serif;color:var(--accent)}
+.note-summary{font:400 15px/1.45 'Golos Text',sans-serif;color:var(--ink)}
+.note-meta{display:block;margin-top:6px;color:var(--mut);font-size:12px;line-height:1.35}
+.note-tools .mini,.note-tools .del,.note-tools .pin{margin:0;min-height:34px}
+.note-tools .del{border:1px solid var(--line);border-radius:9px;padding:0 10px;font-size:11px}
+.note-tools .pin{width:34px;border:1px solid var(--line);border-radius:9px;background:#fff}
 .hint-row em{flex:0 0 auto;font:400 10.5px 'Golos Text',sans-serif;color:var(--mut);font-style:normal}
 .askring{display:flex;gap:10px;align-items:center;margin:4px 0 12px;padding:10px 12px;
   border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.7);cursor:pointer}
@@ -1736,7 +1748,7 @@ function renderNotes(){
   /* Поиск стоял под формой новой записи: чтобы им воспользоваться, надо было
      пролистать вверх мимо всей формы. Теперь он первый на экране. */
   let h = '<input class="note-search" id="n-q" value="' + esc(noteQuery || '') +
-    '" placeholder="🔍 Найти по слову — в записях, событиях и тратах" oninput="noteFind(this.value)">';
+    '" placeholder="Поиск" aria-label="Поиск в записях, событиях и тратах" oninput="noteFind(this.value)">';
 
   /* Раньше вид записи выбирался дважды: переключателем в форме и вкладкой ниже,
      и они друг о друге не знали. Теперь выбор один — вкладка, а форма ей следует. */
@@ -1744,12 +1756,10 @@ function renderNotes(){
     ? fold('new-list', 'Новый список', '',
         '<button class="btn" onclick="openSheet(\'list\')">Создать список</button>')
     : fold('new-' + tab, tab === 'note' ? 'Новая заметка' : 'Новое дело', '',
-        '<div class="withmic"><textarea id="n-text" rows="3" placeholder="' +
+        '<div class="quick-note"><textarea id="n-text" rows="2" placeholder="' +
           (tab === 'note' ? 'Например: рецепт, адрес, мысль' : 'Например: позвонить маме') + '"></textarea>' +
           micBtn('n-text','raw') + '</div>' +
-        themeInput(themeFilter) +
-        '<button class="btn" style="margin-top:2px" onclick="saveNote()">' +
-          (tab === 'note' ? 'Сохранить заметку' : 'Сохранить дело') + '</button>' +
+        '<div class="quick-note-actions"><button class="btn" onclick="saveNote()">Сохранить</button></div>' +
         ''));
 
 
@@ -1768,7 +1778,7 @@ function renderNotes(){
           '<div class="item note-row" style="align-items:flex-start">' +
           ((x.kind || 'task') === 'task' ? '<button class="tick' + (x.done ? ' on' : '') + '" onclick="toggleNoteDone(\'' + x.id + '\')" title="' + (x.done ? 'Вернуть в работу' : 'Отметить выполненным') + '">' + (x.done ? '✓' : '') + '</button>' : '<div class="ic">✎</div>') +
           '<div class="txt">' + noteTextBlock(x) +
-          '<small>' + noteMeta(x) + '</small></div>' +
+          '<small class="note-meta">' + noteMeta(x) + '</small></div>' +
           '</div>' +
           '<div class="note-tools">' + noteActions(x) + '</div>' +
           noteFullBlock(x) + '</div>')).join('')
@@ -1814,7 +1824,7 @@ function saveNote(){
   if (!raw){ toast('Сначала запишите или надиктуйте'); return; }
   const kind = (S.settings.notesTab || 'task') === 'note' ? 'note' : 'task';
   const rec = {id:uid(), date:today(), text:keepOrTidy(raw), kind:kind, done:false};
-  const theme = (val('f-theme') || '').trim();
+  const theme = (val('f-theme') || themeFilter || '').trim();
   if (theme) rec.theme = theme;
   S.notes.push(rec);
   S.settings.notesTab = rec.kind === 'task' ? 'task' : 'note';
@@ -2016,25 +2026,25 @@ function listFold(x){
   '</div>';
 }
 function noteActions(x){
-  return '<button class="pin' + (x.pinned ? ' on' : '') + '" onclick="togglePin(\'' + x.id + '\')" ' +
+  return '<button class="mini pin' + (x.pinned ? ' on' : '') + '" onclick="togglePin(\'' + x.id + '\')" ' +
       'title="' + (x.pinned ? 'Открепить' : 'Закрепить наверху') + '" ' +
-      'aria-label="' + (x.pinned ? 'Открепить' : 'Закрепить наверху') + '">' + (x.pinned ? '★' : '☆') + '</button>' +
+      'aria-label="' + (x.pinned ? 'Открепить' : 'Закрепить наверху') + '">' + (x.pinned ? 'Открепить' : 'Закрепить') + '</button>' +
     '<button class="mini" onclick="openAppend(\'' + x.id + '\')">' + (x.items ? 'добавить' : 'дописать') + '</button>' +
     '<button class="mini" onclick="editNote(\'' + x.id + '\')">изменить</button>' +
-    '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button>';
+    '<button class="del" onclick="dropNote(\'' + x.id + '\')">удалить</button>';
 }
 function noteTextBlock(x){
   const strike = x.done ? ';text-decoration:line-through;color:var(--mut)' : '';
-  const style = 'font-weight:400;font-size:14px;white-space:pre-wrap' + strike;
+  const style = 'white-space:pre-wrap' + strike;
   if (!noteIsLong(x.text))
     return '<button type="button" class="txt" style="padding:0" onclick="editNote(\'' + x.id + '\')">' +
-      '<b style="' + style + '">' + esc(x.text) + '</b></button>';
+      '<span class="note-summary" style="' + style + '">' + esc(x.text) + '</span></button>';
   const open = !!noteOpen[x.id];
-  /* развёрнутый текст выводится ниже целиком — повторять его начало незачем */
-  if (open) return '<button type="button" class="note-more" onclick="toggleNoteText(\'' + x.id + '\')">свернуть ↑</button>';
+  /* Полный текст уже содержит начало заметки — не повторяем его над областью чтения. */
+  if (open) return '';
   return '<button type="button" class="txt" style="padding:0" onclick="toggleNoteText(\'' + x.id + '\')">' +
-      '<b style="' + style + '">' + esc(noteHead(x.text)) + '</b></button>' +
-    '<button type="button" class="note-more" onclick="toggleNoteText(\'' + x.id + '\')">читать целиком ↓</button>';
+      '<span class="note-summary" style="' + style + '">' + esc(noteHead(x.text)) + '</span></button>' +
+    '<button type="button" class="note-more" onclick="toggleNoteText(\'' + x.id + '\')">Открыть</button>';
 }
 /* развёрнутый текст выносим под строку, во всю ширину карточки:
    в узкой колонке между значком и кнопками помещалось по три слова */
@@ -2070,15 +2080,15 @@ function noteMarkup(text){
 function noteFullBlock(x){
   if (!noteIsLong(x.text) || !noteOpen[x.id]) return '';
   return '<div class="note-full">' + noteMarkup(noteBody(x.text)) + '</div>' +
-    '<button type="button" class="fold-close" onclick="toggleNoteText(\'' + x.id + '\')">свернуть ↑</button>';
+    '<button type="button" class="fold-close" onclick="toggleNoteText(\'' + x.id + '\')">Свернуть</button>';
 }
 function noteMeta(x){
   const kind = (x.kind || 'task') === 'task';
   const theme = x.theme ? '<em class="theme-tag">' + esc(x.theme) + '</em> · ' : '';
-  const state = kind ? (x.done ? 'Выполнено ' + humanDate(x.completedAt || today()) : noteAge(x)) : 'Заметка';
+  const state = kind ? (x.done ? 'Выполнено ' + humanDate(x.completedAt || today()) : noteAge(x)) : '';
   /* «Добавлено сегодня · создано 5 сентября» — одно и то же дважды */
-  const created = noteAge(x) === 'Добавлено сегодня' && kind && !x.done ? '' : ' · создано ' + humanDate(x.date);
-  return theme + state + created + (x.due ? ' · ' + dueLabel(x) : '');
+  const created = noteAge(x) === 'Добавлено сегодня' && kind && !x.done ? '' : humanDate(x.date);
+  return [theme.replace(/ · $/, ''), state, created, x.due ? dueLabel(x) : ''].filter(Boolean).join(' · ');
 }
 function noteAge(n){
   const days=Math.max(0,Math.floor((new Date(today()+'T12:00')-new Date((n.date||today())+'T12:00'))/86400000));
@@ -3047,8 +3057,8 @@ function restoreFile(input){
    с клавиатуры телефона: результат тот же, надёжность выше. */
 function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
-/* на айфоне распознавание речи Apple отдаёт только своей клавиатуре,
-   поэтому кнопка не притворяется микрофоном, а открывает клавиатуру */
+/* На айфоне диктовка уже есть в системной клавиатуре. Отдельная кнопка только
+   дублировала её и выглядела как непонятный значок, поэтому там её не показываем. */
 function micOn(){ return !isIOS() && !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
 function inFrame(){ try{ return window.self !== window.top; }catch(e){ return true; } }
 function secureOrigin(){ return location.protocol === 'https:' || location.hostname === 'localhost'; }
@@ -3060,9 +3070,9 @@ function micWhyNot(){
   return null;
 }
 function micBtn(targetId, mode){
-  const kb = isIOS();
-  return '<button type="button" class="mic" title="' + (kb ? 'Открыть клавиатуру с микрофоном' : 'Сказать голосом') +
-    '" onclick="micStart(this,\'' + targetId + '\',\'' + (mode || 'text') + '\')">' + (kb ? '⌨' : '🎙') + '</button>';
+  if (isIOS()) return '';
+  return '<button type="button" class="mic" title="Сказать голосом" aria-label="Сказать голосом"' +
+    ' onclick="micStart(this,\'' + targetId + '\',\'' + (mode || 'text') + '\')">🎙</button>';
 }
 function fldMic(labelText, inputHtml, targetId, mode, below){
   return '<div class="fld"><label>' + labelText + '</label><div class="withmic">' +
