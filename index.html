@@ -134,10 +134,14 @@ body{
 .month-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 10px}
 .month-title{font-family:'Spectral',Georgia,serif;font-size:19px;font-weight:600;margin:0 4px 12px;color:var(--ink)}
 .continuous-cal{gap:3px;align-items:stretch}
-.continuous-cal .d{aspect-ratio:auto;min-height:66px;border-radius:9px;align-items:stretch;justify-content:flex-start;padding:6px 4px;text-align:left;overflow:hidden}
-.continuous-cal .d.out{min-height:66px}
+.continuous-cal .d{aspect-ratio:auto;min-height:72px;border-radius:9px;align-items:stretch;justify-content:flex-start;padding:6px 4px;text-align:left;overflow:hidden}
+.continuous-cal .d.out{min-height:72px}
 .continuous-cal .day-num{font:500 12px/1.2 'IBM Plex Mono',monospace;text-align:right;padding-right:2px}
-.continuous-cal .day-preview{display:block;margin-top:6px;font:500 9px/1.25 'Golos Text',sans-serif;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* в одну строку помещалось семь знаков и «Врач ги…» — даём две строки
+   и разрешаем перенос по слогам, клетка при этом не разъезжается */
+.continuous-cal .day-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  margin-top:5px;font:500 9px/1.2 'Golos Text',sans-serif;color:var(--mut);
+  overflow:hidden;overflow-wrap:anywhere;hyphens:auto}
 .continuous-cal .d.has-plan{background:linear-gradient(145deg,#F4E8FA,#FCEAF1);border-color:#B98BD4;box-shadow:inset 0 0 0 1px rgba(128,81,179,.12)}
 .continuous-cal .d.has-plan .day-preview{color:#704395}
 /* впереди — спокойный сиреневый; прошло и не отмечено — тёплый тревожный;
@@ -661,12 +665,34 @@ async function initCloud(){
     if(!session){cloudUser=null;setCloudState('local');renderAll();}
   });
 }
+/* Сервер отвечает по-английски. Показывать это человеку нельзя:
+   ошибка должна говорить, что произошло и что делать дальше. */
+function cloudErrorText(e){
+  const m = String((e && e.message) || '').toLowerCase();
+  if (m.includes('only request this after'))
+    return 'Слишком часто. Подождите минуту и попробуйте войти — возможно, аккаунт уже создан';
+  if (m.includes('already registered') || m.includes('already been registered'))
+    return 'Такой аккаунт уже есть. Нажмите «Войти»';
+  if (m.includes('invalid login credentials'))
+    return 'Неверная почта или пароль. Если пароль забыт — «Забыли пароль?»';
+  if (m.includes('email not confirmed'))
+    return 'Почта не подтверждена. Откройте письмо и вернитесь сюда';
+  if (m.includes('rate limit') || m.includes('too many'))
+    return 'Слишком много попыток подряд. Попробуйте через несколько минут';
+  if (m.includes('password') && m.includes('least'))
+    return 'Пароль слишком короткий — нужно не менее 8 символов';
+  if (m.includes('invalid') && m.includes('email'))
+    return 'Проверьте адрес почты';
+  if (m.includes('failed to fetch') || m.includes('network'))
+    return 'Нет связи с облаком. Проверьте интернет';
+  return 'Не получилось. Попробуйте ещё раз через минуту';
+}
 async function cloudLogin(){
   const email=val('cloud-email').toLowerCase(),password=val('cloud-password');
   if(!email||password.length<8){toast('Введите почту и пароль не короче 8 символов');return;}
   setCloudState('syncing');
   const result=await cloudClient.auth.signInWithPassword({email,password});
-  if(result.error){setCloudState('error',result.error.message);toast('Не удалось войти. Проверьте почту и пароль');return;}
+  if(result.error){setCloudState('error',result.error.message);toast(cloudErrorText(result.error));return;}
   closeSheet();toast('Вход выполнен. Данные сохраняются в облаке');
 }
 async function cloudRegister(){
@@ -674,7 +700,7 @@ async function cloudRegister(){
   if(!email||password.length<8){toast('Введите почту и пароль не короче 8 символов');return;}
   setCloudState('syncing');
   const result=await cloudClient.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});
-  if(result.error){setCloudState('error',result.error.message);toast('Не удалось создать аккаунт: '+result.error.message);return;}
+  if(result.error){setCloudState('error',result.error.message);toast(cloudErrorText(result.error));return;}
   if(result.data&&result.data.session){closeSheet();toast('Аккаунт создан. Данные отправляются в облако');}
   else toast('Откройте письмо подтверждения, затем вернитесь и войдите');
 }
@@ -684,7 +710,7 @@ async function cloudReset(){
   const email=val('cloud-email').toLowerCase();
   if(!email){toast('Введите почту, на которую заведён аккаунт');return;}
   const result=await cloudClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
-  if(result.error){toast('Не удалось отправить письмо: '+result.error.message);return;}
+  if(result.error){toast(cloudErrorText(result.error));return;}
   toast('Письмо для смены пароля отправлено на '+email);
 }
 async function cloudSignOut(){
@@ -1644,13 +1670,13 @@ async function toPhoneCalendarObj(e){
   if (!e) return;
   const file = new File([eventICS(e)], 'sobytie.ics', {type:'text/calendar'});
   if (navigator.canShare && navigator.canShare({files:[file]})){
-    try{ await navigator.share({files:[file], title:e.title}); toast('Выберите «Календарь» — телефон напомнит в назначенный час'); return; }
+    try{ await navigator.share({files:[file], title:e.title}); toast('Пролистайте значки влево или нажмите «Показать больше» и выберите «Календарь»'); return; }
     catch(err){ if (err && err.name === 'AbortError') return; }
   }
   const url = URL.createObjectURL(file);
   const a = document.createElement('a'); a.href = url; a.download = 'sobytie.ics'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  toast('Файл сохранён — откройте его, и телефон напомнит в назначенный час');
+  toast('Файл сохранён — откройте его в «Файлах», телефон предложит добавить в календарь');
 }
 
 /* ---------- Записи: заметки и списки ---------- */
