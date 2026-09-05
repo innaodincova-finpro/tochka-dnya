@@ -416,30 +416,16 @@ async function run() {
   assert(!w.document.getElementById('s-today').textContent.includes('уже прошло'),
     'после отметки пометка снимается');
 
-  // ---- напоминание в телефоне предлагается сразу, а не прячется в правке ----
-  w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1;
-    globalThis.__ics = null;
-    toPhoneCalendarObj = (e) => { globalThis.__ics = e; };
-    openSheet('ev');`);
-  assert(w.document.getElementById('f-ring'),
-    'напоминание в телефоне предлагается прямо при создании события');
-  w.document.getElementById('f-title').value = 'Психолог';
-  w.document.getElementById('f-time').value = '10:15';
-  w.document.getElementById('f-ring').checked = true;
-  w.eval('saveEv()');
-  assert(w.eval("S.ev.some(e => e.title === 'Психолог' && e.time === '10:15')"),
-    'событие сохраняется в приложении');
-  assert(w.eval("globalThis.__ics && globalThis.__ics.title === 'Психолог' && globalThis.__ics.time === '10:15'"),
-    'то же событие уходит в календарь телефона одним действием');
-
-  w.eval("globalThis.__ics = null; openSheet('ev');");
-  w.document.getElementById('f-title').value = 'Без часа';
-  w.document.getElementById('f-ring').checked = true;
-  w.eval('saveEv()');
-  assert(!w.eval('globalThis.__ics'),
-    'без времени звонок не назначается');
-  assert([...w.document.querySelectorAll('#toasts .toast')].some(x => x.textContent.includes('нужен час')),
-    'и объяснено, почему не назначен');
+  // ---- старый способ передачи в календарь убран целиком ----
+  assert(!html.includes('toPhoneCalendar') && !html.includes('noteToPhone') && !html.includes('eventICS'),
+    'ручная передача события файлом убрана — её заменила подписка календаря');
+  w.eval("S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; renderAll(); openSheet('ev');");
+  assert(!w.document.getElementById('f-ring'),
+    'в форме события нет галочки про напоминание — оно приходит из подписки');
+  w.eval("closeSheet(); openSheet('list');");
+  assert(!w.document.getElementById('f-list-ring'),
+    'в форме списка её тоже нет');
+  w.eval('closeSheet();');
 
   // ---- название записи не должно становиться кодом ----
   const evil = "Врач'); alert(1); //";
@@ -456,16 +442,8 @@ async function run() {
     'при этом кавычки в названии не теряются');
   w.eval('closeSheet();');
 
-  // ---- файл для календаря телефона нельзя подделать через название ----
-  const forged = w.eventICS({id:'i1', date:'2026-09-10', time:'10:00',
-    title:'Врач\nSUMMARY:подделка\nATTENDEE:чужой', repeat:'none'});
-  const lines = forged.split('\r\n');
-  assert(lines.filter(l => l.indexOf('SUMMARY') === 0).length === 1,
-    'перевод строки в названии не дописывает в файл посторонние поля');
-  assert(!lines.some(l => l.indexOf('ATTENDEE') === 0),
-    'подставить участника через название нельзя');
-  assert(w.eventICS({id:'i2', date:'2026-09-10', title:'Хлеб, молоко'}).includes('Хлеб\\, молоко'),
-    'запятая в названии сохраняется, а не выбрасывается');
+  // экранирование в ленте календаря живёт на стороне сервера:
+  // см. supabase/functions/kalendar/index.ts
 
   // ---- имя класса не должно пересекаться с оформлением пояснений ----
   assert(!/\.hint\{[^}]*border-radius/.test(html),
@@ -535,12 +513,11 @@ async function run() {
   assert(w.daySheet(w.today()).includes('каждую неделю'),
     'и в окне выбранного дня');
 
-  // ---- у записи со сроком есть напоминание ----
+  // ---- запись со сроком попадает в ленту календаря ----
   w.eval(`S.notes.push({id:'note-due', date:today(), text:'Врач', kind:'task', due:today()});
-    renderAll(); editNote('note-due');`);
-  assert(w.document.querySelector('#sheet-in button[onclick*="noteToPhone"]'),
-    'у записи со сроком появилась кнопка напоминания');
-  w.eval('closeSheet();');
+    renderAll();`);
+  assert(w.eval("S.notes.some(n => n.id === 'note-due' && n.due)"),
+    'у записи есть срок — по нему она и попадёт в календарь через подписку');
 
   // ---- подсказки во всех полях, а не только у события ----
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1;
@@ -1207,6 +1184,21 @@ async function run() {
   assert(!w.document.getElementById('f-feed').value.includes(oldKey),
     'старая ссылка больше нигде не фигурирует');
   w.eval('closeSheet(); cloudUser = null;');
+
+  // ---- отменённое не остаётся в коде ----
+  ['camSupported', 'BarcodeDetector', 'openCheck', 'saveCheck', 'parseReceiptQR',
+   'toPhoneCalendar', 'noteToPhone', 'eventICS', 'icsDate'].forEach(name =>
+    assert(!html.includes(name), 'убрано вместе с отменённой возможностью: ' + name));
+
+  const sheetNames = [...html.matchAll(/^  ([a-zA-Z]+): \(/gm)].map(m => m[1]);
+  sheetNames.forEach(name => assert(
+    html.includes("openSheet('" + name + "'") || html.includes("openSheet(\\'" + name + "\\'"),
+    'окно «' + name + '» открывается хотя бы из одного места'));
+
+  // ---- запуск приложения на месте ----
+  assert(/\bload\(\);/.test(html), 'данные загружаются при запуске');
+  assert(html.includes('stampCurrency') && html.includes('fixOldEvents'),
+    'починка старых записей при запуске не потеряна');
 
   assert(html.includes('Автор идеи и концепции приложения — Одинцова И. В.'),
     'авторство указано в приложении');

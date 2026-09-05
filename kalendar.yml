@@ -1,15 +1,11 @@
 name: Выкладка функции календаря
 
-# Функция уезжает в Supabase сама при каждом изменении её кода.
-# В Supabase заходить не нужно.
+# Файлы могут лежать где угодно — в папках или прямо в корне.
+# Перед выкладкой нужная структура собирается здесь сама.
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'supabase/functions/**'
-      - 'supabase/config.toml'
-      - '.github/workflows/kalendar.yml'
   workflow_dispatch:
 
 permissions:
@@ -20,6 +16,23 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Собрать структуру для Supabase
+        run: |
+          mkdir -p supabase/functions/kalendar
+          # код функции: берём из папки, а если её нет — из корня
+          if [ -f supabase/functions/kalendar/index.ts ]; then
+            echo "код на месте"
+          elif [ -f index.ts ]; then
+            cp index.ts supabase/functions/kalendar/index.ts
+          else
+            echo "Файл index.ts не найден ни в папке, ни в корне"; exit 1
+          fi
+          # настройки проекта
+          if [ ! -f supabase/config.toml ] && [ -f config.toml ]; then
+            cp config.toml supabase/config.toml
+          fi
+          ls -R supabase
 
       - uses: supabase/setup-cli@v1
         with:

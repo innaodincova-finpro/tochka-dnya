@@ -482,7 +482,7 @@ let S = null, storageOk = true;
 
 function blank(){
   return {
-    settings:{income:0, save:0, cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, onboarded:0, hi:1},
+    settings:{cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, onboarded:0, hi:1},
     exp:[], inc:[], ev:[], notes:[], day:{}, del:[], savedAt:null, backupAt:null, firstDataAt:null
   };
 }
@@ -1662,60 +1662,6 @@ function renderMoney(){
    Приложение в браузере не может присылать уведомления сам — для этого нужен
    сервер. Поэтому событие уходит файлом в родной календарь телефона,
    и напоминает уже он: за сутки и за два часа. */
-function icsDate(d, t){
-  const [y,m,dd] = d.split('-');
-  if (!t) return y+m+dd;
-  return y+m+dd+'T'+t.replace(':','')+'00';
-}
-/* В файле календаря перевод строки начинает новое поле. Название с переносом
-   дописывало в файл посторонние строки, поэтому экранируем по правилам формата. */
-function icsText(v){
-  return String(v == null ? '' : v)
-    .replace(/\\/g, '\\\\')
-    .replace(/;/g, '\\;')
-    .replace(/,/g, '\\,')
-    .replace(/\r\n|\r|\n/g, '\\n')
-    .slice(0, 250);
-}
-function eventICS(e){
-  const allDay = !e.time;
-  const start = icsDate(e.date, e.time);
-  const end = e.time ? icsDate(e.date, String(Math.min(23, +e.time.slice(0,2)+1)).padStart(2,'0') + e.time.slice(2)) : start;
-  const rule = e.repeat === 'year' ? 'RRULE:FREQ=YEARLY\r\n'
-             : e.repeat === 'month' ? 'RRULE:FREQ=MONTHLY\r\n'
-             : e.repeat === 'week' ? 'RRULE:FREQ=WEEKLY\r\n' : '';
-  const alarm = (mins, txt) =>
-    'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:' + txt + '\r\nTRIGGER:-PT' + mins + 'M\r\nEND:VALARM\r\n';
-  return 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Точка дня//RU\r\nCALSCALE:GREGORIAN\r\n' +
-    'BEGIN:VEVENT\r\nUID:' + icsText(e.id) + '@tochka-dnya\r\n' +
-    'DTSTAMP:' + icsDate(today(), '00:00') + 'Z\r\n' +
-    (allDay ? 'DTSTART;VALUE=DATE:' + start + '\r\nDTEND;VALUE=DATE:' + start + '\r\n'
-            : 'DTSTART:' + start + '\r\nDTEND:' + end + '\r\n') +
-    rule +
-    'SUMMARY:' + icsText(e.title) + '\r\n' +
-    (e.desc ? 'DESCRIPTION:' + icsText(e.desc) + '\r\n'
-            : e.plan ? 'DESCRIPTION:Планируемый расход ' + e.plan + '\r\n' : '') +
-    alarm(1440, icsText('Завтра: ' + e.title)) +
-    (e.time ? alarm(120, 'Через два часа') : '') +
-    'END:VEVENT\r\nEND:VCALENDAR\r\n';
-}
-async function toPhoneCalendar(id){
-  const e = S.ev.find(x => x.id === id);
-  if (e) toPhoneCalendarObj(e);
-}
-async function toPhoneCalendarObj(e){
-  if (!e) return;
-  const file = new File([eventICS(e)], 'sobytie.ics', {type:'text/calendar'});
-  if (navigator.canShare && navigator.canShare({files:[file]})){
-    try{ await navigator.share({files:[file], title:e.title}); toast('Пролистайте значки влево или нажмите «Показать больше» и выберите «Календарь»'); return; }
-    catch(err){ if (err && err.name === 'AbortError') return; }
-  }
-  const url = URL.createObjectURL(file);
-  const a = document.createElement('a'); a.href = url; a.download = 'sobytie.ics'; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-  toast('Файл сохранён — откройте его в «Файлах», телефон предложит добавить в календарь');
-}
-
 /* ---------- Записи: заметки и списки ---------- */
 /* Дела, заметки и списки лежали одной кучей: рецепт вперемешку с делами.
    Разное назначение — разные вкладки, чтобы не приходилось выискивать. */
@@ -1937,7 +1883,6 @@ function saveQuickList(){
   const lines = val('f-list-items').split('\n').map(x => x.trim()).filter(Boolean);
   if (!lines.length){ toast('Добавьте хотя бы один пункт'); return; }
   const due = val('f-list-due') || null;
-  const ring = document.getElementById('f-list-ring');
   const listTheme = (val('f-theme') || '').trim();
   const rec = {id:uid(), date:today(), title:tidy(title), text:tidy(title), due:due,
     theme: listTheme || undefined,
@@ -1945,10 +1890,6 @@ function saveQuickList(){
   S.notes.push(rec);
   S.settings.notesTab = 'list';
   save(); closeSheet(); goScreen('s-notes');
-  if (ring && ring.checked){
-    if (!due){ toast('Чтобы телефон напомнил, поставьте дату'); return; }
-    noteToPhone(rec.id); return;
-  }
   toast('Список создан');
 }
 function dropNote(id){
@@ -2188,18 +2129,6 @@ function deleteNoteFromEdit(){
   S.notes = S.notes.filter(x => x.id !== editNoteId);
   editNoteId = null; save(); closeSheet(); toast('Удалено');
 }
-/* напоминание из записи — в календарь телефона, как и событие */
-function noteToPhone(id){
-  const n = S.notes.find(x => x.id === id);
-  if (!n) return;
-  if (!n.due){ toast('У записи нет даты — поставьте её в правке'); editNote(id); return; }
-  toPhoneCalendarObj({
-    id: n.id,
-    title: n.items ? ('Купить' + (n.where ? ' · ' + n.where : '')) : n.text.slice(0,90),
-    date: n.due, time: null, repeat: 'none',
-    desc: n.items ? n.items.filter(i => !i.done).map(i => i.t).join(', ') : ''
-  });
-}
 /* ================= Наблюдения =================
    Приложение считает только по вашим же записям и только тогда, когда данных
    достаточно. Если их мало — оно молчит, а не выдумывает закономерность.
@@ -2401,7 +2330,7 @@ function openSheet(kind, arg){
   const first = box.querySelector('input,textarea,select');
   if (first && kind !== 'voice') setTimeout(() => first.focus(), 120);
 }
-function closeSheet(){ if (typeof camEnd === 'function') camEnd(); if (typeof micStopAll === 'function') micStopAll(); document.getElementById('sheet').classList.remove('open'); }
+function closeSheet(){ if (typeof micStopAll === 'function') micStopAll(); document.getElementById('sheet').classList.remove('open'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetState.kind !== 'welcome') closeSheet(); });
 function val(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
@@ -2624,7 +2553,7 @@ const SHEETS = {
       '</div>' +
     '<div class="fld"><label>Когда нужно — необязательно</label><input id="f-list-due" type="date"></div>' +
     themeInput('') +
-    '<label class="askring"><input type="checkbox" id="f-list-ring"><span>Сделать напоминание</span></label>' +
+
     '<button class="btn" onclick="saveQuickList()">Создать список</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
@@ -2692,8 +2621,6 @@ const SHEETS = {
        его можно было только зная, что оно там есть. Теперь спрашиваем сразу. */
     /* Объяснение, почему напоминание уходит в календарь айфона, читать никто
    не станет. Оно нужно один раз — и его место в подсказке, а не в форме. */
-    '<label class="askring"><input type="checkbox" id="f-ring">' +
-      '<span>Сделать напоминание</span></label>' +
     '<button class="btn" onclick="saveEv()">Добавить в календарь</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
@@ -2709,7 +2636,6 @@ const SHEETS = {
         REPEATS.map(r => '<button data-v="' + r[0] + '" aria-pressed="' + (r[0] === (e.repeat || 'none')) + '" onclick="pickOne(this)">' + r[1] + '</button>').join('') +
       '</div></div>' +
       '<button class="btn" onclick="saveEvEdit()">Сохранить изменения</button>' +
-      '<button class="btn ghost" style="margin-top:8px" onclick="toPhoneCalendar(editId)">Пусть телефон напомнит — передать в календарь айфона</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>' +
       '<button class="btn ghost" style="margin-top:8px;color:var(--stop)" onclick="confirmDropEv(editId,true)">Удалить событие</button>';
   },
@@ -2771,8 +2697,7 @@ const SHEETS = {
       themeInput(n.theme || '') +
         '<div class="fld"><label>Дата напоминания — необязательно</label><input id="f-due" type="date" value="' + (n.due || '') + '"></div>' +
       '<button class="btn" onclick="saveNoteEdit()">Сохранить</button>' +
-      /* функция передачи в календарь телефона была написана, но кнопки к ней не было */
-      '<button class="btn ghost" style="margin-top:8px" onclick="noteToPhone(\'' + n.id + '\')">Сделать напоминание</button>' +
+
       '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>' +
       '<button class="btn ghost" style="margin-top:8px;color:var(--stop)" onclick="deleteNoteFromEdit()">Удалить запись</button>';
   },
@@ -2785,10 +2710,6 @@ const SHEETS = {
 
 
 
-  check: () => '<h3>Чек</h3>' +
-    
-    '<button class="btn" style="margin-top:12px" onclick="openSheet(\'exp\')">Внести расход</button>' +
-    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>'
 };
 
 function pickOne(btn){
@@ -2965,21 +2886,14 @@ function saveEv(){
   // если дату и время сказали прямо в названии — вынимаем их оттуда
   const saidDate = parseDate(raw), saidTime = parseTime(' ' + raw + ' ');
   const t = clean(raw) || tidy(raw);
-  const ring = document.getElementById('f-ring');
-  const wantRing = !!(ring && ring.checked);
   const rec = {title: t,
          date: val('f-date') && val('f-date') !== today() ? val('f-date') : (saidDate || today()),
          time: val('f-time') || saidTime || null,
          address: tidy(val('f-address')) || null,
          plan: +val('f-sum') || null, kind: kind,
          repeat: picked('p-rep', 'none')};
-  const saved = addEv(rec);
+  addEv(rec);
   closeSheet();
-  if (wantRing){
-    if (!rec.time){ toast('Чтобы телефон напомнил, нужен час — впишите время'); return; }
-    toPhoneCalendarObj(saved || rec);
-    return;
-  }
   toast('Добавлено в календарь');
 }
 /* ---------- разбор надиктованного ---------- */
@@ -3132,104 +3046,6 @@ function micStart(btn, targetId, mode){
 }
 function micStopAll(){ if (rec){ try{ rec.stop(); }catch(e){} rec = null; } }
 
-/* ================= Камера: QR чека =================
-   Используется встроенный в браузер распознаватель кодов (BarcodeDetector).
-   Он есть в Chrome на Android. Где его нет (Safari на iPhone) — предлагаем
-   ручной ввод, приложение не ломается. Никаких внешних библиотек. */
-
-function camSupported(){ return typeof window.BarcodeDetector !== 'undefined'; }
-let camStream = null, camStop = false;
-
-function camBox(title, hint){
-  return '<h3>' + esc(title) + '</h3><div class="mut">' + esc(hint) + '</div>' +
-    '<div class="camwrap"><video id="cam" playsinline muted autoplay></video><div class="camline"></div></div>' +
-    '<div class="mut" id="cam-note" style="margin-top:8px">Наведите камеру на код</div>';
-}
-async function camStart(kinds, onCode){
-  camStop = false;
-  const video = document.getElementById('cam');
-  if (!video) return;
-  try{
-    camStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-    video.srcObject = camStream;
-    await video.play();
-  }catch(e){
-    document.getElementById('cam-note').textContent = inFrame()
-      ? 'Во встроенном окне просмотра камера недоступна — откройте приложение отдельной страницей.'
-      : (!secureOrigin() ? 'Камера работает только с адреса в сети (https), не с файла на диске.'
-                         : 'Камера запрещена — разрешите доступ браузеру или внесите вручную.');
-    return;
-  }
-  const det = new window.BarcodeDetector({formats:kinds});
-  const tick = async () => {
-    if (camStop) return;
-    try{
-      const codes = await det.detect(video);
-      if (codes && codes.length){ camEnd(); onCode(codes[0].rawValue); return; }
-    }catch(e){}
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-}
-function camEnd(){
-  camStop = true;
-  if (camStream){ camStream.getTracks().forEach(t => t.stop()); camStream = null; }
-}
-
-/* ---------- чек ---------- */
-/* В QR фискального чека лежат реквизиты вида
-   t=20260828T1542&s=1842.00&fn=...&i=...&fp=...&n=1
-   Состава покупок там нет — он хранится в базе ФНС и запрашивается отдельно. */
-function parseReceiptQR(raw){
-  const q = {};
-  String(raw).split('&').forEach(p => { const [k,v] = p.split('='); if (k) q[k] = v; });
-  if (!q.s || !q.t) return null;
-  const sum = parseFloat(String(q.s).replace(',','.'));
-  const t = String(q.t);
-  const date = t.length >= 8 ? t.slice(0,4) + '-' + t.slice(4,6) + '-' + t.slice(6,8) : today();
-  const time = t.length >= 13 ? t.slice(9,11) + ':' + t.slice(11,13) : null;
-  if (!sum) return null;
-  return {sum, date, time, fn:q.fn || null, fd:q.i || null, fp:q.fp || null};
-}
-function openCheck(){
-  if (!camSupported()){
-    document.getElementById('sheet-in').innerHTML =
-      '<h3>Чек</h3><div class="mut">' + (isIOS()
-        ? 'На айфоне чтение кодов камерой недоступно ни в одном браузере: все они работают на движке Safari, а он этого не умеет. Внесите сумму — на чеке она напечатана крупно — или продиктуйте.'
-        : 'Этот браузер не умеет читать коды камерой. Внесите сумму вручную — она есть на чеке крупно.') + '</div>' +
-      '<button class="btn" style="margin-top:12px" onclick="openSheet(\'exp\')">Внести сумму</button>' +
-      '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'voice\')">Сказать голосом</button>' +
-      '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
-    return;
-  }
-  document.getElementById('sheet-in').innerHTML =
-    camBox('Чек', 'Наведите на квадратный код внизу чека — сумма и дата подставятся сами.') +
-    '<button class="btn ghost" style="margin-top:12px" onclick="camEnd();openSheet(\'exp\')">Внести вручную</button>' +
-    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
-  camStart(['qr_code'], raw => {
-    const r = parseReceiptQR(raw);
-    if (!r){ toast('Это не фискальный чек — попробуйте ещё раз'); openCheck(); return; }
-    checkConfirm(r);
-  });
-}
-function checkConfirm(r){
-  document.getElementById('sheet-in').innerHTML =
-    '<h3>Чек прочитан</h3>' +
-    '<div class="parse"><div class="to">🧾 <span>' + money(r.sum) + '</span><em>' + humanDate(r.date) + (r.time ? ', ' + r.time : '') + '</em></div></div>' +
-    '<div class="fld"><label>Куда отнести</label><div class="pick" id="p-cat">' +
-      CATS.map((c,i) => '<button data-v="' + esc(c) + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + c + '</button>').join('') +
-    '</div></div>' +
-    '<div class="fld"><label>Название — необязательно</label><input id="f-title" placeholder="Магазин у дома"></div>' +
-    
-    '<button class="btn" style="margin-top:12px" onclick="saveCheck(' + r.sum + ',\'' + r.date + '\')">Записать расход</button>' +
-    '<button class="btn ghost" style="margin-top:8px" onclick="openCheck()">Сканировать другой</button>';
-}
-function saveCheck(sum, date){
-  addExp({title: val('f-title') || 'Покупка по чеку', sum: sum, cat: picked('p-cat','Продукты'), date: date, src:'из чека'});
-  closeSheet(); toast('Расход по чеку записан');
-}
-
-/* ---------- запуск ---------- */
 load();
 
 /* старое значение бюджета по умолчанию (60 000) осталось у тех,
@@ -3267,6 +3083,7 @@ load();
   S.settings.fixedEv = 1;
   if (changed) save(); else saveQuiet();
 })();
+
 /* Без этого любая незамеченная ошибка оставляла белый экран без единого слова.
    Записи при этом целы — важно сказать об этом, а не молчать. */
 let crashShown = false;
