@@ -292,14 +292,16 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .note-block:last-child{border-bottom:0}
 .note-full{font:400 16px/1.58 'Golos Text',sans-serif;color:var(--ink);padding:12px 2px 4px;
   max-height:34vh;overflow:auto;-webkit-overflow-scrolling:touch;border-top:1px solid var(--line)}
-.note-full .nt-p{margin:0 0 9px}
+.note-full .nt-p{margin:0 0 15px}
 .note-full .nt-h1{font:600 17px/1.3 'Spectral',serif;color:var(--navy);margin:14px 0 7px}
-.note-full .nt-h2{font:600 15px/1.3 'Spectral',serif;color:var(--navy);margin:13px 0 6px}
+.note-full .nt-h2{font:600 16px/1.35 'Spectral',serif;color:var(--navy);margin:18px 0 9px;
+  padding-left:10px;border-left:3px solid rgba(118,82,168,.45)}
 .note-full .nt-h3{font:600 13.5px/1.3 'Golos Text',sans-serif;color:var(--accent);margin:11px 0 5px}
 .note-full .nt-h1:first-child,.note-full .nt-h2:first-child,.note-full .nt-h3:first-child{margin-top:2px}
-.note-full .nt-ul{margin:0 0 9px;padding-left:19px}
-.note-full .nt-ul li{margin-bottom:4px}
-.note-full .nt-num{margin:0 0 7px;padding-left:2px}
+.note-full .nt-ul{margin:2px 0 15px;padding-left:22px}
+.note-full .nt-ul li{margin-bottom:8px;padding-left:3px}
+.note-full .nt-num{display:grid;grid-template-columns:25px minmax(0,1fr);gap:5px;margin:0 0 8px;
+  padding:9px 11px;border-radius:10px;background:rgba(118,82,168,.055)}
 .note-full .nt-hr{border:0;border-top:1px solid var(--line);margin:13px 0}
 .note-full a{color:var(--accent);word-break:break-all}
 .note-more{display:block;margin:6px 0 2px;border:0;background:transparent;padding:0;cursor:pointer;
@@ -501,7 +503,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '4.4';
+const APP_VERSION = '4.5';
 const APP_UPDATED = '5 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -1752,7 +1754,6 @@ function renderNotes(){
   /* при поиске вкладки не мешают: ищем сразу по всем */
   const tab = S.settings.notesTab || 'task';
   let inTab = q ? found : found.filter(x => noteBucket(x) === tab);
-  if (!q && themeFilter) inTab = inTab.filter(x => (x.theme || '') === themeFilter);
   const sorted = inTab.slice().sort((a,b) =>
     (+!!b.pinned) - (+!!a.pinned) || (+!!a.done) - (+!!b.done) ||
     (b.date + b.id).localeCompare(a.date + a.id));
@@ -1784,7 +1785,7 @@ function renderNotes(){
          NOTE_TABS.map(t => '<button type="button" role="tab" aria-selected="' + (t[0] === tab) +
            '" onclick="setNotesTab(\'' + t[0] + '\')">' + t[1] +
            (counts[t[0]] ? ' <em style="font-style:normal;opacity:.6">' + counts[t[0]] + '</em>' : '') +
-           '</button>').join('') + '</div>' + themeBar(tab)) +
+           '</button>').join('') + '</div>') +
     (sorted.length ? sorted.map(x =>
       (x.items && x.items.length
         ? listFold(x)
@@ -1838,8 +1839,6 @@ function saveNote(){
   if (!raw){ toast('Сначала запишите или надиктуйте'); return; }
   const kind = (S.settings.notesTab || 'task') === 'note' ? 'note' : 'task';
   const rec = {id:uid(), date:today(), text:keepOrTidy(raw), kind:kind, done:false};
-  const theme = (val('f-theme') || themeFilter || '').trim();
-  if (theme) rec.theme = theme;
   S.notes.push(rec);
   S.settings.notesTab = rec.kind === 'task' ? 'task' : 'note';
   save();
@@ -2066,7 +2065,7 @@ function noteTextBlock(x){
 /* Вставленный текст выводился сплошняком: заголовки, списки и ссылки терялись.
    Разбираем простую разметку — этого хватает для рецептов и инструкций. */
 function noteMarkup(text){
-  const lines = String(text || '').split('\n');
+  const lines = noteReadingText(text).split('\n');
   let out = '', inList = false;
   const closeList = () => { if (inList){ out += '</ul>'; inList = false; } };
   const inline = t => esc(t)
@@ -2092,6 +2091,37 @@ function noteMarkup(text){
   closeList();
   return out;
 }
+/* Вставленная из сообщения или документа инструкция часто приходит одной
+   строкой. При чтении делим её на смысловые блоки, не меняя сохранённый текст. */
+function noteReadingText(text){
+  let v = String(text || '').replace(/\r/g, '').trim();
+  if (!v) return '';
+
+  v = v.replace(/(?<!#)\s+(Действие|Шаг)\s+(\d+)\.\s*/gi, '\n\n## $1 $2\n');
+  v = v.replace(/\s+([1-9]\d?)\.\s+(?=[А-ЯЁA-Z])/g, (match, number, offset, whole) => {
+    const before = whole.slice(Math.max(0, offset - 12), offset);
+    return /(?:Действие|Шаг)$/i.test(before) ? match : '\n' + number + '. ';
+  });
+  v = v
+    .replace(/\s*•\s*/g, '\n• ')
+    .replace(/([.!?])\s+(Если|Когда|Важно|Готово|Ссылка|Проверить|Дальше)(?=\s|:)/g, '$1\n\n$2');
+
+  const blocks = v.split(/\n{2,}/).map(block => {
+    const p = block.trim();
+    if (!p || /^(#{1,6}\s|[-*•]\s|\d+\.\s)/.test(p) || p.length < 260) return p;
+    const sentences = p.match(/.*?[.!?](?=\s+[А-ЯЁA-Z]|$)|.+$/g) || [p];
+    const groups = [];
+    let current = '';
+    sentences.forEach(sentence => {
+      const next = (current ? current + ' ' : '') + sentence.trim();
+      if (current && next.length > 280){ groups.push(current); current = sentence.trim(); }
+      else current = next;
+    });
+    if (current) groups.push(current);
+    return groups.join('\n\n');
+  }).filter(Boolean);
+  return blocks.join('\n\n').replace(/\n{3,}/g, '\n\n');
+}
 function noteFullBlock(x){
   if (!noteIsLong(x.text) || !noteOpen[x.id]) return '';
   return '<div class="note-full">' + noteMarkup(noteBody(x.text)) + '</div>' +
@@ -2099,11 +2129,10 @@ function noteFullBlock(x){
 }
 function noteMeta(x){
   const kind = (x.kind || 'task') === 'task';
-  const theme = x.theme ? '<em class="theme-tag">' + esc(x.theme) + '</em> · ' : '';
   const state = kind ? (x.done ? 'Выполнено ' + humanDate(x.completedAt || today()) : noteAge(x)) : '';
   /* «Добавлено сегодня · создано 5 сентября» — одно и то же дважды */
   const created = noteAge(x) === 'Добавлено сегодня' && kind && !x.done ? '' : humanDate(x.date);
-  return [theme.replace(/ · $/, ''), state, created, x.due ? dueLabel(x) : ''].filter(Boolean).join(' · ');
+  return [state, created, x.due ? dueLabel(x) : ''].filter(Boolean).join(' · ');
 }
 function noteAge(n){
   const days=Math.max(0,Math.floor((new Date(today()+'T12:00')-new Date((n.date||today())+'T12:00'))/86400000));
@@ -2187,8 +2216,6 @@ function togglePin(id){
 function saveNoteEdit(){
   const n = findNote(editNoteId);
   if (!n) return;
-  const th = (val('f-theme') || '').trim();
-  if (th) n.theme = th; else delete n.theme;
   const txt = val('f-note');
   const lines = (val('f-items') || '').split('\n').map(x => x.trim()).filter(Boolean);
   if (!txt && !lines.length){ toast('Запись пустая — впишите текст или пункты'); return; }
@@ -2202,8 +2229,9 @@ function saveNoteEdit(){
     const wh = val('f-where');
     if (wh) n.where = wh; else delete n.where;
   } else {
-    n.kind = val('f-kind') || 'task';
-    n.done = n.kind === 'task' && val('f-done') === '1';
+    /* Тип записи задан вкладкой. У заметки нет статуса выполнения. */
+    if ((n.kind || 'task') === 'task') n.done = val('f-done') === '1';
+    else n.done = false;
     if (n.done && !n.completedAt) n.completedAt = today();
     if (!n.done) delete n.completedAt;
     delete n.where;
@@ -2781,11 +2809,9 @@ const SHEETS = {
       '<div class="fld"><label>Пункты — каждый с новой строки</label><textarea id="f-items" rows="6" onblur="spillList(this)" placeholder="Проверить заявление&#10;Приложить справку&#10;Отправить документы">' +
         esc(n.items.map(i => i.t).join('\n')) + '</textarea></div>' +
       '<div class="fld"><label>Где — необязательно</label><input id="f-where" value="' + esc(n.where || '') + '" placeholder="Например: работа или магазин"></div>' :
-      '<div class="fld"><label>Тип записи</label><select id="f-kind"><option value="task"' + ((n.kind || 'task') === 'task' ? ' selected' : '') + '>Дело</option><option value="note"' + (n.kind === 'note' ? ' selected' : '') + '>Заметка</option></select></div>' +
-      fldMic('Текст', '<textarea id="f-note" rows="3" placeholder="Например: позвонить врачу">' + esc(n.text || '') + '</textarea>', 'f-note', 'raw') +
-      '<div class="fld"><label>Статус</label><select id="f-done"><option value="0"' + (!n.done ? ' selected' : '') + '>Не выполнено</option><option value="1"' + (n.done ? ' selected' : '') + '>Выполнено</option></select></div>';
-    return '<h3>' + (n.items ? 'Изменить список' : 'Изменить запись') + '</h3>' + body +
-      themeInput(n.theme || '') +
+      fldMic(n.kind === 'note' ? 'Заметка' : 'Дело', '<textarea id="f-note" rows="5" placeholder="Введите текст">' + esc(n.text || '') + '</textarea>', 'f-note', 'raw') +
+      (n.kind === 'note' ? '' : '<div class="fld"><label>Статус</label><select id="f-done"><option value="0"' + (!n.done ? ' selected' : '') + '>Не выполнено</option><option value="1"' + (n.done ? ' selected' : '') + '>Выполнено</option></select></div>');
+    return '<h3>' + (n.items ? 'Изменить список' : n.kind === 'note' ? 'Изменить заметку' : 'Изменить дело') + '</h3>' + body +
         '<div class="fld"><label>Дата напоминания — необязательно</label><input id="f-due" type="date" value="' + (n.due || '') + '"></div>' +
       '<button class="btn" onclick="saveNoteEdit()">Сохранить</button>' +
 

@@ -869,7 +869,7 @@ async function run() {
   assert(!firstNote().includes('Аджика'), 'открепление возвращает обычный порядок');
   assert(!w.document.querySelector('.pin.on'), 'и состояние закрепления снимается');
 
-  // ---- тема: не папка, а необязательная подпись с отбором ----
+  // ---- темы не перегружают обычные заметки ----
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; S.settings.notesTab = 'note';
     noteQuery = ''; themeFilter = ''; noteOpen = {};
     S.notes = [{id:'th1', date:today(), kind:'note', text:'Аджика', theme:'Заготовки'},
@@ -880,34 +880,21 @@ async function run() {
   const shown = () => w.document.querySelectorAll('#s-notes .note-block').length;
   const notesAll = () => w.document.getElementById('s-notes').textContent.replace(/\s+/g, ' ');
 
-  assert(shown() === 4, 'без отбора видны все записи вкладки, включая записи без темы');
-  const themeBtns = [...w.document.querySelectorAll('.theme')].map(b => b.textContent);
-  assert(themeBtns[0] === 'Все' && themeBtns.includes('Заготовки') && themeBtns.includes('Ремонт'),
-    'темы собираются сами из записей, заводить их заранее не надо');
+  assert(shown() === 4, 'все заметки видны независимо от старых тем');
+  assert(!w.document.querySelector('.themes') && !w.document.querySelector('.theme-tag'),
+    'полоса тем и повтор темы в карточке убраны');
+  assert(!notesAll().includes('ВсеЗаготовки') && !notesAll().includes('ВсеРемонт'),
+    'служебные фильтры не выглядят как заметки');
 
-  w.eval("setTheme('Заготовки')");
-  assert(shown() === 2 && !notesAll().includes('Плитка'), 'нажатие на тему оставляет только её записи');
-  assert(!notesAll().includes('Адрес мастера'), 'записи без темы в отбор не попадают');
-  w.eval("setTheme('Заготовки')");
-  assert(shown() === 4, 'повторное нажатие снимает отбор');
-
-  assert(w.document.querySelector('.theme-tag'), 'тема видна прямо в строке записи');
-  assert(w.hintSource('theme').indexOf('Заготовки') === 0,
-    'в подсказках тем первой идёт та, что встречается чаще');
-
-  // новая запись наследует открытую тему
-  w.eval("setTheme('Ремонт')");
-  assert(!w.document.getElementById('f-theme'),
-    'быстрая форма не показывает лишнее поле темы');
+  // новая запись сохраняется без скрытой темы
   w.document.getElementById('n-text').value = 'Купить плинтус';
   w.eval('saveNote()');
-  assert(w.eval("S.notes.some(n => n.text.indexOf('плинтус') >= 0 && n.theme === 'Ремонт')"),
-    'запись сохраняется с этой темой');
+  assert(w.eval("S.notes.some(n => n.text.indexOf('плинтус') >= 0 && !n.theme)"),
+    'новая заметка сохраняется без скрытой категории');
 
   // без темы всё продолжает работать
   w.eval("themeFilter = ''; S.notes = [{id:'th5', date:today(), kind:'note', text:'Просто мысль'}]; renderNotes();");
-  assert(!w.document.querySelector('.themes'),
-    'когда тем нет, полоса не занимает место');
+  assert(!w.document.querySelector('.themes'), 'полоса тем не занимает место');
   assert(notesAll().includes('Просто мысль'), 'записи без темы видны как обычно');
 
   // ---- список делится на пункты и без количеств у каждого ----
@@ -1256,6 +1243,24 @@ async function run() {
     'значки разметки не показываются человеку');
   assert(w.noteHead(md) === 'Как пригласить человека',
     'в свёрнутом виде заголовок чистый, без решёток');
+
+  const plainInstruction = 'Как пригласить человека. Действие 1. Спросить почту. Узнать адрес. ' +
+    'Действие 2. Отправить сообщение. Если письма нет — проверить спам.';
+  const reading = w.noteReadingText(plainInstruction);
+  assert(reading.includes('## Действие 1') && reading.includes('## Действие 2'),
+    'действия в сплошном тексте становятся отдельными смысловыми блоками');
+  assert(reading.includes('\n\nЕсли письма нет'),
+    'условие начинается с нового абзаца');
+
+  w.eval(`S.notes = [{id:'only-note', date:today(), kind:'note', text:'Обычная заметка', done:false},
+                     {id:'only-task', date:today(), kind:'task', text:'Обычное дело', done:false}];`);
+  w.eval("editNote('only-note')");
+  assert(!w.document.getElementById('f-kind') && !w.document.getElementById('f-done'),
+    'у обычной заметки нет типа записи и статуса выполнения');
+  w.eval('closeSheet(); editNote(\'only-task\')');
+  assert(!w.document.getElementById('f-kind') && !!w.document.getElementById('f-done'),
+    'у дела статус остаётся, но лишний выбор типа убран');
+  w.eval('closeSheet()');
 
   // ---- в формах не осталось лишних слов ----
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1;
