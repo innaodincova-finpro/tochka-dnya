@@ -536,7 +536,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.0';
+const APP_VERSION = '5.1';
 const APP_UPDATED = '5 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -1821,16 +1821,8 @@ function renderNotes(){
            '</button>').join('') + '</div>') +
     (sorted.length ? sorted.map(x =>
       (x.items && x.items.length
-        ? listFold(x)
-        : noteBucket(x) === 'note' ? noteCard(x)
-        : '<div class="note-block' + (x.pinned ? ' pinned' : '') + '">' +
-          '<div class="item note-row" style="align-items:flex-start">' +
-          ((x.kind || 'task') === 'task' ? '<button class="tick' + (x.done ? ' on' : '') + '" onclick="toggleNoteDone(\'' + x.id + '\')" title="' + (x.done ? 'Вернуть в работу' : 'Отметить выполненным') + '">' + (x.done ? '✓' : '') + '</button>' : '<div class="ic">✎</div>') +
-          '<div class="txt">' + noteTextBlock(x) +
-          '<small class="note-meta">' + noteMeta(x) + '</small></div>' +
-          '</div>' +
-          '<div class="note-tools">' + noteActions(x) + '</div>' +
-          noteFullBlock(x) + '</div>')).join('')
+        ? listCard(x)
+        : noteBucket(x) === 'note' ? noteCard(x) : taskCard(x))).join('')
       : '<div class="empty">' + (q ? 'Ничего не нашлось.'
           : tab === 'task' ? 'Дел пока нет. Запишите то, что нужно сделать — у дела будет галочка.'
           : tab === 'note' ? 'Заметок пока нет. Сюда складывают то, что нужно сохранить: рецепт, адрес, мысль.'
@@ -2081,6 +2073,23 @@ function noteCard(x){
     '</button></article>';
 }
 function openNote(id){ editNoteId = id; openSheet('noteView'); }
+function taskCard(x){
+  return '<article class="note-card' + (x.done ? ' done' : '') + '"><button type="button" class="note-open" onclick="openTask(\'' + x.id + '\')">' +
+    '<span><span class="note-card-title"' + (x.done ? ' style="text-decoration:line-through;color:var(--mut)"' : '') + '>' + esc(noteHead(x.text) || 'Дело') + '</span>' +
+    '<small class="note-card-date">' + (x.done ? 'Выполнено' : noteAge(x)) + (x.due ? ' · ' + dueLabel(x) : '') + '</small></span>' +
+    '<span class="note-card-open">Открыть</span></button></article>';
+}
+function openTask(id){ editNoteId = id; openSheet('taskView'); }
+function toggleTaskFromView(id){ toggleNoteDone(id); editNoteId = id; openSheet('taskView'); }
+function listCard(x){
+  const done = x.items.filter(i => i.done).length, left = x.items.length - done;
+  return '<article class="note-card"><button type="button" class="note-open" onclick="openListView(\'' + x.id + '\')">' +
+    '<span><span class="note-card-title">' + esc(x.title || 'Список') + '</span>' +
+    '<small class="note-card-date">' + (left ? 'Осталось ' + left + ' из ' + x.items.length : 'Всё выполнено') + '</small></span>' +
+    '<span class="note-card-open">Открыть</span></button></article>';
+}
+function openListView(id){ editNoteId = id; openSheet('listView'); }
+function tickItemView(id, idx){ tickItem(id, idx); editNoteId = id; openSheet('listView'); }
 function noteViewTitle(n){
   return /^\s*#{1,6}\s+/.test(String(n.text || '')) ? (noteHead(n.text) || 'Заметка') : 'Заметка';
 }
@@ -2249,11 +2258,12 @@ function saveAppend(){
     n.text = String(n.text || '').replace(/\s+$/,'') + '\n' + add;
     toast('Дописано');
   }
-  const returnToNote = !n.items;
+  const returnView = n.items ? 'list' : ((n.kind || 'task') === 'task' ? 'task' : 'note');
   const savedId = n.id;
   save();
-  if (returnToNote) openNote(savedId);
-  else { editNoteId = null; closeSheet(); }
+  if (returnView === 'list') openListView(savedId);
+  else if (returnView === 'task') openTask(savedId);
+  else openNote(savedId);
 }
 /* ---- 3. закрепление: несколько записей держатся первыми ---- */
 function togglePin(id){
@@ -2833,6 +2843,35 @@ const SHEETS = {
       '</ol>' +
       '<button class="del" style="display:block;margin:12px auto 0" onclick="resetFeed()">Ссылка попала не туда — сменить</button>' +
       '<button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">Закрыть</button>';
+  },
+
+  taskView: () => {
+    const n = findNote(editNoteId);
+    if (!n) return '<h3>Дело не найдено</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
+    return '<div class="note-reader"><div class="note-reader-head">' +
+      '<div class="note-reader-title">' + esc(n.text || 'Дело') + '</div>' +
+      '<div class="note-reader-date">' + humanDate(n.date) + (n.due ? ' · ' + dueLabel(n) : '') + '</div></div>' +
+      '<button class="btn' + (n.done ? ' ghost' : '') + '" onclick="toggleTaskFromView(\'' + n.id + '\')">' +
+        (n.done ? 'Вернуть в работу' : 'Отметить выполненным') + '</button>' +
+      '<div class="note-reader-actions"><button class="btn ghost" onclick="openAppend(\'' + n.id + '\')">Дописать</button>' +
+      '<button class="btn" onclick="editNote(\'' + n.id + '\')">Изменить</button></div>' +
+      '<div class="note-reader-secondary"><button onclick="closeSheet()">Закрыть</button>' +
+      '<button class="danger" onclick="dropNote(\'' + n.id + '\')">Удалить</button></div></div>';
+  },
+
+  listView: () => {
+    const n = findNote(editNoteId);
+    if (!n || !n.items) return '<h3>Список не найден</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
+    const rows = n.items.map((item, idx) => '<div class="item"><button class="tick' + (item.done ? ' on' : '') +
+      '" onclick="tickItemView(\'' + n.id + '\',' + idx + ')">' + (item.done ? '✓' : '') + '</button>' +
+      '<div class="txt"><b style="font-weight:400;font-size:16px' + (item.done ? ';text-decoration:line-through;color:var(--mut)' : '') + '">' + esc(item.t) + '</b></div></div>').join('');
+    const done = n.items.filter(i => i.done).length;
+    return '<div class="note-reader"><div class="note-reader-head"><div class="note-reader-title">' + esc(n.title || 'Список') + '</div>' +
+      '<div class="note-reader-date">Выполнено ' + done + ' из ' + n.items.length + '</div></div>' + rows +
+      '<div class="note-reader-actions"><button class="btn ghost" onclick="openAppend(\'' + n.id + '\')">Добавить пункты</button>' +
+      '<button class="btn" onclick="editNote(\'' + n.id + '\')">Изменить</button></div>' +
+      '<div class="note-reader-secondary"><button onclick="closeSheet()">Закрыть</button>' +
+      '<button class="danger" onclick="dropNote(\'' + n.id + '\')">Удалить</button></div></div>';
   },
 
   noteView: () => {

@@ -976,12 +976,11 @@ async function run() {
   w.eval('closeSheet()');
   assert(!w.document.getElementById('sheet').classList.contains('open'), 'экран заметки закрывается');
 
-  w.eval("setNotesTab('list'); toggleFold('list-cl2');");
-  const openList = w.document.querySelector('#s-notes .note-block');
-  assert(openList.lastElementChild.classList.contains('fold-close'),
-    'у раскрытого списка «свернуть» под пунктами');
-  openList.lastElementChild.click();
-  assert(!w.document.querySelector('#s-notes .tick'), 'список сворачивается снизу');
+  w.eval("setNotesTab('list'); openListView('cl2');");
+  assert(w.document.querySelector('.note-reader') && w.document.querySelectorAll('#sheet-in .tick').length === 2,
+    'список открывается отдельно, с галочками пунктов');
+  w.eval('closeSheet()');
+  assert(!w.document.querySelector('#s-notes .tick'), 'в общей ленте пункты списка не занимают место');
 
   // ---- в формах нет пояснительных подписей ----
   const teaching = [
