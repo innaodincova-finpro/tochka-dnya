@@ -941,10 +941,19 @@ async function run() {
     'на «Сегодня» список свёрнут до итога, пункты не вываливаются');
   assert(seen('s-money').includes('6 записей') && !seen('s-money').includes('изменитьудалить'),
     'в «Финансах» операции свёрнуты до количества');
-  assert(seen('s-more').includes('имя, разделы, показ выполненного') && !seen('s-more').includes('Имя в приветствии'),
+  assert(seen('s-more').includes('оформление и разделы') && !seen('s-more').includes('Имя в приветствии'),
     'в «Ещё» настройки свёрнуты до подписи');
   assert(!seen('s-notes').includes('Сохранить дело'),
     'форма новой записи свёрнута, а не занимает пол-экрана');
+
+  w.eval("setColorTheme('dark')");
+  assert(w.document.documentElement.dataset.theme === 'dark' && w.eval("S.settings.theme") === 'dark',
+    'тёмная тема включается и сохраняется в настройках');
+  assert(w.document.querySelector('meta[name="theme-color"]').content === '#181421',
+    'цвет системной области телефона меняется вместе с тёмной темой');
+  w.eval("setColorTheme('light')");
+  assert(w.document.documentElement.dataset.theme === 'light',
+    'можно вернуться к светлой теме');
 
   // раскрывается нажатием и сворачивается обратно
   w.eval("toggleFold('today-list-f1')");

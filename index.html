@@ -467,10 +467,32 @@ body{
 .textarea,.fld input,.fld select,.fld textarea,input,textarea,select{background:rgba(255,255,255,.88);border-color:#E4D7E8}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:3px solid rgba(184,148,220,.32);border-color:#9C75C1}
 .fab{background:linear-gradient(115deg,#D16991,#E99A9D);box-shadow:0 10px 26px rgba(190,91,126,.34);min-height:56px}
-.tabs{background:rgba(255,251,254,.93);border-top-color:#E8DCEB;box-shadow:0 -10px 28px rgba(73,47,91,.08);backdrop-filter:blur(18px)}
-.tabs button{font-size:10.5px;transition:color .16s ease,transform .16s ease}
-.tabs button i{font-size:18px}.tabs button[aria-selected="true"]{color:#7652A8;transform:translateY(-1px)}
-.tabs button[aria-selected="true"] i{filter:drop-shadow(0 2px 5px rgba(118,82,168,.25))}
+.tabs{height:calc(74px + env(safe-area-inset-bottom));background:rgba(255,251,254,.96);border-top-color:#DED0E4;box-shadow:0 -10px 28px rgba(73,47,91,.1);backdrop-filter:blur(18px)}
+.tabs button{padding:7px 1px 6px;font-size:13px;line-height:1.15;font-weight:500;color:#55485F;gap:6px;transition:color .16s ease,transform .16s ease}
+.tabs button i{font-size:20px;line-height:1;opacity:.78}.tabs button[aria-selected="true"]{color:#673B9E;font-weight:600;transform:translateY(-1px)}
+.tabs button[aria-selected="true"] i{opacity:1;filter:drop-shadow(0 2px 5px rgba(103,59,158,.3))}
+[data-theme="dark"]{
+  --ground:#181421;--card:rgba(37,30,49,.96);--ink:#F4EDF8;--mut:#C0B3C8;
+  --line:#493B56;--navy:#241C31;--head:#4A3568;--accent:#C39AEF;
+  --ok:#80C2AA;--ochre:#DF7FA3;--stop:#F08DA6;color-scheme:dark
+}
+[data-theme="dark"] body{background:radial-gradient(circle at 12% 8%,rgba(135,80,172,.2),transparent 30%),linear-gradient(155deg,#17121F,#21182B 56%,#18131F)}
+[data-theme="dark"] .phone{background:linear-gradient(180deg,#21182B,#18141F)}
+[data-theme="dark"] .appbar{background:radial-gradient(circle at 86% -40%,rgba(255,255,255,.13),transparent 42%),linear-gradient(120deg,#3C2A59,#684274 55%,#8A4E69)}
+[data-theme="dark"] .card,[data-theme="dark"] .daycard,[data-theme="dark"] .note-card,[data-theme="dark"] .note-reader,[data-theme="dark"] .fold,[data-theme="dark"] .sheet-in{background:#251E31;border-color:#493B56;box-shadow:0 10px 28px rgba(0,0,0,.2)}
+[data-theme="dark"] .tabs{background:rgba(27,22,35,.97);border-top-color:#493B56;box-shadow:0 -10px 28px rgba(0,0,0,.24)}
+[data-theme="dark"] .tabs button{color:#D2C5D9}
+[data-theme="dark"] .tabs button[aria-selected="true"]{color:#D5AEFF}
+[data-theme="dark"] .switch,[data-theme="dark"] .parse,[data-theme="dark"] .tip{background:#30263C;border-color:#544263}
+[data-theme="dark"] .switch button,[data-theme="dark"] .chip,[data-theme="dark"] .mini,[data-theme="dark"] .btn.ghost{color:#D6B6F3}
+[data-theme="dark"] .switch button[aria-selected="true"],[data-theme="dark"] .mini,[data-theme="dark"] .btn.ghost,[data-theme="dark"] .mic{background:#2C2338;border-color:#59466A}
+[data-theme="dark"] .textarea,[data-theme="dark"] .fld input,[data-theme="dark"] .fld select,[data-theme="dark"] .fld textarea,[data-theme="dark"] input,[data-theme="dark"] textarea,[data-theme="dark"] select{background:#1D1726;border-color:#51405F;color:#F4EDF8}
+[data-theme="dark"] input::placeholder,[data-theme="dark"] textarea::placeholder{color:#96899F}
+[data-theme="dark"] .ic{background:linear-gradient(145deg,#342641,#41283A);box-shadow:inset 0 0 0 1px #594361}
+[data-theme="dark"] .cal .d{background:#282033;border-color:#493B56;color:#F4EDF8}
+[data-theme="dark"] .cal .d.out{opacity:.42}
+[data-theme="dark"] .item,[data-theme="dark"] .plan-event,[data-theme="dark"] .note-card{border-bottom-color:#493B56}
+[data-theme="dark"] a{color:#D5AEFF}
 .sheet{background:rgba(48,34,60,.48);backdrop-filter:blur(4px)}
 .sheet-in{border-radius:26px 26px 0 0;box-shadow:0 -18px 50px rgba(59,38,75,.2)}
 .sheet-in:before{content:'';display:block;width:42px;height:4px;border-radius:99px;background:#DED1E3;margin:-7px auto 14px}
@@ -536,7 +558,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.1';
+const APP_VERSION = '5.3';
 const APP_UPDATED = '5 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -554,7 +576,7 @@ let S = null, storageOk = true;
 
 function blank(){
   return {
-    settings:{cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, onboarded:0, hi:1},
+    settings:{cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, theme:'light', onboarded:0, hi:1},
     exp:[], inc:[], ev:[], notes:[], day:{}, del:[], savedAt:null, backupAt:null, firstDataAt:null
   };
 }
@@ -1476,6 +1498,7 @@ function lab(t){ return '<div class="lab">' + esc(t) + '</div>'; }
 
 function renderAll(){
   dropIndex();
+  applyColorTheme();
   applyTabs();
   const d = new Date();
   document.getElementById('today-date').textContent =
@@ -2461,8 +2484,11 @@ function renderMore(){
     ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openSheet(\'feed\')">Календарь айфона</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
     : card(lab('Облачное сохранение')+'<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
   document.getElementById('s-more').innerHTML =
-    cloudCard + fold('more-set', 'Настройки приложения', 'имя, разделы, показ выполненного',
+    cloudCard + fold('more-set', 'Настройки приложения', 'оформление и разделы',
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +
+      '<div class="fld"><label>Оформление</label><select onchange="setColorTheme(this.value)">' +
+        '<option value="light"' + ((S.settings.theme || 'light') === 'light' ? ' selected' : '') + '>Светлая тема</option>' +
+        '<option value="dark"' + (S.settings.theme === 'dark' ? ' selected' : '') + '>Тёмная тема</option></select></div>' +
       '<div class="fld"><label>Выполненные дела на экране «Сегодня»</label><select onchange="setBool(\'showDone\',this.value)">' +
         '<option value="1"' + (S.settings.showDone ? ' selected' : '') + '>Показывать</option>' +
         '<option value="0"' + (!S.settings.showDone ? ' selected' : '') + '>Скрывать</option></select></div>' +
@@ -2494,6 +2520,17 @@ function backupDue(){
 }
 function setText(k,v){ S.settings[k] = String(v || '').trim(); save(); toast('Сохранено'); }
 function setBool(k,v){ S.settings[k] = v === '1' ? 1 : 0; save(); toast('Сохранено'); }
+function applyColorTheme(){
+  const dark = S && S.settings && S.settings.theme === 'dark';
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = dark ? '#181421' : '#7052A5';
+}
+function setColorTheme(v){
+  S.settings.theme = v === 'dark' ? 'dark' : 'light';
+  save();
+  toast(S.settings.theme === 'dark' ? 'Тёмная тема включена' : 'Светлая тема включена');
+}
 
 
 /* ================= Формы и шторки ================= */
