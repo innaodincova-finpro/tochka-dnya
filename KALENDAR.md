@@ -6,27 +6,9 @@
 
 ## Часть 1. Функция на сервере
 
-1. Открыть [supabase.com](https://supabase.com), войти, выбрать свой проект.
-2. Слева **Edge Functions** → кнопка **Deploy a new function** → **Via Editor**.
-3. Имя функции: `kalendar` — ровно так, маленькими буквами.
-4. Стереть весь пример из окна и вставить содержимое файла `supabase/functions/kalendar/index.ts`.
-5. Нажать **Deploy function**.
+Ничего делать не нужно. Функция уезжает в Supabase сама, когда файлы попадают на GitHub — это настроено один раз по инструкции [VYKLADKA.md](../VYKLADKA.md).
 
-Дождаться зелёной отметки. Появится адрес вида
-`https://dcpthwmuiodrjepifzsd.supabase.co/functions/v1/kalendar`
-
-### Убрать проверку токена
-
-Календарь айфона не умеет присылать заголовок авторизации Supabase, поэтому функцию нужно открыть для всех — доступ защищает ключ в ссылке.
-
-В настройках функции найти **JWT verification** (или `Verify JWT`) и **выключить**.
-
-Если такой настройки в интерфейсе нет — она задаётся файлом `supabase/config.toml`:
-
-```toml
-[functions.kalendar]
-verify_jwt = false
-```
+Проверить, что она встала: https://supabase.com/dashboard/project/dcpthwmuiodrjepifzsd/functions — в списке должна быть `kalendar`.
 
 ---
 
