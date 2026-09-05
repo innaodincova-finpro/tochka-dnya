@@ -1,0 +1,44 @@
+name: Выкладка функции календаря
+
+# Файлы могут лежать где угодно — в папках или прямо в корне.
+# Перед выкладкой нужная структура собирается здесь сама.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Собрать структуру для Supabase
+        run: |
+          mkdir -p supabase/functions/kalendar
+          # код функции: берём из папки, а если её нет — из корня
+          if [ -f supabase/functions/kalendar/index.ts ]; then
+            echo "код на месте"
+          elif [ -f index.ts ]; then
+            cp index.ts supabase/functions/kalendar/index.ts
+          else
+            echo "Файл index.ts не найден ни в папке, ни в корне"; exit 1
+          fi
+          # настройки проекта
+          if [ ! -f supabase/config.toml ] && [ -f config.toml ]; then
+            cp config.toml supabase/config.toml
+          fi
+          ls -R supabase
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Выложить функцию
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: supabase functions deploy kalendar --project-ref dcpthwmuiodrjepifzsd
