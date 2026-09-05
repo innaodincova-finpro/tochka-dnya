@@ -3,33 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#8351B3">
+<meta name="theme-color" content="#7052A5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Точка дня">
 <title>Точка дня</title>
-<link rel="apple-touch-icon" sizes="180x180" href="icon-180-v2.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v2.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-180-v3.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v3.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- шрифты не задерживают первую отрисовку: экран появляется сразу
+     системным шрифтом, а фирменный подставляется, когда придёт -->
+<link rel="stylesheet" media="print" onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"></noscript>
 <style>
 
-:root{
-  --ground:#F4F7FA;
-  --card:#FFFFFF;
-  --ink:#22303F;
-  --mut:#6B7F92;
-  --line:#DCE6EE;
-  --navy:#28425C;
-  --head:#4E7A9E;
-  --accent:#2F6091;
-  --ok:#4B7F62;
-  --ochre:#B08347;
-  --stop:#A85147;
-}
+/* Действующая палитра объявлена ниже, в праздничном блоке. Прежний синий
+   набор был перекрыт по всем одиннадцати значениям и только сбивал с толку. */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{max-width:100%;overflow-x:hidden}
 body{
@@ -79,6 +72,9 @@ body{
 .tl-dot{position:absolute;left:-21px;top:4px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--line)}
 .tl.done .tl-dot{background:var(--ok);border-color:var(--ok)}
 .tl.next .tl-dot{background:var(--accent);border-color:var(--accent)}
+.tl.late .tl-dot{background:var(--ochre);border-color:var(--ochre)}
+.tl.late .tl-time{color:var(--stop)}
+.late-mark{font:500 10px 'Golos Text',sans-serif;color:var(--stop)}
 .tl-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mut)}
 .tl-what{font-size:14px;font-weight:500}
 .tl-sum{font-family:'IBM Plex Mono',monospace;font-size:13px}
@@ -93,7 +89,7 @@ body{
 .ic{width:34px;height:34px;flex:0 0 34px;border-radius:10px;background:#EDF3F8;display:flex;align-items:center;justify-content:center;font-size:15px}
 .item .txt{flex:1;min-width:0}
 .item .txt b{display:block;font-weight:500;font-size:14px}
-.item .txt small{color:var(--mut);font-size:11px}
+.item .txt small{display:block;margin-top:2px;color:var(--mut);font-size:11px}
 .sum{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:500;white-space:nowrap}
 .sum.in{color:var(--ok)}
 
@@ -134,7 +130,6 @@ body{
 .plan-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);background:#fff;color:var(--ink);padding:12px 14px;border-radius:14px;font:inherit;cursor:pointer;margin-bottom:10px}
 .plan-toggle span:last-child{color:var(--accent);font-size:12px}
 .plan-calendar[hidden]{display:none}
-.plan-count{position:absolute;right:2px;top:2px;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:var(--rose);color:#fff;font:9px/15px 'IBM Plex Mono',monospace}
 .calendar-stream{display:flex;flex-direction:column;gap:12px}
 .month-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 10px}
 .month-title{font-family:'Spectral',Georgia,serif;font-size:19px;font-weight:600;margin:0 4px 12px;color:var(--ink)}
@@ -145,6 +140,15 @@ body{
 .continuous-cal .day-preview{display:block;margin-top:6px;font:500 9px/1.25 'Golos Text',sans-serif;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .continuous-cal .d.has-plan{background:linear-gradient(145deg,#F4E8FA,#FCEAF1);border-color:#B98BD4;box-shadow:inset 0 0 0 1px rgba(128,81,179,.12)}
 .continuous-cal .d.has-plan .day-preview{color:#704395}
+/* впереди — спокойный сиреневый; прошло и не отмечено — тёплый тревожный;
+   закрыто — приглушённая зелень. Цвет означает состояние, не вид записи. */
+.continuous-cal .d.day-missed{background:linear-gradient(145deg,#FCEFE2,#FBE4E4);border-color:#D9A06A;
+  box-shadow:inset 0 0 0 1px rgba(179,77,103,.14)}
+.continuous-cal .d.day-missed .day-preview{color:#A85F3C}
+.continuous-cal .d.day-missed .day-num{color:#A85F3C}
+.continuous-cal .d.day-done{background:linear-gradient(145deg,#EAF3EE,#F3F7F4);border-color:#9BC3AE;box-shadow:none}
+.continuous-cal .d.day-done .day-preview{color:#4E8C78;text-decoration:line-through;opacity:.75}
+.continuous-cal .d.day-done .day-num{color:#4E8C78}
 .continuous-cal .d.today{background:linear-gradient(145deg,#8051B3,#C7688A);border-color:transparent;color:#fff}
 .continuous-cal .d.today .day-preview{color:rgba(255,255,255,.9)}
 .day-sheet-date{font-family:'Spectral',Georgia,serif;font-size:20px;font-weight:600;margin-bottom:4px}
@@ -225,6 +229,56 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .fld textarea{resize:vertical;min-height:78px}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--accent);outline-offset:1px}
 .pick{display:flex;flex-wrap:wrap;gap:6px}
+.fld{position:relative}
+.hints{display:none;position:absolute;left:0;right:0;top:100%;z-index:30;margin-top:5px;
+  max-height:238px;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#fff;
+  border:1px solid var(--line);border-radius:14px;box-shadow:0 16px 38px rgba(70,45,90,.16)}
+.hints.open{display:block}
+.hint-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;
+  border:0;border-bottom:1px solid var(--line);background:transparent;text-align:left;cursor:pointer;
+  padding:13px 14px;font:400 15px 'Golos Text',sans-serif;color:var(--ink)}
+.hint-row:last-child{border-bottom:0}
+.hint-row:active{background:#F3ECF8}
+.note-search{width:100%;margin-bottom:11px;padding:13px 14px;border:1px solid var(--line);
+  border-radius:14px;background:rgba(255,255,255,.85);font:400 15px 'Golos Text',sans-serif;color:var(--ink)}
+/* Кнопки стояли в одной строке с текстом и отнимали у него ширину:
+   на телефоне от заметки оставалась колонка в три слова. */
+.note-row{width:100%}
+.note-tools{display:flex;align-items:center;justify-content:flex-end;gap:4px;
+  flex-wrap:wrap;padding:2px 0 8px}
+.fold{padding:0;overflow:hidden}
+.fold-head{display:flex;width:100%;align-items:center;gap:9px;border:0;background:transparent;
+  padding:15px 16px;cursor:pointer;text-align:left;font:inherit}
+.fold-title{font:600 11px/1.2 'Golos Text',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--navy)}
+.fold-sum{flex:1;font:400 12.5px 'Golos Text',sans-serif;color:var(--mut);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fold-arrow{flex:0 0 auto;color:var(--accent);font-size:15px;line-height:1}
+.fold-body{padding:0 16px 15px}
+/* Кнопка сворачивания была только сверху: дочитав длинный текст, человек
+   оказывался внизу и вернуть блок в свёрнутый вид было нечем. */
+.fold-close{display:block;width:100%;margin-top:12px;padding:11px;border:1px solid var(--line);
+  border-radius:12px;background:rgba(255,255,255,.6);cursor:pointer;
+  font:500 13px 'Golos Text',sans-serif;color:var(--accent)}
+.themes{display:flex;flex-wrap:wrap;gap:6px;margin:-3px 0 11px}
+.theme{border:1px solid var(--line);background:rgba(255,255,255,.7);color:var(--mut);
+  border-radius:999px;padding:6px 11px;font:500 12px 'Golos Text',sans-serif;cursor:pointer}
+.theme.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.theme-tag{font-style:normal;font-weight:600;color:var(--accent)}
+.pin{border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;padding:4px 2px;color:var(--mut)}
+.pin.on{color:var(--ochre)}
+.note-block.pinned{background:linear-gradient(135deg,rgba(212,119,148,.07),rgba(118,82,168,.05));
+  border-radius:12px;padding:0 8px;margin:0 -8px}
+.note-block{border-bottom:1px solid var(--line)}
+.note-block:last-child{border-bottom:0}
+.note-full{white-space:pre-wrap;font:400 14px/1.55 'Golos Text',sans-serif;color:var(--ink);
+  padding:2px 2px 12px;margin-top:-4px}
+.note-more{display:block;margin:6px 0 2px;border:0;background:transparent;padding:0;cursor:pointer;
+  font:500 12px 'Golos Text',sans-serif;color:var(--accent)}
+.hint-row em{flex:0 0 auto;font:400 10.5px 'Golos Text',sans-serif;color:var(--mut);font-style:normal}
+.askring{display:flex;gap:10px;align-items:center;margin:4px 0 12px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.7);cursor:pointer}
+.askring input{width:20px;height:20px;margin:1px 0 0;flex:0 0 auto;accent-color:var(--accent)}
+.askring span{font:600 13.5px/1.5 'Golos Text',sans-serif;color:var(--ink)}
 .pick button{
   border:1px solid var(--line);background:#fff;border-radius:99px;padding:7px 12px;cursor:pointer;
   font-family:'Golos Text',sans-serif;font-size:13px;color:var(--ink)
@@ -237,6 +291,8 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .toast{background:var(--navy);color:#fff;border-radius:12px;padding:11px 14px;font-size:13px;box-shadow:0 10px 24px -12px rgba(40,66,92,.8)}
 .empty{color:var(--mut);font-size:13px;padding:8px 0}
 .del{border:0;background:transparent;color:var(--stop);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif}
+button.tip{display:block;width:100%;text-align:left;font:inherit;font-size:12px;cursor:pointer}
+button.txt{border:0;background:transparent;padding:0;margin:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
 .withmic{display:flex;gap:7px;align-items:stretch}
 .withmic input,.withmic textarea{flex:1}
 .mic{flex:0 0 46px;border:1px solid var(--line);background:#fff;border-radius:11px;font-size:17px;cursor:pointer;color:var(--accent)}
@@ -244,6 +300,14 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .camwrap{position:relative;margin:12px 0;border-radius:14px;overflow:hidden;background:var(--navy);aspect-ratio:4/3}
 .camwrap video{width:100%;height:100%;object-fit:cover;display:block}
 .camline{position:absolute;left:12%;right:12%;top:50%;height:2px;background:var(--ochre);box-shadow:0 0 10px var(--ochre)}
+.crashbar{position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;background:#fff;
+  border:1px solid #E4C3BD;border-radius:16px;padding:14px 16px;box-shadow:0 14px 40px rgba(70,40,60,.22);
+  font:400 13px/1.45 'Golos Text',sans-serif;color:var(--ink)}
+.crashbar b{display:block;font-size:14px;margin-bottom:4px}
+.crashbar span{display:block;color:var(--mut)}
+.crashbar .crash-why{margin-top:6px;font:400 11px/1.35 'IBM Plex Mono',monospace;color:#A85F3C;word-break:break-word}
+.crashbar button{margin-top:10px;width:100%;border:0;border-radius:12px;padding:11px;
+  background:var(--accent);color:#fff;font:600 13px 'Golos Text',sans-serif;cursor:pointer}
 .warnbar{background:#F6E7E4;border:1px solid #E4C3BD;color:var(--stop);border-radius:12px;padding:9px 12px;font-size:12px;margin-bottom:12px}
 
 /* Праздничная визуальная система — светлая, взрослая, без потери читабельности */
@@ -259,9 +323,6 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
   --ok:#4E8C78;
   --ochre:#D47794;
   --stop:#B34D67;
-  --lilac:#B894DC;
-  --peach:#F3B89F;
-  --pink:#E89CB7;
 }
 body{
   background:
@@ -366,20 +427,20 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
     <div class="saved" id="saved"></div>
   </div>
 
-  <section class="screen" id="s-today"></section>
-  <section class="screen" id="s-cal" hidden onscroll="calendarScroll(this)"></section>
-  <section class="screen" id="s-notes" hidden></section>
-  <section class="screen" id="s-money" hidden></section>
-  <section class="screen" id="s-more" hidden></section>
+  <section class="screen" id="s-today" role="tabpanel" aria-labelledby="tab-today" tabindex="0"></section>
+  <section class="screen" id="s-cal" role="tabpanel" aria-labelledby="tab-cal" tabindex="0" hidden onscroll="calendarScroll(this)"></section>
+  <section class="screen" id="s-notes" role="tabpanel" aria-labelledby="tab-notes" tabindex="0" hidden></section>
+  <section class="screen" id="s-money" role="tabpanel" aria-labelledby="tab-money" tabindex="0" hidden></section>
+  <section class="screen" id="s-more" role="tabpanel" aria-labelledby="tab-more" tabindex="0" hidden></section>
 
   <button class="fab" id="dock-btn" type="button" aria-label="Добавить" onclick="openContext()"><i id="dock-ic" aria-hidden="true">＋</i><span id="dock-tx">Добавить</span></button>
 
-  <nav class="tabs" aria-label="Основная навигация">
-    <button type="button" aria-selected="true" onclick="go(this,'s-today')"><i aria-hidden="true">✦</i>Сегодня</button>
-    <button type="button" aria-selected="false" onclick="go(this,'s-cal')"><i aria-hidden="true">▦</i>План</button>
-    <button type="button" aria-selected="false" onclick="go(this,'s-notes')"><i aria-hidden="true">✓</i>Заметки</button>
-    <button type="button" aria-selected="false" onclick="go(this,'s-money')"><i aria-hidden="true">₽</i>Финансы</button>
-    <button type="button" aria-selected="false" onclick="go(this,'s-more')"><i aria-hidden="true">≡</i>Ещё</button>
+  <nav class="tabs" role="tablist" aria-label="Основная навигация">
+    <button type="button" role="tab" id="tab-today" aria-controls="s-today" aria-selected="true" onclick="go(this,'s-today')"><i aria-hidden="true">✦</i>Сегодня</button>
+    <button type="button" role="tab" id="tab-cal" aria-controls="s-cal" aria-selected="false" onclick="go(this,'s-cal')"><i aria-hidden="true">▦</i>План</button>
+    <button type="button" role="tab" id="tab-notes" aria-controls="s-notes" aria-selected="false" onclick="go(this,'s-notes')"><i aria-hidden="true">✓</i>Заметки</button>
+    <button type="button" role="tab" id="tab-money" aria-controls="s-money" aria-selected="false" onclick="go(this,'s-money')"><i aria-hidden="true">₽</i>Финансы</button>
+    <button type="button" role="tab" id="tab-more" aria-controls="s-more" aria-selected="false" onclick="go(this,'s-more')"><i aria-hidden="true">≡</i>Ещё</button>
   </nav>
 
   <div class="sheet" id="sheet" onclick="if(event.target.id==='sheet'&&sheetState.kind!=='welcome')closeSheet()">
@@ -390,66 +451,156 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
 <script src="supabase.js"></script>
 <script>
 /* ================= Точка дня — рабочая версия =================
-   Один файл. Данные хранятся в браузере телефона, никуда не отправляются.
+   Один файл. Данные хранятся в браузере телефона. Пока облачный аккаунт
+   не подключён, они никуда не отправляются; после входа — ещё и в облако.
    Семья приложений: Точка решения / Точка речи / Точка ответа / Точка красоты.
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '4.0';
-const APP_UPDATED = '4 сентября 2026';
+const APP_VERSION = '4.2';
+const APP_UPDATED = '5 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
 const REPEATS = [['none','Не повторять'],['year','Каждый год'],['month','Каждый месяц'],['week','Каждую неделю']];
-const KINDS = [['plain','Событие'],['bd','День рождения'],['doc','Важная дата']];
 
-const CURR = [['RUB','₽','Рубль'],['AZN','₼','Манат'],['KZT','₸','Тенге']];
+/* четвёртое значение — сумма, начиная с которой изменение считается заметным:
+   в рублях это тысяча, в манатах столько же уже целая корзина продуктов */
+const CURR = [['RUB','₽','Рубль',1000],['AZN','₼','Манат',20],['KZT','₸','Тенге',5000]];
 function cur(){ return (CURR.find(c => c[0] === (S && S.settings && S.settings.cur)) || CURR[0]); }
 function sign(){ return cur()[1]; }
+function notable(){ return cur()[3] || 1000; }
 
 let S = null, storageOk = true;
 
 function blank(){
   return {
-    settings:{income:0, save:0, budget:0, art:'web', cur:'RUB', notesTab:'note', name:'', showDone:1, onboarded:0, hi:1},
-    exp:[], inc:[], ev:[], notes:[], day:{}, savedAt:null, backupAt:null, firstDataAt:null
+    settings:{income:0, save:0, cur:'RUB', notesTab:'task', name:'', showDone:1, onboarded:0, hi:1},
+    exp:[], inc:[], ev:[], notes:[], day:{}, del:[], savedAt:null, backupAt:null, firstDataAt:null
   };
 }
-function load(){
-  try{
-    const raw = localStorage.getItem(KEY);
-    S = raw ? JSON.parse(raw) : blank();
-  }catch(e){ S = blank(); storageOk = false; }
+
+/* Записи приходят из трёх мест: из памяти телефона, из файла резервной копии
+   и из облака. Раньше достройка недостающих полей была только у первого,
+   поэтому запись старого образца из облака или из копии роняла экран.
+   Теперь любые данные проходят здесь. */
+const DEL_KEEP_DAYS = 180;
+function normalize(raw){
   const b = blank();
-  for (const k in b) if (S[k] === undefined) S[k] = b[k];
-  for (const k in b.settings) if (S.settings[k] === undefined) S.settings[k] = b.settings[k];
+  const d = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+  for (const k in b){
+    if (Array.isArray(b[k])) d[k] = Array.isArray(d[k]) ? d[k] : [];
+    else if (b[k] && typeof b[k] === 'object') d[k] = (d[k] && typeof d[k] === 'object' && !Array.isArray(d[k])) ? d[k] : {};
+    else if (d[k] === undefined) d[k] = b[k];
+  }
+  for (const k in b.settings) if (d.settings[k] === undefined) d.settings[k] = b.settings[k];
+  /* запись без своего номера нельзя сравнить с такой же на другом телефоне */
+  ['exp','inc','ev','notes'].forEach(k => {
+    d[k] = d[k].filter(r => r && typeof r === 'object');
+    d[k].forEach(r => { if (!r.id) r.id = uid(); });
+  });
+  const edge = Date.now() - DEL_KEEP_DAYS * 86400000;
+  d.del = d.del
+    .filter(x => x && x.id && !(x.at && new Date(x.at).getTime() < edge))
+    .slice(-4000);
+  return d;
 }
-function saveQuiet(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function load(){
+  let raw = null;
+  try{ raw = localStorage.getItem(KEY); }
+  catch(e){ storageOk = false; }
+  try{ S = normalize(raw ? JSON.parse(raw) : null); }
+  catch(e){ S = blank(); storageOk = false; }
+}
+function saveQuiet(){ dropIndex(); try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ storageOk = false; } }
 function save(){
   const hasData = S.exp.length || S.inc.length || S.ev.length || S.notes.length || Object.keys(S.day || {}).length;
   if (hasData && !S.firstDataAt) S.firstDataAt = new Date().toISOString();
   S.savedAt = new Date().toISOString();
+  dropIndex();
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }
   catch(e){ storageOk = false; }
   renderAll(); scheduleCloudSync();
 }
 
 /* ---------- автоматическое облачное сохранение ---------- */
-let cloudClient=null,cloudUser=null,cloudTimer=null,cloudState='local',cloudError='';
+let cloudClient=null,cloudUser=null,cloudTimer=null,cloudState='local',cloudError='',cloudRetry=0;
 function hasUserData(data){
-  return !!(data&&(data.exp.length||data.inc.length||data.ev.length||data.notes.length||Object.keys(data.day||{}).length));
+  if(!data||typeof data!=='object')return false;
+  const n=k=>Array.isArray(data[k])?data[k].length:0;
+  return !!(n('exp')||n('inc')||n('ev')||n('notes')||Object.keys(data.day||{}).length);
 }
+function killed(id){
+  if(!id)return;
+  S.del=S.del||[];
+  if(!S.del.some(x=>x.id===id))S.del.push({id:id,at:new Date().toISOString()});
+}
+function stamp(x){ return x&&x.savedAt?new Date(x.savedAt).getTime():0; }
+
+/* Раньше побеждал целиком тот телефон, чьё сохранение свежее. Из-за этого
+   новый телефон с одной записью затирал в облаке весь прошлый год.
+   Теперь записи складываются по номерам, а удалённые остаются удалёнными. */
+function mergeStates(local, remote){
+  const localNewer = stamp(local) >= stamp(remote);
+  const older = localNewer ? remote : local;
+  const newer = localNewer ? local : remote;
+  const out = normalize(JSON.parse(JSON.stringify(newer)));
+
+  const dead = {};
+  [].concat(older.del||[], newer.del||[]).forEach(x => { if(x&&x.id) dead[x.id]=x; });
+  out.del = Object.keys(dead).map(id => dead[id]);
+
+  ['exp','inc','ev','notes'].forEach(k => {
+    const by = {}, old = {};
+    (older[k]||[]).forEach(r => { if(r&&r.id){ by[r.id]=r; old[r.id]=r; } });
+    (newer[k]||[]).forEach(r => { if(r&&r.id) by[r.id]=r; });
+    out[k] = Object.keys(by).filter(id => !dead[id]).map(id => {
+      const rec = by[id], was = old[id];
+      /* список покупок правится с двух телефонов вперемешку. Если брать
+         запись целиком, пункты, добавленные на другом телефоне, пропадут. */
+      if (k === 'notes' && was && was !== rec && Array.isArray(rec.items) && Array.isArray(was.items)){
+        const merged = rec.items.slice();
+        const known = {};
+        merged.forEach(i => { if(i&&i.t) known[i.t.toLowerCase()]=1; });
+        was.items.forEach(i => { if(i&&i.t&&!known[i.t.toLowerCase()]) merged.push(i); });
+        return Object.assign({}, rec, {items:merged});
+      }
+      return rec;
+    });
+  });
+
+  out.day = Object.assign({}, older.day||{}, newer.day||{});
+
+  /* обычно свежая настройка вытесняет прежнюю, но нетронутое значение
+     по умолчанию (пустое имя, ноль дохода) вытеснять заполненное не должно */
+  const bs = blank().settings;
+  out.settings = Object.assign({}, older.settings||{}, newer.settings||{});
+  Object.keys(bs).forEach(k => {
+    const nv = (newer.settings||{})[k], ov = (older.settings||{})[k];
+    if (nv === bs[k] && ov !== undefined && ov !== bs[k]) out.settings[k] = ov;
+  });
+
+  const first = [older.firstDataAt, newer.firstDataAt].filter(Boolean).sort();
+  out.firstDataAt = first[0] || null;
+  out.backupAt = [older.backupAt, newer.backupAt].filter(Boolean).sort().pop() || null;
+  out.savedAt = new Date().toISOString();
+  return normalize(out);
+}
+/* Строка отвечает на один вопрос: цела ли запись. Поэтому в каждом состоянии
+   стоит законченная фраза, а не обрывок, и даже при сбое облака сказано,
+   что на устройстве всё сохранено. */
 function cloudLabel(){
   if(!storageOk)return 'НЕ СОХРАНЯЕТСЯ';
   if(cloudState==='syncing')return '⟳ сохраняю в облако';
   if(cloudState==='synced')return '✓ сохранено в облаке';
-  if(cloudState==='offline')return '○ без сети · сохранено на телефоне';
-  if(cloudState==='error')return '! облако временно недоступно';
-  return S&&S.savedAt?'✓ на телефоне '+new Date(S.savedAt).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'автосохранение включено';
+  if(cloudState==='offline')return '○ нет сети · сохранено на устройстве';
+  if(cloudState==='error')return '! облако недоступно · сохранено на устройстве';
+  return '✓ сохранено';
 }
 function setCloudState(state,error){cloudState=state;cloudError=error||'';const el=document.getElementById('saved');if(el)el.textContent=cloudLabel();}
 function scheduleCloudSync(){
   if(!cloudUser)return;
+  cloudRetry=0;
   clearTimeout(cloudTimer);
   if(!navigator.onLine){setCloudState('offline');return;}
   setCloudState('syncing');
@@ -462,21 +613,41 @@ async function pushCloud(){
     const payload=JSON.parse(JSON.stringify(S));
     const result=await cloudClient.from('user_app_data').upsert({user_id:cloudUser.id,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});
     if(result.error)throw result.error;
+    cloudRetry=0;
     setCloudState('synced');
-  }catch(e){setCloudState('error',e&&e.message);}
+  }catch(e){
+    setCloudState('error',e&&e.message);
+    /* раньше одна неудачная отправка оставляла записи неотправленными
+       до следующей правки. Пробуем сами, с растущей паузой. */
+    if(cloudRetry<5){
+      const wait=Math.min(60000,4000*Math.pow(2,cloudRetry));
+      cloudRetry++;
+      clearTimeout(cloudTimer);
+      cloudTimer=setTimeout(pushCloud,wait);
+    }
+  }
 }
 async function connectCloudUser(user){
   cloudUser=user;setCloudState('syncing');
   try{
     const result=await cloudClient.from('user_app_data').select('payload,updated_at').eq('user_id',user.id).maybeSingle();
     if(result.error)throw result.error;
-    const remote=result.data&&result.data.payload;
-    if(remote&&hasUserData(remote)){
-      const localTime=S.savedAt?new Date(S.savedAt).getTime():0,remoteTime=remote.savedAt?new Date(remote.savedAt).getTime():0;
-      if(!hasUserData(S)||remoteTime>localTime){S=remote;saveQuiet();renderAll();}
-      else await pushCloud();
-    }else await pushCloud();
-    setCloudState('synced');
+    const remote=result.data&&result.data.payload?normalize(result.data.payload):null;
+    /* записи на этом телефоне принадлежат другому аккаунту: складывать их
+       с чужими нельзя, но и стирать молча тоже. Убираем в отдельный ящик. */
+    const foreign=S.settings.cloudOwner&&S.settings.cloudOwner!==user.id;
+    if(foreign&&hasUserData(S)){
+      try{localStorage.setItem(KEY+':prev',JSON.stringify(S));}catch(e){}
+      S=remote||blank();
+      S.settings.cloudOwner=user.id;saveQuiet();renderAll();
+      toast('Записи прежнего аккаунта отложены и в это облако не отправлены');
+      setCloudState('synced');await pushCloud();renderAll();return;
+    }
+    if(remote&&hasUserData(remote))S=mergeStates(S,remote);
+    S.settings.cloudOwner=user.id;
+    saveQuiet();renderAll();
+    await pushCloud();
+    if(cloudState!=='error')setCloudState('synced');
   }catch(e){setCloudState(navigator.onLine?'error':'offline',e&&e.message);}
   renderAll();
 }
@@ -506,6 +677,15 @@ async function cloudRegister(){
   if(result.error){setCloudState('error',result.error.message);toast('Не удалось создать аккаунт: '+result.error.message);return;}
   if(result.data&&result.data.session){closeSheet();toast('Аккаунт создан. Данные отправляются в облако');}
   else toast('Откройте письмо подтверждения, затем вернитесь и войдите');
+}
+/* без этого забытый пароль означал безвозвратно потерянный доступ
+   к облачным записям: другого способа войти не было */
+async function cloudReset(){
+  const email=val('cloud-email').toLowerCase();
+  if(!email){toast('Введите почту, на которую заведён аккаунт');return;}
+  const result=await cloudClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
+  if(result.error){toast('Не удалось отправить письмо: '+result.error.message);return;}
+  toast('Письмо для смены пароля отправлено на '+email);
 }
 async function cloudSignOut(){
   if(!window.confirm('Выйти из облачного аккаунта? Данные на этом телефоне останутся.'))return;
@@ -543,6 +723,9 @@ function plural(n,a,b,c){ n = Math.abs(n)%100; const d = n%10;
 
 function toast(t){
   const host = document.getElementById('toasts');
+  /* одно и то же сообщение не должно копиться стопкой при повторных нажатиях */
+  const same = [...host.children].find(x => x.textContent === t);
+  if (same){ host.appendChild(same); return; }
   const el = document.createElement('div');
   el.className = 'toast'; el.textContent = t;
   host.appendChild(el);
@@ -551,40 +734,19 @@ function toast(t){
 
 /* ---------- расчёты ---------- */
 function expOf(m){ return inCur(S.exp.filter(e => monthOf(e.date) === m)); }
-function incOf(m){ return inCur(S.inc.filter(e => monthOf(e.date) === m)); }
-/* сколько записано в других валютах — чтобы не молчать об этом */
-function otherCurs(m){
-  const r = {};
-  S.exp.concat(S.inc).forEach(e => {
-    if (monthOf(e.date) !== m || curOf(e) === S.settings.cur) return;
-    r[curOf(e)] = (r[curOf(e)] || 0) + (+e.sum || 0);
-  });
-  return Object.entries(r);
-}
 /* месяц ещё не кончился: сравнивать с прошлым можно только равные отрезки */
 function dayNow(){ return new Date().getDate(); }
 function expUpTo(m, day){ return expOf(m).filter(e => +e.date.slice(8) <= day); }
-function spentUpTo(m, day){ return sum(expUpTo(m, day)); }
 function byCatUpTo(m, day){
   const r = {};
   expUpTo(m, day).forEach(e => { r[e.cat] = (r[e.cat] || 0) + (+e.sum || 0); });
   return Object.entries(r).sort((a,b) => b[1] - a[1]);
 }
 function sum(a){ return a.reduce((s,x) => s + (+x.sum || 0), 0); }
-function spentMonth(m){ return sum(expOf(m)); }
 function byCat(m){
   const r = {};
   expOf(m).forEach(e => { r[e.cat] = (r[e.cat] || 0) + (+e.sum || 0); });
   return Object.entries(r).sort((a,b) => b[1] - a[1]);
-}
-function budgetOf(){
-  const s = S.settings;
-  return s.income ? Math.max(0, s.income - (s.save || 0)) : 0;
-}
-function freeLeft(){ return budgetOf() - spentMonth(monthOf(today())); }
-function daysLeft(){
-  const t = new Date(), n = daysInMonth(monthOf(today()));
-  return Math.max(1, n - t.getDate() + 1);
 }
 function occursOn(e, d){
   if (e.date === d) return true;
@@ -597,7 +759,29 @@ function occursOn(e, d){
 function repeatLabel(e){
   return e.repeat === 'week' ? 'каждую неделю' : e.repeat === 'month' ? 'каждый месяц' : e.repeat === 'year' ? 'каждый год' : '';
 }
-function evOf(d){ return S.ev.filter(x => occursOn(x, d)).sort((a,b) => (a.time||'').localeCompare(b.time||'')); }
+/* Прежде каждая клетка календаря перебирала все события и все заметки.
+   На 120 месяцах это 3600 полных проходов по данным за одну отрисовку.
+   Теперь разовые записи разложены по датам один раз, а перебираются
+   только повторяющиеся — их всегда единицы. */
+let dateIndex = null;
+function dropIndex(){ dateIndex = null; }
+function buildIndex(){
+  const ev = {}, notes = {}, repeating = [];
+  (S.ev || []).forEach(e => {
+    if (!e.repeat || e.repeat === 'none') (ev[e.date] = ev[e.date] || []).push(e);
+    else repeating.push(e);
+  });
+  (S.notes || []).forEach(n => { if (n.due) (notes[n.due] = notes[n.due] || []).push(n); });
+  dateIndex = {ev, notes, repeating};
+  return dateIndex;
+}
+function evOf(d){
+  const ix = dateIndex || buildIndex();
+  const own = ix.ev[d] || [];
+  const rep = ix.repeating.filter(x => occursOn(x, d));
+  return (rep.length ? own.concat(rep) : own.slice()).sort((a,b) => (a.time||'').localeCompare(b.time||''));
+}
+function notesOn(d){ const ix = dateIndex || buildIndex(); return ix.notes[d] || []; }
 /* ближайшие даты повторяющихся и разовых событий на N дней вперёд */
 function upcoming(days){
   const out = [];
@@ -610,10 +794,10 @@ function upcoming(days){
 function dayRec(d){ if (!S.day[d]) S.day[d] = {}; return S.day[d]; }
 /* на первом экране показываем только то, что в ближайшую неделю:
    событие через месяц утром не нужно, оно живёт в календаре */
+/* Сегодняшние события и так перечислены ниже, в карточке «Сегодня».
+   Смысл этой карточки — заглянуть дальше сегодняшнего дня, иначе на экране
+   дважды подряд стоит одно и то же событие. */
 function nextEvent(){
-  const now = new Date().toTimeString().slice(0,5);
-  const t = evOf(today()).find(e => (e.time || '99:99') >= now);
-  if (t) return {e:t, when:'сегодня'};
   const up = upcoming(7).find(x => x.date > today());
   if (up) return {e:up.e, when:humanDate(up.date)};
   const far = upcoming(400).find(x => x.date > today());
@@ -624,14 +808,16 @@ function todo(){
   const d = today();
   upcoming(14).filter(x => x.in > 0).slice(0,4).forEach(x => {
     const e = x.e;
-    if (e.kind === 'bd' && x.in <= 10)
-      out.push(['🎂', e.title,
-        'Через ' + x.in + ' ' + plural(x.in,'день','дня','дней') + ' — успеть с подарком', null]);
-    else if (e.kind === 'pay' && x.in <= 3)
-      out.push(['💳', e.title + (e.plan ? ' — ' + money(e.plan) : ''),
-        'Платёж через ' + x.in + ' ' + plural(x.in,'день','дня','дней'), null]);
+    const days = x.in + ' ' + plural(x.in,'день','дня','дней');
+    /* Раньше заблаговременное напоминание давал отдельный переключатель типа.
+       Теперь его даёт сам повтор: ежегодная дата и есть та, о которой
+       нужно знать заранее — день рождения, годовщина, продление документа. */
+    if (e.repeat === 'year' && x.in <= 10)
+      out.push(['✦', e.title, 'Через ' + days + ' — можно подготовиться', null]);
+    else if (e.kind === 'bd' && x.in <= 10)
+      out.push(['🎂', e.title, 'Через ' + days + ' — успеть с подарком', null]);
     else if (e.kind === 'doc' && x.in <= 14)
-      out.push(['📄', e.title, 'Срок подходит через ' + x.in + ' ' + plural(x.in,'день','дня','дней'), null]);
+      out.push(['📄', e.title, 'Срок подходит через ' + days, null]);
   });
   const last = S.backupAt ? (Date.now() - new Date(S.backupAt).getTime()) / 86400000 : 99;
   return out;
@@ -640,12 +826,7 @@ function todo(){
 /* ---------- добавление записей ---------- */
 function addExp(o){ S.exp.push(Object.assign({id:uid(), date:today(), src:'вручную', cur:S.settings.cur}, o)); save(); }
 function addInc(o){ S.inc.push(Object.assign({id:uid(), date:today(), src:'вручную', cur:S.settings.cur}, o)); save(); }
-function addEv(o){ S.ev.push(Object.assign({id:uid(), date:today()}, o)); save(); }
-function drop(list, id){
-  S[list] = S[list].filter(x => x.id !== id);
-  save(); toast('Запись удалена');
-}
-
+function addEv(o){ const rec = Object.assign({id:uid(), date:today()}, o); S.ev.push(rec); save(); return rec; }
 /* ---------- разбор надиктованного ---------- */
 const WORDNUM = {'ноль':0,'один':1,'одну':1,'два':2,'две':2,'три':3,'четыре':4,'пять':5,'шесть':6,'семь':7,'восемь':8,'девять':9,'десять':10,
  'одиннадцать':11,'двенадцать':12,'тринадцать':13,'четырнадцать':14,'пятнадцать':15,'шестнадцать':16,'семнадцать':17,'восемнадцать':18,'девятнадцать':19,
@@ -665,9 +846,18 @@ const CAT_WORDS = {
 };
 const WDAY_WORDS = {'понедельник':1,'вторник':2,'сред':3,'четверг':4,'пятниц':5,'суббот':6,'воскресен':0};
 
+let DATE_WORDS_RE = null;
 function parseSum(raw){
   // выражения времени вырезаем, иначе «в шесть» превращается в шесть рублей
-  const text = String(raw)
+  // «двадцать девятого сентября» — это дата, а не двадцать рублей
+  if (!DATE_WORDS_RE){
+    const n = Object.keys(WORDNUM).join('|'), o = Object.keys(ORD).join('|'), m = MONTH_GEN.join('|');
+    DATE_WORDS_RE = [
+      new RegExp('\\s(' + n + ')\\s+(' + o + ')(\\s+(' + m + '))?', 'gi'),
+      new RegExp('\\s(' + o + ')\\s+(' + m + ')', 'gi')
+    ];
+  }
+  const text = DATE_WORDS_RE.reduce((t, re) => t.replace(re, ' '), String(raw))
     .replace(/\sв\s+\d{1,2}([:.]\d{2})?(\s+часов|\s+утра|\s+вечера|\s+дня)?/gi,' ')
     .replace(/\sв\s+(час|два|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать)(\s+часов|\s+утра|\s+вечера|\s+дня)?/gi,' ');
   const digits = text.match(/(\d[\d\s]{0,8})\s*(?:р|₽|руб|тыс)?/i);
@@ -907,6 +1097,15 @@ function parseSpeech(text){
     }
     segments(clean0).forEach(x => parts.push(x));
   });
+  /* «позвонить маме, завтра»: время и дата в конце относятся к тому,
+     что было сказано перед ними, а не ждут следующей фразы */
+  const bareWhenPart = p => (parseTime(p) || parseDate(p) !== today()) && clean(p).length < 3;
+  for (let i = parts.length - 1; i > 0; i--){
+    if (bareWhenPart(parts[i]) && !bareWhenPart(parts[i-1])){
+      parts[i-1] = parts[i-1] + ' ' + parts[i];
+      parts.splice(i, 1);
+    }
+  }
   parts.forEach(part => {
     const low = part.toLowerCase();
     // кусок только про время и дату, без дела — придержим для следующего
@@ -933,7 +1132,7 @@ function parseSpeech(text){
     const isIncome = /получил|зарплат|аванс|перевели|пришл[аои] деньги|заработал|кэшбэк|premi|прем/i.test(low);
     const hasDate = parseDate(part) !== today() || /сегодня/i.test(low);
     const actionVerb = /отправ|написа|позвон|заеха|зайти|зайду|забра|сходи|отвез|оплат|сдать|встрет|привез|отдат|занест|получит|подать|подпис|улета|улечу|улетаю|прилета/i.test(low);
-    const isEvent = /встреч|созвон|запис|маникюр|педикюр|врач|зал|тренир|поезд|вылет|прилет|прилёт|приезж|приезд|рейс|самол[её]т|билет|отпуск|день рожд|позвонить|отправлен/i.test(low)
+    const isEvent = /встреч|созвон|запис|маникюр|педикюр|парикмахер|стоматолог|косметолог|массаж|брови|ресниц|врач|зал|тренир|танц|уч[её]б|школ|садик|поезд|вылет|прилет|прилёт|приезж|приезд|рейс|самол[её]т|билет|отпуск|день рожд|годовщин|позвонить|отправлен/i.test(low)
                     && (parseTime(part) || hasDate);
     const isTask = actionVerb && (parseTime(part) || hasDate || pending);
     if (isEvent || isTask){
@@ -1078,14 +1277,22 @@ function setDock(id){
   if (tx) tx.textContent = d[0];
   if (b){ b.hidden = id === 's-more'; b.setAttribute('aria-label', d[0] + '. ' + d[2]); }
 }
-function focusNote(){
+function focusNote(kind){
+  if (kind && (S.settings.notesTab || 'task') !== kind){ S.settings.notesTab = kind; saveQuiet(); renderNotes(); }
   const el = document.getElementById('n-text');
-  if (el){ el.focus(); el.scrollIntoView({block:'center'}); }
+  if (el){ el.focus(); try{ el.scrollIntoView({block:'center'}); }catch(e){} }
   else openSheet('voice');
 }
 function go(btn, id){
   curScreen = id;
   setDock(id);
+  if (id === 's-cal' && calDirty){
+    /* возвращаясь в календарь, начинаем с текущего года — прокрутка вглубь
+       всё равно потеряна, а перестраивать сразу десять лет незачем */
+    calendarMonthCount = Math.min(calendarMonthCount, 12);
+    const c = document.getElementById('s-cal'); if (c) c.hidden = false;
+    renderCal(true);
+  }
   document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected','false'));
   btn.setAttribute('aria-selected','true');
   document.querySelectorAll('.screen').forEach(s => s.hidden = s.id !== id);
@@ -1098,10 +1305,29 @@ function goScreen(id){
 function bar(pct, color){
   return '<div class="bar"><i style="width:' + Math.max(0, Math.min(100, pct)) + '%;background:' + (color || 'var(--accent)') + '"></i></div>';
 }
+/* Общее правило экранов: при открытии видно только заголовок и короткий итог.
+   Всё содержимое разворачивается нажатием. Иначе экран вываливает всё сразу
+   и понять, что где, невозможно. */
+let foldOpen = {};
+function toggleFold(key){ foldOpen[key] = !foldOpen[key]; renderAll(); }
+function fold(key, title, summary, body, openByDefault){
+  const open = foldOpen[key] === undefined ? !!openByDefault : foldOpen[key];
+  return '<div class="card fold' + (open ? ' open' : '') + '">' +
+    '<button type="button" class="fold-head" onclick="toggleFold(\'' + key + '\')" aria-expanded="' + open + '">' +
+      '<span class="fold-title">' + esc(title) + '</span>' +
+      (summary ? '<span class="fold-sum">' + esc(summary) + '</span>' : '') +
+      '<span class="fold-arrow" aria-hidden="true">' + (open ? '⌃' : '⌄') + '</span>' +
+    '</button>' +
+    (open ? '<div class="fold-body">' + body +
+      '<button type="button" class="fold-close" onclick="toggleFold(\'' + key + '\')">свернуть ↑</button>' +
+      '</div>' : '') +
+  '</div>';
+}
 function card(inner, cls){ return '<div class="card' + (cls ? ' ' + cls : '') + '">' + inner + '</div>'; }
 function lab(t){ return '<div class="lab">' + esc(t) + '</div>'; }
 
 function renderAll(){
+  dropIndex();
   const d = new Date();
   document.getElementById('today-date').textContent =
     WDAYS[d.getDay()].charAt(0).toUpperCase() + WDAYS[d.getDay()].slice(1) + ', ' + humanDate(today());
@@ -1114,8 +1340,8 @@ function renderToday(){
   const d = today(), rec = dayRec(d);
   let h = greetingCard();
 
-  if (!storageOk) h += '<div class="warnbar">Браузер не сохраняет данные. Проверьте, не открыт ли режим инкогнито.</div>';
-  if (!cloudUser) h += '<div class="tip" style="cursor:pointer" onclick="openSheet(\'cloudAuth\')">Защитите записи от потери: подключить облачное сохранение →</div>';
+  if (!storageOk) h += '<div class="warnbar">Записи не сохраняются. Обычно это переполненная память браузера или режим инкогнито. Сохраните резервную копию, пока приложение открыто.</div>';
+  if (!cloudUser) h += '<button type="button" class="tip" onclick="openSheet(\'cloudAuth\')">Защитите записи от потери: подключить облачное сохранение →</button>';
 
   if (!S.settings.hi){
     h += card('<div style="font-size:14px;margin-bottom:10px">Здесь собраны планы на сегодня. Отмечайте выполненное галочкой, а новые дела, события и заметки добавляйте одной кнопкой.</div>' +
@@ -1123,20 +1349,42 @@ function renderToday(){
       '<button class="btn ghost" style="flex:1" onclick="hideHi()">Понятно</button>' +
       '<button class="btn" style="flex:1" onclick="openSheet(\'hi\')">Подробнее</button></div>');
   }
+  /* Система наблюдений была построена целиком, но карточку никто не выводил.
+     Показываем её сразу после приветствия, до планов на день. */
+  h += veilCard();
+
+  /* просроченное должно быть первым, а не в самом низу экрана */
+  const dn = dueNotes();
+  if (dn.length) h += card(lab('Напоминание') + dn.map(n =>
+    '<div class="item" style="align-items:flex-start"><div class="ic">🔔</div>' +
+    '<button type="button" class="txt" onclick="editNote(\'' + n.id + '\')">' +
+    '<b style="font-weight:400;font-size:14px">' + esc(n.text) + '</b>' +
+    '<small>' + dueLabel(n) + ' · нажмите, чтобы изменить</small></button>' +
+    ((n.kind || 'task') === 'task' ? '<button class="tick" onclick="toggleNoteDone(\'' + n.id + '\')" title="Отметить выполненным"></button>' :
+      '<button class="del" style="color:var(--accent)" onclick="clearDue(\'' + n.id + '\')">снять</button>') + '</div>').join(''));
+
   const nx = nextEvent();
   h += card(
-    '<div class="row" style="align-items:flex-start"><div>' + lab('Ближайшее событие') +
+    '<div class="row" style="align-items:flex-start"><div>' + lab('Дальше по плану') +
     (nx && !nx.far
       ? '<div style="font-family:\'Spectral\',serif;font-size:18px;font-weight:600">' + esc(nx.e.title) + '</div>' +
         '<div class="mut" style="margin-top:3px">' + (nx.e.time ? esc(nx.e.time) + ' · ' : '') + esc(nx.when) +
-          (!nx.e.time ? ' · время не указано' : '') + '</div>'
+          (!nx.e.time ? ' · время не указано' : '') +
+          (repeatLabel(nx.e) ? ' · ' + repeatLabel(nx.e) : '') + '</div>'
       : nx && nx.far
         ? '<div class="mut">На ближайшую неделю ничего не назначено.</div>' +
-          '<div class="mut" style="margin-top:5px;font-size:11px">Следующее — «' + esc(nx.e.title) + '», ' + esc(nx.when) +
+          '<div class="mut" style="margin-top:5px;font-size:11px">Следующее — ' +
+          '<button type="button" class="txt" style="display:inline;font-size:11px;text-decoration:underline" ' +
+          'onclick="editEv(\'' + nx.e.id + '\')">«' + esc(nx.e.title) + '», ' + esc(nx.when) + '</button>' +
           '. Напомню ближе к дате.</div>'
-        : '<div class="mut">Ничего не назначено. Добавьте встречу или напоминание.</div>') +
-    '</div>' + (nx ? '<button class="chip" onclick="editEv(\'' + nx.e.id + '\')">' + (nx.e.time ? 'Перенести / удалить' : 'Указать время') + '</button>' :
-      '<button class="chip" onclick="go(document.querySelector(\'.tabs button:nth-child(2)\'),\'s-cal\')">План →</button>') + '</div>', (nx && !nx.far) ? 'now' : '');
+        : '<div class="mut">Дальше сегодняшнего дня пока ничего не назначено.</div>') +
+    '</div>' +
+    /* кнопка должна относиться к тому, что написано рядом. Пока ближайшая неделя
+       пуста, «Перенести / удалить» повисало в воздухе: переносить было нечего. */
+    (nx && !nx.far
+      ? '<button class="chip" onclick="editEv(\'' + nx.e.id + '\')">' + (nx.e.time ? 'Перенести / удалить' : 'Указать время') + '</button>'
+      : '<button class="chip" onclick="go(document.querySelector(\'.tabs button:nth-child(2)\'),\'s-cal\')">План →</button>') +
+    '</div>', (nx && !nx.far) ? 'now' : '');
 
   const ev = evOf(d);
   const visibleEv = S.settings.showDone ? ev : ev.filter(e => !(rec.done || []).includes(e.id));
@@ -1145,8 +1393,10 @@ function renderToday(){
   h += card(lab('Сегодня') + (todayTasks.length ? '<div class="mut" style="margin-bottom:10px">Выполнено ' + todayDone + ' из ' + todayTasks.length + '</div>' : '') +
     (visibleEv.length ? visibleEv.map(e => {
         const done = (rec.done || []).includes(e.id);
-        return '<div class="tl' + (done ? ' done' : ' next') + '"><div class="tl-dot"></div>' +
-          '<div class="tl-time">' + esc(e.time || '—') + '</div>' +
+        /* время события уже прошло, а отметки нет — это надо видеть, а не искать */
+        const late = !done && e.time && e.time < nowHHMM();
+        return '<div class="tl' + (done ? ' done' : (late ? ' late' : ' next')) + '"><div class="tl-dot"></div>' +
+          '<div class="tl-time">' + esc(e.time || '—') + (late ? ' <span class="late-mark">уже прошло</span>' : '') + '</div>' +
           '<div class="row"><span class="tl-what" onclick="editEv(\'' + e.id + '\')" style="cursor:pointer' + (done ? ';text-decoration:line-through;color:var(--mut)' : '') + '">' +
           esc(e.title) + '</span>' +
           ((e.kind || 'plain') === 'plain' ? '<button class="tick' + (done ? ' on' : '') + '" onclick="toggleDone(\'' + e.id + '\')" title="Сделано">' +
@@ -1157,29 +1407,21 @@ function renderToday(){
   const lists = activeLists();
   lists.forEach(n => {
     const left = n.items.filter(i => !i.done).length;
-    h += card('<div class="row" style="margin-bottom:6px">' +
-      lab('Список' + (n.where ? ' · ' + n.where : '')).replace('margin-bottom:8px','') +
-      '<button class="mini" onclick="editNote(\'' + n.id + '\')">изменить</button></div>' + listBody(n) +
-      '<div class="mut" style="margin-top:8px;font-size:11px">Осталось ' + left + ' ' +
-      plural(left,'пункт','пункта','пунктов') + '.</div>');
+    h += fold('today-list-' + n.id, (n.title || 'Список') + (n.where ? ' · ' + n.where : ''),
+      'осталось ' + left + ' ' + plural(left,'пункт','пункта','пунктов'),
+      listBody(n) +
+      '<button class="btn ghost" style="margin-top:10px" onclick="editNote(\'' + n.id + '\')">Изменить список</button>');
   });
 
-  const dn = dueNotes();
-  if (dn.length) h += card(lab('Напоминание') + dn.map(n =>
-    '<div class="item" style="align-items:flex-start"><div class="ic">🔔</div>' +
-    '<div class="txt" onclick="editNote(\'' + n.id + '\')" style="cursor:pointer">' +
-    '<b style="font-weight:400;font-size:14px">' + esc(n.text) + '</b>' +
-    '<small>' + (n.due === today() ? 'на сегодня' : 'было на ' + humanDate(n.due)) + ' · нажмите, чтобы изменить</small></div>' +
-    ((n.kind || 'task') === 'task' ? '<button class="tick" onclick="toggleNoteDone(\'' + n.id + '\')" title="Отметить выполненным"></button>' :
-      '<button class="del" style="color:var(--accent)" onclick="clearDue(\'' + n.id + '\')">снять</button>') + '</div>').join(''));
-
   if (backupDue())
-    h += '<div class="tip" style="cursor:pointer" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохранить сейчас →</div>';
+    h += '<button type="button" class="tip" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохранить сейчас →</button>';
 
   const td = todo();
   if (td.length) h += card(lab('Нужно отметить') + td.map(t =>
-    '<div class="item"' + (t[3] ? ' onclick="' + t[3] + '" style="cursor:pointer"' : '') + '><div class="ic">' + t[0] + '</div>' +
-    '<div class="txt"><b>' + esc(t[1]) + '</b><small>' + esc(t[2]) + '</small></div></div>').join(''));
+    '<div class="item"><div class="ic">' + t[0] + '</div>' +
+    (t[3] ? '<button type="button" class="txt" onclick="' + t[3] + '">' : '<div class="txt">') +
+    '<b>' + esc(t[1]) + '</b><small>' + esc(t[2]) + '</small>' +
+    (t[3] ? '</button>' : '</div>') + '</div>').join(''));
 
   document.getElementById('s-today').innerHTML = h;
 }
@@ -1210,12 +1452,30 @@ function hideHi(){ S.settings.hi = 1; save(); }
 
 /* ---------- План: непрерывный календарь ---------- */
 let selDay = today(), calendarMonthCount = 12;
+function nowHHMM(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function planDone(date,id){ return !!(S.day[date]&&S.day[date].done&&(S.day[date].done||[]).includes(id)); }
 function togglePlanDone(date,id){ const r=dayRec(date);r.done=r.done||[];r.doneAt=r.doneAt||{};const i=r.done.indexOf(id);if(i>=0){r.done.splice(i,1);delete r.doneAt[id];}else{r.done.push(id);r.doneAt[id]=today();}save(); }
-function planCount(date){ return evOf(date).length+S.notes.filter(n=>n.due===date).length; }
 function addMonths(key, amount){ const p=key.split('-').map(Number);return iso(new Date(p[0],p[1]-1+amount,1)).slice(0,7); }
 function calendarEntries(date){
-  return evOf(date).map(e=>({title:e.title,e:e})).concat(S.notes.filter(n=>n.due===date).map(n=>({title:noteTitle(n),note:n})));
+  /* в клетке календаря у списка достаточно названия: перечень пунктов
+     превращал ячейку в кашу */
+  return evOf(date).map(e=>({title:e.title,e:e}))
+    .concat(notesOn(date).map(n=>({title:n.items ? (n.title || 'Список') : noteTitle(n), note:n})));
+}
+/* Календарь показывал только «здесь что-то есть». Теперь показывает,
+   что с этим стало: закрыто, впереди или прошло и осталось не отмеченным. */
+function dayState(date, known){
+  /* записи для клетки уже собраны выше — собирать их второй раз незачем */
+  const items = known || calendarEntries(date);
+  if (!items.length) return '';
+  const open = items.filter(x => x.e ? !planDone(date, x.e.id) : !x.note.done);
+  if (!open.length) return 'day-done';
+  return date < today() ? 'day-missed' : 'day-ahead';
+}
+function dayStateWord(state, count){
+  if (state === 'day-done') return ', всё отмечено';
+  if (state === 'day-missed') return ', прошло и не отмечено';
+  return count ? ', запланировано' : '';
 }
 function monthCalendar(key){
   const p=key.split('-').map(Number),y=p[0],mm=p[1];
@@ -1225,17 +1485,38 @@ function monthCalendar(key){
   for(let i=1;i<=daysInMonth(key);i++){
     const ds=key+'-'+String(i).padStart(2,'0'),entries=calendarEntries(ds),count=entries.length;
     const preview=entries.slice(0,2).map(x=>'<span class="day-preview">• '+esc(x.title)+'</span>').join('')+(count>2?'<span class="day-preview">ещё '+(count-2)+'</span>':'');
-    cells+='<button type="button" class="d'+(ds===today()?' today':'')+(count?' has-plan':'')+'" onclick="openDay(\''+ds+'\')" aria-label="'+humanDate(ds)+', записей: '+count+'"><span class="day-num">'+i+'</span>'+preview+'</button>';
+    const st=dayState(ds,entries);
+    cells+='<button type="button" class="d'+(ds===today()?' today':'')+(count?' has-plan':'')+(st?' '+st:'')+'" onclick="openDay(\''+ds+'\')" aria-label="'+(count?humanDate(ds)+', записей: '+count+dayStateWord(st,count):humanDate(ds))+'"><span class="day-num">'+i+'</span>'+preview+'</button>';
   }
   return '<div class="month-card"><div class="month-title">'+MONTHS_N[mm-1]+' '+y+'</div><div class="cal continuous-cal">'+heads+cells+'</div></div>';
 }
-function renderCal(){
-  const host=document.getElementById('s-cal'),scroll=host.scrollTop,start=monthOf(today());
-  let h='<div class="calendar-stream">';for(let i=0;i<calendarMonthCount;i++)h+=monthCalendar(addMonths(start,i));
-  host.innerHTML=h+'</div>';host.scrollTop=scroll;
+/* Календарь перестраивался при каждом сохранении, даже когда открыт другой
+   экран. На 120 месяцах это 4000 клеток впустую после каждой записи.
+   Теперь пока календарь не виден, он только помечается устаревшим. */
+let calDirty = true;
+function renderCal(force){
+  const host=document.getElementById('s-cal');
+  if (!host) return;
+  if (!force && host.hidden){ calDirty = true; return; }
+  calDirty = false;
+  const scroll=host.scrollTop,start=monthOf(today());
+  let h='<div class="calendar-stream" id="cal-stream">' + monthsHtml(0, calendarMonthCount) + '</div>';
+  host.innerHTML=h;host.scrollTop=scroll;
+}
+function monthsHtml(from, count){
+  const start = monthOf(today());
+  let h = '';
+  for (let i = from; i < from + count; i++) h += monthCalendar(addMonths(start, i));
+  return h;
 }
 function calendarScroll(el){
-  if(el.scrollHeight-el.scrollTop-el.clientHeight<450&&calendarMonthCount<120){calendarMonthCount+=12;renderCal();}
+  if (el.scrollHeight - el.scrollTop - el.clientHeight >= 450 || calendarMonthCount >= 120) return;
+  /* дописываем следующий год снизу, а не перерисовываем весь календарь */
+  const stream = document.getElementById('cal-stream');
+  if (stream){
+    stream.insertAdjacentHTML('beforeend', monthsHtml(calendarMonthCount, 12));
+    calendarMonthCount += 12;
+  } else { calendarMonthCount += 12; renderCal(); }
 }
 function openDay(date){selDay=date;openSheet('day',date);}
 function togglePlanDoneInDay(date,id){togglePlanDone(date,id);openSheet('day',date);}
@@ -1243,11 +1524,12 @@ function toggleNoteDoneInDay(date,id){toggleNoteDone(id);openSheet('day',date);}
 function mapsUrl(address){return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(address||'');}
 function daySheet(date){
   const entries=calendarEntries(date);
-  let h='<div class="day-sheet-date">'+humanDate(date)+' '+date.slice(0,4)+'</div><div class="mut" style="margin-bottom:12px">'+WDAYS[new Date(date+'T12:00').getDay()]+'</div>';
+  const thisYear = date.slice(0,4) === today().slice(0,4);
+  let h='<div class="day-sheet-date">'+humanDate(date)+(thisYear?'':' '+date.slice(0,4))+'</div>';
   if(!entries.length)h+='<div class="day-sheet-empty">На эту дату записей пока нет.</div>';
   entries.forEach(x=>{
-    if(x.e){const e=x.e,done=planDone(date,e.id),task=(e.kind||'plain')==='plain';h+='<div class="plan-event'+(done?' done':'')+'"><span class="plan-time">'+esc(e.time||'без времени')+'</span><span class="plan-name" onclick="editEv(\''+e.id+'\')">'+esc(e.title)+(e.address?'<small class="plan-meta">'+esc(e.address)+'</small>':'')+'</span><span class="plan-actions">'+(task?'<button class="tick'+(done?' on':'')+'" onclick="togglePlanDoneInDay(\''+date+'\',\''+e.id+'\')">'+(done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editEv(\''+e.id+'\')">изменить</button></span></div>'+(e.address?'<a class="mini" style="display:inline-block;margin:5px 0 8px 60px;text-decoration:none" target="_blank" rel="noopener" href="'+mapsUrl(e.address)+'">Открыть в картах →</a>':'');}
-    else{const n=x.note,task=!n.items&&(n.kind||'task')==='task';h+='<div class="plan-event'+(n.done?' done':'')+'"><span class="plan-time">заметка</span><span class="plan-name" onclick="editNote(\''+n.id+'\')">'+esc(noteTitle(n))+'</span><span class="plan-actions">'+(task?'<button class="tick'+(n.done?' on':'')+'" onclick="toggleNoteDoneInDay(\''+date+'\',\''+n.id+'\')">'+(n.done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editNote(\''+n.id+'\')">изменить</button></span></div>';}
+    if(x.e){const e=x.e,done=planDone(date,e.id),task=(e.kind||'plain')==='plain';h+='<div class="plan-event'+(done?' done':'')+'"><span class="plan-time">'+esc(e.time||'без времени')+'</span><span class="plan-name" onclick="editEv(\''+e.id+'\')">'+esc(e.title)+(repeatLabel(e)?'<small class="plan-meta">'+esc(repeatLabel(e))+'</small>':'')+(e.address?'<small class="plan-meta">'+esc(e.address)+'</small>':'')+'</span><span class="plan-actions">'+(task?'<button class="tick'+(done?' on':'')+'" onclick="togglePlanDoneInDay(\''+date+'\',\''+e.id+'\')">'+(done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editEv(\''+e.id+'\')">изменить</button></span></div>'+(e.address?'<a class="mini" style="display:inline-block;margin:5px 0 8px 60px;text-decoration:none" target="_blank" rel="noopener" href="'+mapsUrl(e.address)+'">Открыть в картах →</a>':'');}
+    else{const n=x.note,task=!n.items&&(n.kind||'task')==='task';h+='<div class="plan-event'+(n.done?' done':'')+'"><span class="plan-time">'+(n.items?'список':task?'дело':'заметка')+'</span><span class="plan-name" onclick="editNote(\''+n.id+'\')">'+esc(noteTitle(n))+'</span><span class="plan-actions">'+(task?'<button class="tick'+(n.done?' on':'')+'" onclick="toggleNoteDoneInDay(\''+date+'\',\''+n.id+'\')">'+(n.done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editNote(\''+n.id+'\')">изменить</button></span></div>';}
   });
   return h+'<button class="btn" style="margin-top:14px" onclick="openSheet(\'ev\',\''+date+'\')">Добавить на '+humanDate(date)+'</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
 }
@@ -1268,25 +1550,43 @@ function renderMoney(){
   const host = document.getElementById('s-money'); if (!host) return;
   const range = financeDates(), from = range[0] <= range[1] ? range[0] : range[1], to = range[0] <= range[1] ? range[1] : range[0];
   const rows = inCur(S.exp.filter(e => e.date >= from && e.date <= to)).sort((a,b) => (b.date+b.id).localeCompare(a.date+a.id));
+  /* Доходы вносились и исчезали: в «Финансах» их не было ни списком, ни в правке. */
+  const incTotal = sum(inCur(S.inc.filter(e => e.date >= from && e.date <= to)));
+  const incRows = inCur(S.inc.filter(e => e.date >= from && e.date <= to)).sort((a,b) => (b.date+b.id).localeCompare(a.date+a.id));
   const total = sum(rows), grouped = {};
   rows.forEach(e => { grouped[e.cat || 'Прочее'] = (grouped[e.cat || 'Прочее'] || 0) + (+e.sum || 0); });
   const cats = Object.entries(grouped).sort((a,b)=>b[1]-a[1]);
   const colors = ['#7652A8','#D47794','#4E8C78','#A978C3','#D9A36F','#668DB1','#B26E7C','#8B78A8','#6E9D95','#A7999F'];
   host.innerHTML =
-    '<div class="switch">' +
+    '<div class="switch" role="tablist" aria-label="Период">' +
       [['today','Сегодня'],['week','7 дней'],['month','Месяц'],['custom','Период']].map(x =>
-        '<button aria-selected="' + (financePeriod===x[0]) + '" onclick="financeSet(\'' + x[0] + '\')">' + x[1] + '</button>').join('') + '</div>' +
+        '<button type="button" role="tab" aria-selected="' + (financePeriod===x[0]) + '" onclick="financeSet(\'' + x[0] + '\')">' + x[1] + '</button>').join('') + '</div>' +
     (financePeriod === 'custom' ? card('<div class="grid2"><div class="fld" style="margin:0"><label>С</label><input type="date" value="' + (financeFrom||today()) + '" onchange="financeCustom(\'from\',this.value)"></div>' +
       '<div class="fld" style="margin:0"><label>По</label><input type="date" value="' + (financeTo||today()) + '" onchange="financeCustom(\'to\',this.value)"></div></div>') : '') +
     card('<div class="row"><div>' + lab('Расходы за период') + '<div class="big">' + money(total) + '</div></div>' +
       '<div style="min-width:120px"><div class="lab">Валюта</div><select onchange="setCur(this.value)">' +
         CURR.map(c=>'<option value="'+c[0]+'"'+(c[0]===cur()[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('') + '</select></div></div>' +
       (cats.length ? '<div class="seg">' + cats.map((c,i)=>'<i style="width:'+(c[1]/total*100)+'%;background:'+colors[i%colors.length]+'"></i>').join('') + '</div>' : '') +
-      '<div class="mut" style="margin-top:8px">' + humanDate(from) + ' — ' + humanDate(to) + '</div>', 'navy') +
-    card(lab('По категориям') + (cats.length ? cats.map((c,i)=>
+      '<div class="mut" style="margin-top:8px">' + humanDate(from) + ' — ' + humanDate(to) + '</div>' +
+      /* обе цифры у приложения были, а итог оно не показывало */
+      (incTotal ? '<div class="row" style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.25)">' +
+        '<span>Пришло ' + money(incTotal) + '</span>' +
+        '<b>' + (incTotal - total >= 0 ? 'Осталось ' + money(incTotal - total) : 'Перерасход ' + money(total - incTotal)) + '</b></div>' : ''), 'navy') +
+    fold('fin-cats', 'По категориям',
+      cats.length ? cats.length + ' ' + plural(cats.length,'категория','категории','категорий') : 'пусто',
+      (cats.length ? cats.map((c,i)=>
       '<div class="stat"><span><i class="dot" style="display:inline-block;margin-right:7px;background:'+colors[i%colors.length]+'"></i>'+esc(c[0])+'</span><b>'+money(c[1])+'</b></div>').join('') :
       '<div class="empty">За выбранный период расходов нет.</div>')) +
-    card(lab('Операции') + (rows.length ? rows.map(e=>
+    fold('fin-inc', 'Доходы за период', incTotal ? money(incTotal) : 'пока нет',
+      (incRows.length ? incRows.map(e=>
+      '<div class="item"><div class="ic">+</div><div class="txt"><b>'+esc(e.title)+'</b><small>'+humanDate(e.date)+'</small></div>' +
+      '<div class="sum" style="color:var(--ok)">+'+money(e.sum,curOf(e))+'</div><span style="display:flex;flex-direction:column;gap:4px">' +
+      '<button class="mini" onclick="editInc(\''+e.id+'\')">изменить</button><button class="del" onclick="confirmDropInc(\''+e.id+'\')">удалить</button></span></div>').join('') :
+      '<div class="empty">За выбранный период доходов нет.</div>') +
+      '<button class="btn ok" style="margin-top:11px" onclick="openSheet(\'inc\')">Добавить доход</button>') +
+    fold('fin-ops', 'Операции',
+      rows.length ? rows.length + ' ' + plural(rows.length,'запись','записи','записей') : 'пока нет',
+      (rows.length ? rows.map(e=>
       '<div class="item"><div class="ic">₽</div><div class="txt"><b>'+esc(e.title)+'</b><small>'+esc(e.cat)+' · '+humanDate(e.date)+'</small></div>' +
       '<div class="sum">−'+money(e.sum,curOf(e))+'</div><span style="display:flex;flex-direction:column;gap:4px">' +
       '<button class="mini" onclick="editExp(\''+e.id+'\')">изменить</button><button class="del" onclick="confirmDropExp(\''+e.id+'\')">удалить</button></span></div>').join('') :
@@ -1304,6 +1604,16 @@ function icsDate(d, t){
   if (!t) return y+m+dd;
   return y+m+dd+'T'+t.replace(':','')+'00';
 }
+/* В файле календаря перевод строки начинает новое поле. Название с переносом
+   дописывало в файл посторонние строки, поэтому экранируем по правилам формата. */
+function icsText(v){
+  return String(v == null ? '' : v)
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r\n|\r|\n/g, '\\n')
+    .slice(0, 250);
+}
 function eventICS(e){
   const allDay = !e.time;
   const start = icsDate(e.date, e.time);
@@ -1314,15 +1624,15 @@ function eventICS(e){
   const alarm = (mins, txt) =>
     'BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:' + txt + '\r\nTRIGGER:-PT' + mins + 'M\r\nEND:VALARM\r\n';
   return 'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Точка дня//RU\r\nCALSCALE:GREGORIAN\r\n' +
-    'BEGIN:VEVENT\r\nUID:' + e.id + '@tochka-dnya\r\n' +
+    'BEGIN:VEVENT\r\nUID:' + icsText(e.id) + '@tochka-dnya\r\n' +
     'DTSTAMP:' + icsDate(today(), '00:00') + 'Z\r\n' +
     (allDay ? 'DTSTART;VALUE=DATE:' + start + '\r\nDTEND;VALUE=DATE:' + start + '\r\n'
             : 'DTSTART:' + start + '\r\nDTEND:' + end + '\r\n') +
     rule +
-    'SUMMARY:' + String(e.title).replace(/[,;]/g,' ') + '\r\n' +
-    (e.desc ? 'DESCRIPTION:' + String(e.desc).replace(/[,;]/g,' ') + '\r\n'
+    'SUMMARY:' + icsText(e.title) + '\r\n' +
+    (e.desc ? 'DESCRIPTION:' + icsText(e.desc) + '\r\n'
             : e.plan ? 'DESCRIPTION:Планируемый расход ' + e.plan + '\r\n' : '') +
-    alarm(1440, 'Завтра: ' + String(e.title).replace(/[,;]/g,' ')) +
+    alarm(1440, icsText('Завтра: ' + e.title)) +
     (e.time ? alarm(120, 'Через два часа') : '') +
     'END:VEVENT\r\nEND:VCALENDAR\r\n';
 }
@@ -1334,80 +1644,254 @@ async function toPhoneCalendarObj(e){
   if (!e) return;
   const file = new File([eventICS(e)], 'sobytie.ics', {type:'text/calendar'});
   if (navigator.canShare && navigator.canShare({files:[file]})){
-    try{ await navigator.share({files:[file], title:e.title}); toast('Откройте файл — событие добавится в календарь телефона'); return; }
+    try{ await navigator.share({files:[file], title:e.title}); toast('Выберите «Календарь» — телефон напомнит в назначенный час'); return; }
     catch(err){ if (err && err.name === 'AbortError') return; }
   }
   const url = URL.createObjectURL(file);
   const a = document.createElement('a'); a.href = url; a.download = 'sobytie.ics'; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 4000);
-  toast('Файл сохранён — откройте его, событие добавится в календарь с напоминанием');
+  toast('Файл сохранён — откройте его, и телефон напомнит в назначенный час');
 }
 
 /* ---------- Записи: заметки и списки ---------- */
+/* Дела, заметки и списки лежали одной кучей: рецепт вперемешку с делами.
+   Разное назначение — разные вкладки, чтобы не приходилось выискивать. */
+/* Тема — не папка: её не надо заводить заранее и можно не заполнять вовсе.
+   Не заполнили — работают поиск и вкладки, ничего не сломалось. */
+function themeList(){
+  const stats = {};
+  (S.notes || []).forEach((n, i) => {
+    const t = String(n.theme || '').trim(), key = t.toLowerCase();
+    if (!key) return;
+    if (!stats[key]) stats[key] = {t:t, count:0, last:i};
+    stats[key].count++; stats[key].last = i;
+  });
+  return Object.keys(stats).map(k => stats[k])
+    .sort((a,b) => b.count - a.count || b.last - a.last).map(x => x.t);
+}
+let themeFilter = '';
+function setTheme(v){ themeFilter = (themeFilter === v ? '' : v); renderNotes(); }
+function noteBucket(n){
+  if (n.items) return 'list';
+  return (n.kind || 'task') === 'task' ? 'task' : 'note';
+}
+const NOTE_TABS = [['task','Дела'],['note','Заметки'],['list','Списки']];
+function setNotesTab(v){ S.settings.notesTab = v; saveQuiet(); renderNotes(); }
 function renderNotes(){
   const list = S.notes;
   const q = (noteQuery || '').toLowerCase();
   const found = q ? list.filter(x => [x.text,x.title].concat((x.items || []).map(i=>i.t)).join(' ').toLowerCase().includes(q)) : list;
-  const sorted = found.slice().sort((a,b) => (+!!a.done)-(+!!b.done) || (b.date + b.id).localeCompare(a.date + a.id));
+  /* при поиске вкладки не мешают: ищем сразу по всем */
+  const tab = S.settings.notesTab || 'task';
+  let inTab = q ? found : found.filter(x => noteBucket(x) === tab);
+  if (!q && themeFilter) inTab = inTab.filter(x => (x.theme || '') === themeFilter);
+  const sorted = inTab.slice().sort((a,b) =>
+    (+!!b.pinned) - (+!!a.pinned) || (+!!a.done) - (+!!b.done) ||
+    (b.date + b.id).localeCompare(a.date + a.id));
+  const counts = {task:0, note:0, list:0};
+  list.forEach(x => { if (!x.done) counts[noteBucket(x)]++; });
 
-  let h = card(lab('Новая запись') +
-    '<div class="fld"><label>Что вы записываете</label><select id="n-kind">' +
-      '<option value="task">Дело</option>' +
-      '<option value="note">Заметка</option></select></div>' +
-    '<div class="withmic"><textarea id="n-text" rows="3" placeholder="' +
-      'Например: позвонить маме"></textarea>' +
-      micBtn('n-text','raw') + '</div>' +
-    '<button class="btn" style="margin-top:10px" onclick="saveNote()">Сохранить запись</button>' +
-    '<div class="mut" style="margin-top:8px">Нужно несколько отдельных действий? Используйте «Новый список» ниже.</div>');
+  /* Поиск стоял под формой новой записи: чтобы им воспользоваться, надо было
+     пролистать вверх мимо всей формы. Теперь он первый на экране. */
+  let h = '<input class="note-search" id="n-q" value="' + esc(noteQuery || '') +
+    '" placeholder="🔍 Найти по слову — в записях, событиях и тратах" oninput="noteFind(this.value)">';
 
-  if (list.length > 3)
-    h += card(lab('Поиск') + '<input id="n-q" value="' + esc(noteQuery || '') + '" placeholder="Слово из записи" oninput="noteFind(this.value)">');
+  /* Раньше вид записи выбирался дважды: переключателем в форме и вкладкой ниже,
+     и они друг о друге не знали. Теперь выбор один — вкладка, а форма ей следует. */
+  if (!q) h += (tab === 'list'
+    ? fold('new-list', 'Новый список', 'создать список с пунктами',
+        '<button class="btn" onclick="openSheet(\'list\')">Создать список</button>')
+    : fold('new-' + tab, tab === 'note' ? 'Новая заметка' : 'Новое дело',
+        tab === 'note' ? 'записать то, что нужно сохранить' : 'записать то, что нужно сделать',
+        '<div class="withmic"><textarea id="n-text" rows="3" placeholder="' +
+          (tab === 'note' ? 'Например: рецепт, адрес, мысль' : 'Например: позвонить маме') + '"></textarea>' +
+          micBtn('n-text','raw') + '</div>' +
+        themeInput(themeFilter) +
+        '<button class="btn" style="margin-top:2px" onclick="saveNote()">' +
+          (tab === 'note' ? 'Сохранить заметку' : 'Сохранить дело') + '</button>' +
+        ''));
 
-  h += card(lab('Заметки и списки') +
+
+  /* при пустом поиске карточка с заголовком не нужна — сообщение будет одно, ниже */
+  if (!q || sorted.length) h += card(
+    (q ? lab('Найдено во всех записях')
+       : '<div class="switch" role="tablist" aria-label="Что показать" style="margin-bottom:11px">' +
+         NOTE_TABS.map(t => '<button type="button" role="tab" aria-selected="' + (t[0] === tab) +
+           '" onclick="setNotesTab(\'' + t[0] + '\')">' + t[1] +
+           (counts[t[0]] ? ' <em style="font-style:normal;opacity:.6">' + counts[t[0]] + '</em>' : '') +
+           '</button>').join('') + '</div>' + themeBar(tab)) +
     (sorted.length ? sorted.map(x =>
       (x.items && x.items.length
-        ? '<div style="border-bottom:1px solid var(--line);padding:10px 0">' +
-          '<div class="row" style="margin-bottom:6px"><b style="font-size:14px;font-weight:500">' + esc(x.title || 'Список') +
-            (x.where ? ' · ' + esc(x.where) : '') + '</b>' +
-          '<span><button class="mini" onclick="editNote(\'' + x.id + '\')">изменить</button>' +
-          '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button></span></div>' +
-          listBody(x) +
-          '<div class="mut" style="font-size:11px;margin-top:6px">Создано ' + humanDate(x.date) +
-            (x.completedAt ? ' · выполнено ' + humanDate(x.completedAt) : '') + (x.due ? ' · дата ' + humanDate(x.due) : '') + '</div></div>'
-        : '<div class="item" style="align-items:flex-start">' +
+        ? listFold(x)
+        : '<div class="note-block' + (x.pinned ? ' pinned' : '') + '">' +
+          '<div class="item note-row" style="align-items:flex-start">' +
           ((x.kind || 'task') === 'task' ? '<button class="tick' + (x.done ? ' on' : '') + '" onclick="toggleNoteDone(\'' + x.id + '\')" title="' + (x.done ? 'Вернуть в работу' : 'Отметить выполненным') + '">' + (x.done ? '✓' : '') + '</button>' : '<div class="ic">✎</div>') +
-          '<div class="txt" onclick="editNote(\'' + x.id + '\')" style="cursor:pointer">' +
-          '<b style="font-weight:400;font-size:14px;white-space:pre-wrap' + (x.done ? ';text-decoration:line-through;color:var(--mut)' : '') + '">' + esc(x.text) + '</b>' +
-          '<small>' + ((x.kind || 'task') === 'task' ? (x.done ? 'Выполнено ' + humanDate(x.completedAt || today()) : noteAge(x)) : 'Заметка') + ' · создано ' + humanDate(x.date) + (x.due ? ' · дата ' + humanDate(x.due) : '') + '</small></div>' +
-          '<button class="mini" onclick="editNote(\'' + x.id + '\')">изменить</button>' +
-          '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button></div>')).join('')
+          '<div class="txt">' + noteTextBlock(x) +
+          '<small>' + noteMeta(x) + '</small></div>' +
+          '</div>' +
+          '<div class="note-tools">' + noteActions(x) + '</div>' +
+          noteFullBlock(x) + '</div>')).join('')
       : '<div class="empty">' + (q ? 'Ничего не нашлось.'
-          : 'Пока пусто. Создайте заметку или список с пунктами.') + '</div>') +
-    '<button class="btn ghost" style="margin-top:10px" onclick="openSheet(\'list\')">Новый список</button>');
+          : tab === 'task' ? 'Дел пока нет. Запишите то, что нужно сделать — у дела будет галочка.'
+          : tab === 'note' ? 'Заметок пока нет. Сюда складывают то, что нужно сохранить: рецепт, адрес, мысль.'
+          : 'Списков пока нет. Список — это несколько пунктов, каждый со своей галочкой.') + '</div>') +
+    '');
+  if (q) h += searchElsewhere(q, sorted.length);
 
   document.getElementById('s-notes').innerHTML = h;
+}
+/* поиск за пределами заметок: события, расходы, доходы */
+function searchElsewhere(q, foundInNotes){
+  const hit = t => String(t || '').toLowerCase().includes(q);
+  const ev = (S.ev || []).filter(e => hit(e.title) || hit(e.address)).slice(0,12);
+  const exp = (S.exp || []).filter(e => hit(e.title) || hit(e.cat)).slice(0,12);
+  const inc = (S.inc || []).filter(e => hit(e.title)).slice(0,12);
+  let out = '';
+  if (ev.length) out += card(lab('События') + ev.map(e =>
+    '<div class="item"><div class="ic">▦</div>' +
+    '<button type="button" class="txt" onclick="editEv(\'' + e.id + '\')">' +
+    '<b>' + esc(e.title) + '</b><small>' + humanDate(e.date) + (e.time ? ' · ' + esc(e.time) : '') +
+    (e.address ? ' · ' + esc(e.address) : '') + '</small></button></div>').join(''));
+  if (exp.length) out += card(lab('Расходы') + exp.map(e =>
+    '<div class="item"><div class="ic">' + esc(sign()) + '</div>' +
+    '<button type="button" class="txt" onclick="editExp(\'' + e.id + '\')">' +
+    '<b>' + esc(e.title) + '</b><small>' + esc(e.cat || '') + ' · ' + humanDate(e.date) + '</small></button>' +
+    '<div class="sum">−' + money(e.sum, curOf(e)) + '</div></div>').join(''));
+  if (inc.length) out += card(lab('Доходы') + inc.map(e =>
+    '<div class="item"><div class="ic">+</div>' +
+    '<button type="button" class="txt" onclick="editInc(\'' + e.id + '\')">' +
+    '<b>' + esc(e.title) + '</b><small>' + humanDate(e.date) + '</small></button>' +
+    '<div class="sum" style="color:var(--ok)">+' + money(e.sum, curOf(e)) + '</div></div>').join(''));
+  /* сообщение о пустом результате нужно один раз и только если пусто везде */
+  if (!out && !foundInNotes) out = card('<div class="empty">Ничего не нашлось.</div>');
+  return out;
 }
 let noteQuery = '';
 function noteFind(v){ noteQuery = v; renderNotes(); const el = document.getElementById('n-q'); if (el){ el.focus(); el.setSelectionRange(v.length, v.length); } }
 function saveNote(){
   const raw = val('n-text');
   if (!raw){ toast('Сначала запишите или надиктуйте'); return; }
-  const rec = {id:uid(), date:today(), text:tidy(raw), kind:val('n-kind') || 'task', done:false};
+  const kind = (S.settings.notesTab || 'task') === 'note' ? 'note' : 'task';
+  const rec = {id:uid(), date:today(), text:tidy(raw), kind:kind, done:false};
+  const theme = (val('f-theme') || '').trim();
+  if (theme) rec.theme = theme;
   S.notes.push(rec);
+  S.settings.notesTab = rec.kind === 'task' ? 'task' : 'note';
   save();
   toast(rec.kind === 'task' ? 'Дело добавлено — его можно отметить галочкой' : 'Заметка сохранена');
+}
+/* Диктовка не ставит переносов строк: весь список приезжает одной строкой,
+   а поле ждёт по пункту на строку. Здесь строка раскладывается обратно
+   на пункты и заодно приводятся в порядок дробные веса. */
+const UNIT_WORDS = ['кг','килограмм','килограмма','килограммов','кило','г','гр','грамм','грамма','граммов',
+  'л','литр','литра','литров','мл','шт','штук','штука','штуки','пачк','упаковк','банк','бутылк',
+  'буханк','пучок','пучка','кочан','десяток','пакет','пакета'];
+function isUnit(w){
+  const t = w.toLowerCase().replace(/[.,]/g,'');
+  return UNIT_WORDS.some(u => t === u || (u.length > 4 && t.startsWith(u)));
+}
+function normalizeAmounts(text){
+  /* \b в JavaScript не считает русские буквы буквами, поэтому границы слова
+     задаём явно — иначе ни одно из правил ниже не срабатывает. */
+  const L = '[а-яёa-z0-9]';
+  const w = (body) => new RegExp('(?<!' + L + ')(?:' + body + ')(?!' + L + ')', 'g');
+  let t = ' ' + String(text).toLowerCase() + ' ';
+  t = t.replace(w('полтора|полторы'), '1,5');
+  /* «5 килограмм» — то же, что «5 кг» */
+  t = t.replace(/(\d)\s+(килограмм\w*|кило)(?![а-яё])/g, '$1 кг')
+       .replace(/(\d)\s+(литр\w*)(?![а-яё])/g, '$1 л')
+       .replace(/(\d)\s+(грамм\w*)(?![а-яё])/g, '$1 г')
+       .replace(/(\d)\s+(штук\w*)(?![а-яё])/g, '$1 шт');
+  /* «лук килограмм» — это один килограмм, а не единица измерения без числа */
+  t = t.replace(/(?<![\d,]\s)(?<![а-яё])(килограмм|кило|литр|пачка|пачку|банка|банку|бутылка|бутылку|штука|штуку)(?![а-яё])/g,
+    (m,u) => '1 ' + ({'килограмм':'кг','кило':'кг','литр':'л','пачка':'пачка','пачку':'пачка',
+      'банка':'банка','банку':'банка','бутылка':'бутылка','бутылку':'бутылка','штука':'шт','штуку':'шт'}[u] || u));
+  t = t.replace(w('полкило[а-яё]*|пол-кило[а-яё]*'), '0,5 кг');
+  t = t.replace(w('поллитра|пол-литра'), '0,5 л');
+  /* «ноль целых пять», «ноль целых 5», «ноль целых,5» — всё это 0,5 */
+  t = t.replace(/(?<![а-яёa-z0-9])ноль\s+целых\s*,?\s*(\d|[а-яё]+)/g, (m, d) => {
+    const n = /\d/.test(d) ? d : (WORDNUM[d] !== undefined ? WORDNUM[d] : null);
+    return n === null ? m : '0,' + n;
+  });
+  /* «0 5 кг» — распознавание потеряло запятую */
+  t = t.replace(/(?<![\d,])(\d)\s+(\d)(?=\s+[а-яё])/g, '$1,$2');
+  return t.replace(/\s+/g, ' ').trim();
+}
+const JOIN_WORDS = ['а','и','ещё','еще','плюс','также'];
+/* «сахар соль уксус морковь 2 кг» — четыре покупки без единого числа.
+   Определяющее: прилагательное всегда относится к следующему слову
+   («сладкий красный перец» — один пункт), а существительное за существительным
+   без количества между ними — уже новый пункт. */
+function isAdjective(w){
+  return /(ый|ий|ой|ая|яя|ое|ее|ые|ие|ого|его|ому|ему|ым|им|ых|их|ую|юю)$/i.test(w) && w.length > 4;
+}
+function isCountWord(w){
+  return /^(пара|пары|штука|штуки|банка|банки|пачка|пачки|бутылка|бутылки|пакет|пакета|кусок|куска|головка|головки|пучок|пучка)$/i.test(w);
+}
+function splitDictatedItems(text){
+  /* «купить хлеб» — это один пункт, а не глагол и пункт */
+  const src = normalizeAmounts(text)
+    .replace(/^(не забыть|нужно|надо|купить|взять|заказать|приобрести|захватить|прикупить)\s+/i, '');
+  if (!src) return [];
+  const tokens = src.split(/\s+/).filter(Boolean);
+  const items = [];
+  let cur = [], prev = '';
+  const push = () => { const t = cur.join(' ').replace(/[\s,]+$/,'').trim(); if (t) items.push(t); cur = []; };
+  const isNum = x => /^\d+([.,]\d+)?$/.test(String(x).replace(/,$/,''));
+  tokens.forEach(tok => {
+    const bare = tok.replace(/[,.;]+$/,'');
+    if (JOIN_WORDS.indexOf(bare.toLowerCase()) >= 0){ push(); prev = ''; return; }
+    const word = /^[а-яё-]+$/i.test(bare);
+    /* новый пункт начинается там, где после количества снова пошло название */
+    if (cur.length && word && !isUnit(bare) && (isUnit(prev) || isNum(prev))) push();
+    /* …или там, где одно название сменилось другим без количества между ними */
+    else if (cur.length && word && !isUnit(bare) && !isCountWord(bare) &&
+             prev && /^[а-яё-]+$/i.test(prev) && !isAdjective(prev) && !isUnit(prev) && !isCountWord(prev)) push();
+    cur.push(bare);
+    prev = bare;
+    if (/[,;]$/.test(tok)){ push(); prev = ''; }
+  });
+  push();
+  /* «5 кг» без названия — не покупка, а хвост от соседнего пункта.
+     Такой обрывок приклеиваем к следующему, а если он последний — к предыдущему. */
+  const nameless = t => !/[а-яё]{3,}/i.test(String(t).replace(/(?<![а-яё])(кг|г|гр|мл|л|шт|штук\w*|грамм\w*|литр\w*|килограмм\w*|пачк\w*|банк\w*|бутылк\w*)(?![а-яё])/gi, ''));
+  for (let i = 0; i < items.length; i++){
+    if (!nameless(items[i])) continue;
+    if (i + 1 < items.length){ items[i+1] = items[i] + ' ' + items[i+1]; items.splice(i,1); i--; }
+    else if (i > 0){ items[i-1] = items[i-1] + ' ' + items[i]; items.splice(i,1); i--; }
+  }
+  return items.map(x => x.charAt(0).toUpperCase() + x.slice(1)).slice(0,50);
+}
+/* раскладываем прямо в поле, чтобы человек увидел результат и мог поправить */
+function spillList(el){
+  const raw = (el.value || '').trim();
+  if (!raw || raw.indexOf('\n') >= 0) return;
+  const items = splitDictatedItems(raw);
+  if (items.length > 1) el.value = items.join('\n');
 }
 function saveQuickList(){
   const title = val('f-list-title') || 'Список';
   const lines = val('f-list-items').split('\n').map(x => x.trim()).filter(Boolean);
   if (!lines.length){ toast('Добавьте хотя бы один пункт'); return; }
-  S.notes.push({id:uid(), date:today(), title:tidy(title), text:tidy(title),
-    items:lines.slice(0,50).map(t => ({t:t.charAt(0).toUpperCase() + t.slice(1), done:false}))});
-  save(); closeSheet(); goScreen('s-notes'); toast('Список создан');
+  const due = val('f-list-due') || null;
+  const ring = document.getElementById('f-list-ring');
+  const listTheme = (val('f-theme') || '').trim();
+  const rec = {id:uid(), date:today(), title:tidy(title), text:tidy(title), due:due,
+    theme: listTheme || undefined,
+    items:lines.slice(0,50).map(t => ({t:t.charAt(0).toUpperCase() + t.slice(1), done:false}))};
+  S.notes.push(rec);
+  S.settings.notesTab = 'list';
+  save(); closeSheet(); goScreen('s-notes');
+  if (ring && ring.checked){
+    if (!due){ toast('Чтобы телефон напомнил, поставьте дату'); return; }
+    noteToPhone(rec.id); return;
+  }
+  toast('Список создан');
 }
 function dropNote(id){
   const n=S.notes.find(x=>x.id===id);
   if(n&&!window.confirm('Удалить запись «'+noteTitle(n)+'»?'))return;
+  killed(id);
   S.notes = S.notes.filter(x => x.id !== id); save(); toast('Удалено');
 }
 function toggleNoteDone(id){
@@ -1416,6 +1900,115 @@ function toggleNoteDone(id){
   n.kind = 'task'; n.done = !n.done;
   if (n.done) n.completedAt = today(); else delete n.completedAt;
   save(); toast(n.done ? 'Выполнено' : 'Возвращено в работу');
+}
+/* Срок описывался по-разному: на «Сегодня» — «было на 3 сентября»,
+   в «Заметках» — просто «дата 3 сентября», без признака просрочки. */
+function dueLabel(n){
+  if (!n.due) return '';
+  if (n.done) return 'срок был ' + humanDate(n.due);
+  if (n.due === today()) return 'на сегодня';
+  if (n.due < today()){
+    const days = Math.round((new Date(today()+'T12:00') - new Date(n.due+'T12:00')) / 86400000);
+    return 'срок прошёл ' + days + ' ' + plural(days,'день','дня','дней') + ' назад';
+  }
+  return 'на ' + humanDate(n.due);
+}
+/* Длинный текст занимал весь экран. Теперь видна первая строка, остальное
+   раскрывается нажатием — как в бумажном блокноте с загнутой страницей. */
+const NOTE_HEAD = 90;
+let noteOpen = {};
+function noteIsLong(t){
+  const s = String(t || '');
+  return s.length > NOTE_HEAD || s.indexOf('\n') >= 0;
+}
+function noteHead(t){
+  /* в свёрнутом виде звёздочка перечня выглядит мусором — берём первую
+     строку уже разобранного текста, до начала перечисления */
+  const first = noteBody(t).split('\n')[0].trim();
+  if (first.length <= NOTE_HEAD) return first;
+  return first.slice(0, NOTE_HEAD).replace(/\s+\S*$/, '') + '…';
+}
+function toggleNoteText(id){ noteOpen[id] = !noteOpen[id]; renderNotes(); }
+/* Диктовка и вставка приносят перечень одной простынёй: «... : * помидоры — 5 кг;
+   * перец — 2 кг». Разворачиваем в строки, иначе читать невозможно. */
+function noteBody(t){
+  let v = String(t || '');
+  if ((v.match(/\*/g) || []).length < 2) return v;
+  v = v.replace(/\s*[;,.]?\s*\*\s*/g, '\n• ');
+  return v.replace(/\n{2,}/g, '\n').replace(/^\n/, '').trim();
+}
+function themeBar(tab){
+  const mine = (S.notes || []).filter(n => noteBucket(n) === tab && n.theme);
+  const seen = [];
+  mine.forEach(n => { if (seen.indexOf(n.theme) < 0) seen.push(n.theme); });
+  if (!seen.length) return '';
+  return '<div class="themes">' +
+    '<button type="button" class="theme' + (themeFilter ? '' : ' on') + '" onclick="setTheme(\'\')">Все</button>' +
+    seen.map(t => '<button type="button" class="theme' + (themeFilter === t ? ' on' : '') +
+      '" data-v="' + esc(t) + '" onclick="setTheme(this.dataset.v)">' + esc(t) + '</button>').join('') + '</div>';
+}
+function themeInput(value){
+  return '<div class="fld"><label>Тема — необязательно</label>' +
+    '<input id="f-theme" value="' + esc(value || '') + '" placeholder="Например: заготовки, ремонт" ' +
+    'autocomplete="off" onfocus="openHints(\'f-theme\')" oninput="renderHints(\'f-theme\',this.value)" ' +
+    'onblur="closeHints(\'f-theme\')">' + hintsBox('f-theme','theme', value || '') +
+    '</div>';
+}
+/* Список раскрывается нажатием: при открытии видно только название
+   и сколько осталось. Иначе три списка занимают весь экран. */
+function listFold(x){
+  const left = x.items.filter(i => !i.done).length;
+  const key = 'list-' + x.id;
+  const open = !!foldOpen[key];
+  return '<div class="note-block' + (x.pinned ? ' pinned' : '') + '">' +
+    '<button type="button" class="fold-head" style="padding:12px 0" onclick="toggleFold(\'' + key + '\')" aria-expanded="' + open + '">' +
+      '<span style="font:600 14px \'Golos Text\',sans-serif;color:var(--ink)">' + esc(x.title || 'Список') + '</span>' +
+      '<span class="fold-sum">' + (left ? 'осталось ' + left + ' ' + plural(left,'пункт','пункта','пунктов') : 'всё отмечено') +
+        (x.where ? ' · ' + esc(x.where) : '') + '</span>' +
+      '<span class="fold-arrow" aria-hidden="true">' + (open ? '⌃' : '⌄') + '</span>' +
+    '</button>' +
+    (open ? listBody(x) +
+      '<div class="mut" style="font-size:11px;margin-top:6px">Создано ' + humanDate(x.date) +
+        (x.due ? ' · ' + dueLabel(x) : '') + '</div>' +
+      '<div class="note-tools">' + noteActions(x) + '</div>' +
+      '<button type="button" class="fold-close" onclick="toggleFold(\'' + key + '\')">свернуть ↑</button>' : '') +
+  '</div>';
+}
+function noteActions(x){
+  return '<button class="pin' + (x.pinned ? ' on' : '') + '" onclick="togglePin(\'' + x.id + '\')" ' +
+      'title="' + (x.pinned ? 'Открепить' : 'Закрепить наверху') + '" ' +
+      'aria-label="' + (x.pinned ? 'Открепить' : 'Закрепить наверху') + '">' + (x.pinned ? '★' : '☆') + '</button>' +
+    '<button class="mini" onclick="openAppend(\'' + x.id + '\')">' + (x.items ? 'добавить' : 'дописать') + '</button>' +
+    '<button class="mini" onclick="editNote(\'' + x.id + '\')">изменить</button>' +
+    '<button class="del" onclick="dropNote(\'' + x.id + '\')">✕</button>';
+}
+function noteTextBlock(x){
+  const strike = x.done ? ';text-decoration:line-through;color:var(--mut)' : '';
+  const style = 'font-weight:400;font-size:14px;white-space:pre-wrap' + strike;
+  if (!noteIsLong(x.text))
+    return '<button type="button" class="txt" style="padding:0" onclick="editNote(\'' + x.id + '\')">' +
+      '<b style="' + style + '">' + esc(x.text) + '</b></button>';
+  const open = !!noteOpen[x.id];
+  /* развёрнутый текст выводится ниже целиком — повторять его начало незачем */
+  if (open) return '<button type="button" class="note-more" onclick="toggleNoteText(\'' + x.id + '\')">свернуть ↑</button>';
+  return '<button type="button" class="txt" style="padding:0" onclick="toggleNoteText(\'' + x.id + '\')">' +
+      '<b style="' + style + '">' + esc(noteHead(x.text)) + '</b></button>' +
+    '<button type="button" class="note-more" onclick="toggleNoteText(\'' + x.id + '\')">читать целиком ↓</button>';
+}
+/* развёрнутый текст выносим под строку, во всю ширину карточки:
+   в узкой колонке между значком и кнопками помещалось по три слова */
+function noteFullBlock(x){
+  if (!noteIsLong(x.text) || !noteOpen[x.id]) return '';
+  return '<div class="note-full">' + esc(noteBody(x.text)) + '</div>' +
+    '<button type="button" class="fold-close" onclick="toggleNoteText(\'' + x.id + '\')">свернуть ↑</button>';
+}
+function noteMeta(x){
+  const kind = (x.kind || 'task') === 'task';
+  const theme = x.theme ? '<em class="theme-tag">' + esc(x.theme) + '</em> · ' : '';
+  const state = kind ? (x.done ? 'Выполнено ' + humanDate(x.completedAt || today()) : noteAge(x)) : 'Заметка';
+  /* «Добавлено сегодня · создано 5 сентября» — одно и то же дважды */
+  const created = noteAge(x) === 'Добавлено сегодня' && kind && !x.done ? '' : ' · создано ' + humanDate(x.date);
+  return theme + state + created + (x.due ? ' · ' + dueLabel(x) : '');
 }
 function noteAge(n){
   const days=Math.max(0,Math.floor((new Date(today()+'T12:00')-new Date((n.date||today())+'T12:00'))/86400000));
@@ -1448,7 +2041,6 @@ function tickItem(id, idx){
 }
 /* напоминания по заметкам с датой */
 function dueNotes(){ return S.notes.filter(n => n.due && !n.items && !n.done && n.due <= today()); }
-function dueOn(d){ return S.notes.filter(n => n.due === d && !n.done); }
 function noteTitle(n){
   if (n.items) return (n.title || 'Список') + (n.where ? ' · ' + n.where : '') + ': ' +
     n.items.filter(i => !i.done).map(i => i.t).join(', ');
@@ -1466,19 +2058,42 @@ function editNote(id){ editNoteId = id; openSheet('noteEdit'); }
 function findNote(id){
   return S.notes.find(x => x.id === id) || null;
 }
-function autoItems(){
-  const el = document.getElementById('f-items'), src = val('f-note');
-  if (!el) return;
-  const it = listItems(src);
-  if (!it.length){ toast('Не нашла, что разложить на пункты'); return; }
-  el.value = it.map(i => i.t).join('\n');
-  const wh = document.getElementById('f-where');
-  if (wh && !wh.value) wh.value = shopOf(src) || '';
-  toast('Разложила на ' + it.length + ' ' + plural(it.length,'пункт','пункта','пунктов') + ' — поправьте, если что');
+/* Чтобы дописать строчку в длинную заметку, приходилось открывать правку,
+   мотать текст и ставить курсор в конец. Голосом это почти невозможно. */
+function openAppend(id){ editNoteId = id; openSheet('noteAppend'); }
+function saveAppend(){
+  const n = findNote(editNoteId);
+  if (!n) return;
+  const raw = (val('f-append') || '').trim();
+  if (!raw){ toast('Впишите или продиктуйте, что дописать'); return; }
+  const add = tidy(raw);
+  if (n.items){
+    /* разбираем до причёсывания: tidy ставит запятую перед числом
+       и «яйца 10 штук» разъезжается на два пункта */
+    const lines = splitDictatedItems(raw);
+    const known = {};
+    n.items.forEach(i => { known[i.t.toLowerCase()] = 1; });
+    lines.forEach(t => { if (!known[t.toLowerCase()]) n.items.push({t:t, done:false}); });
+    toast(lines.length > 1 ? 'Добавлено ' + lines.length + ' ' + plural(lines.length,'пункт','пункта','пунктов') : 'Пункт добавлен');
+  } else {
+    n.text = String(n.text || '').replace(/\s+$/,'') + '\n' + add;
+    noteOpen[n.id] = true;   /* сразу показываем, что получилось */
+    toast('Дописано');
+  }
+  editNoteId = null; save(); closeSheet();
+}
+/* ---- 3. закрепление: несколько записей держатся первыми ---- */
+function togglePin(id){
+  const n = findNote(id);
+  if (!n) return;
+  if (n.pinned) delete n.pinned; else n.pinned = new Date().toISOString();
+  save(); toast(n.pinned ? 'Закреплено наверху' : 'Откреплено');
 }
 function saveNoteEdit(){
   const n = findNote(editNoteId);
   if (!n) return;
+  const th = (val('f-theme') || '').trim();
+  if (th) n.theme = th; else delete n.theme;
   const txt = val('f-note');
   const lines = (val('f-items') || '').split('\n').map(x => x.trim()).filter(Boolean);
   if (!txt && !lines.length){ toast('Запись пустая — впишите текст или пункты'); return; }
@@ -1506,6 +2121,7 @@ function saveNoteEdit(){
 function deleteNoteFromEdit(){
   const n=findNote(editNoteId);
   if(n&&!window.confirm('Удалить запись «'+noteTitle(n)+'»?'))return;
+  killed(editNoteId);
   S.notes = S.notes.filter(x => x.id !== editNoteId);
   editNoteId = null; save(); closeSheet(); toast('Удалено');
 }
@@ -1535,7 +2151,9 @@ function obsCfg(){
   o.seen = o.seen || {}; o.muted = o.muted || {};
   return o;
 }
-function spentOn(d){ return sum(S.exp.filter(e => e.date === d)); }
+/* только текущая валюта: иначе тысяча рублей и пять тысяч тенге
+   складывались в одну бессмысленную цифру */
+function spentOn(d){ return sum(inCur(S.exp.filter(e => e.date === d))); }
 
 /* день недели с заметно большими тратами */
 function obsWeekday(){
@@ -1583,7 +2201,7 @@ function obsMonthCat(){
   let best = null;
   Object.keys(Object.assign({}, now, was)).forEach(c => {
     const a = now[c] || 0, b = was[c] || 0, d = a - b;
-    if (!b || Math.abs(d) < 1000 || Math.abs(d) / b < 0.3) return;
+    if (!b || Math.abs(d) < notable() || Math.abs(d) / b < 0.3) return;
     if (!best || Math.abs(d) > Math.abs(best.d)) best = {c, a, b, d};
   });
   if (!best) return null;
@@ -1611,11 +2229,12 @@ function pickObs(){
 function veilCard(){
   const x = pickObs();
   if (!x) return '';
-  return '<div class="card tap" style="border-color:var(--ochre);border-left-width:3px" onclick="openObs(\'' + x.id + '\')">' +
-    '<div class="row"><div style="flex:1">' +
-    '<div style="font-family:\'Spectral\',serif;font-size:15px;font-weight:600">' + esc(x.teaser) + '</div>' +
-    '<div class="mut" style="margin-top:3px;font-size:12px">Нажмите, чтобы посмотреть</div></div>' +
-    '<button class="del" onclick="event.stopPropagation();obsSnooze()" title="Не сейчас">✕</button></div></div>';
+  return '<div class="card" style="border-color:var(--ochre);border-left-width:3px">' +
+    '<div class="row">' +
+    '<button type="button" class="txt" style="flex:1" onclick="openObs(\'' + x.id + '\')">' +
+    '<span style="display:block;font-family:\'Spectral\',serif;font-size:15px;font-weight:600">' + esc(x.teaser) + '</span>' +
+    '<span class="mut" style="display:block;margin-top:3px;font-size:12px">Нажмите, чтобы посмотреть</span></button>' +
+    '<button class="del" onclick="obsSnooze()" title="Не сейчас" aria-label="Не сейчас">✕</button></div></div>';
 }
 function obsById(id){ return allObs().find(x => x.id === id) || null; }
 function openObs(id){
@@ -1648,37 +2267,30 @@ function obsOff(){
   const o = obsCfg(); o.off = 1;
   save(); closeSheet(); toast('Наблюдения отключены. Включить можно в «Ещё»');
 }
-function obsOn(){
-  const o = obsCfg(); o.off = 0; o.muted = {};
-  save(); toast('Наблюдения снова включены');
-}
-
 /* ---------- Ещё: только настройки, инструкция и данные ---------- */
 function renderMore(){
   const backupWarning = backupDue()
-    ? '<div class="tip" style="margin-bottom:10px;cursor:pointer" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</div>' : '';
+    ? '<button type="button" class="tip" style="margin-bottom:10px" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</button>' : '';
   const cloudCard = cloudUser
     ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
-    : card(lab('Облачное сохранение')+'<div class="mut" style="margin-bottom:10px">Войдите один раз, чтобы записи автоматически восстанавливались после удаления приложения или замены телефона.</div><button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
+    : card(lab('Облачное сохранение')+'<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
   document.getElementById('s-more').innerHTML =
-    cloudCard + card(lab('Настройки приложения') +
+    cloudCard + fold('more-set', 'Настройки приложения', 'имя, показ выполненного',
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +
       '<div class="fld"><label>Выполненные дела на экране «Сегодня»</label><select onchange="setBool(\'showDone\',this.value)">' +
         '<option value="1"' + (S.settings.showDone ? ' selected' : '') + '>Показывать</option>' +
         '<option value="0"' + (!S.settings.showDone ? ' selected' : '') + '>Скрывать</option></select></div>' +
       '<button class="btn ghost" onclick="openSheet(\'help\')">Как пользоваться приложением</button>') +
-    card(lab('Финансовые настройки') + '<div class="fld"><label>Основная валюта</label><select onchange="setCur(this.value)">' +
-      CURR.map(c=>'<option value="'+c[0]+'"'+(c[0]===cur()[0]?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('') + '</select></div>' +
-      '<div class="mut">Расходы в разных валютах не складываются между собой.</div>') +
-    card(lab('Данные приложения') +
+    /* валюта выбирается там, где ею пользуются — на экране «Финансы» */
+    fold('more-data', 'Данные приложения', backupDue() ? 'пора сделать копию' : 'копия и восстановление',
       '<div style="margin-bottom:8px;font-size:13px;color:var(--ok)">✓ Все изменения сохраняются автоматически</div>' + backupWarning +
-      '<div class="mut" style="margin-bottom:10px">Все записи хранятся только в этом браузере и никуда не отправляются. ' +
+      '<div class="mut" style="margin-bottom:10px">' + (cloudUser ? 'Записи хранятся на телефоне и в вашем облаке. ' : 'Все записи хранятся только в этом браузере и никуда не отправляются. ') +
         (S.backupAt ? 'Последняя копия — ' + humanDate(iso(new Date(S.backupAt))) + '.' : 'Копию ещё не делали.') + '</div>' +
       '<button class="btn" onclick="openSheet(\'backup\')">Резервная копия</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="document.getElementById(\'restore\').click()">Загрузить копию</button>' +
       '<input type="file" id="restore" accept="application/json,.json" hidden onchange="restoreFile(this)">' +
       '<div class="item" style="margin-top:10px"><div class="ic">📱</div><div class="txt"><b>Добавить на экран телефона</b><small>Меню браузера → «На экран „Домой“»</small></div></div>' +
-      '<div class="mut" style="margin-top:10px">«Точка дня» хранит планы и заметки только в этом браузере.</div>' +
+
       '<div class="mut" style="margin-top:6px">Версия ' + APP_VERSION + ' · обновлено ' + APP_UPDATED + '.</div>' +
       '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;line-height:1.55;color:var(--mut)">' +
         'Автор идеи и концепции приложения — Одинцова И. В. © 2026. Все права защищены.</div>');
@@ -1710,39 +2322,128 @@ function closeSheet(){ if (typeof camEnd === 'function') camEnd(); if (typeof mi
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetState.kind !== 'welcome') closeSheet(); });
 function val(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
-/* Единый выбор времени: пользователь выбирает из списка, а голос может
-   подставить и нестандартное время, например 10:10. */
-function timeOptions(selected){
-  const chosen = String(selected || '');
-  const values = [];
-  for (let h=0; h<24; h++) for (let m=0; m<60; m+=30)
-    values.push(String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0'));
-  if (chosen && !values.includes(chosen)) values.push(chosen);
-  values.sort();
-  return '<option value="">Без времени</option>' + values.map(t =>
-    '<option value="' + t + '"' + (t === chosen ? ' selected' : '') + '>' + t + '</option>').join('');
-}
 function timeSelect(selected){
-  return '<input id="f-time" type="text" inputmode="numeric" list="time-suggestions" maxlength="5" ' +
-    'value="' + esc(selected || '') + '" placeholder="Например: 10:15" onblur="fixTime(this)" aria-label="Время события">' +
-    '<datalist id="time-suggestions">' + timeOptions(selected).replace('<option value="">Без времени</option>','') + '</datalist>';
+  return '<input id="f-time" type="text" inputmode="numeric" maxlength="5" ' +
+    'value="' + esc(selected || '') + '" placeholder="Например: 10:15" ' +
+    'onfocus="openHints(\'f-time\')" oninput="liveTime(this);renderHints(\'f-time\',this.value)" ' +
+    'onblur="closeHints(\'f-time\');fixTime(this)" aria-label="Время события">' +
+    hintsBox('f-time','time', selected || '');
 }
 const EVENT_HINTS = ['Маникюр','Педикюр','Парикмахер','Врач','Стоматолог','Тренировка','Танцы','Встреча','Созвон','Учёба','Покупки','Уборка'];
+
+/* Список выпадающих подсказок в айфоне не показывается — Safari прячет его
+   в узкую полоску над клавиатурой. Поэтому подсказки рисуем сами, прямо под
+   полем, и сортируем по тому, как часто запись повторялась. */
+function eventHintList(onlyMine){
+  const seen = {};
+  (S && S.ev ? S.ev : []).forEach((e, i) => {
+    const t = tidy(e.title || '');
+    if (!t) return;
+    const key = t.toLowerCase();
+    if (!seen[key]) seen[key] = {text:t, count:0, last:-1};
+    seen[key].count++;
+    seen[key].last = i;
+  });
+  const mine = Object.keys(seen).map(k => seen[k])
+    .sort((a,b) => b.count - a.count || b.last - a.last)
+    .map(x => x.text);
+  return onlyMine ? mine : [...new Set(mine.concat(EVENT_HINTS))];
+}
+/* Своего списка Safari не показывает под полем — он раскрывает панель во весь
+   экран и закрывает форму. Поэтому list у поля больше нет: подсказки рисуем
+   сами, строкой под полем, а само поле остаётся сверху и всегда доступно. */
 function eventInput(value, parseOnBlur){
-  const used = (S && S.ev ? S.ev.slice().reverse().map(e => tidy(e.title || '')) : []).filter(Boolean);
-  const hints = [...new Set(used.concat(EVENT_HINTS))].slice(0,24);
-  return '<input id="f-title" list="event-suggestions" value="' + esc(value || '') + '" placeholder="Например: Маникюр"' +
-    (parseOnBlur ? ' onblur="spillTitle(this)"' : '') + ' autocomplete="off">' +
-    '<datalist id="event-suggestions">' + hints.map(x => '<option value="' + esc(x) + '"></option>').join('') + '</datalist>';
+  return '<input id="f-title" value="' + esc(value || '') + '" placeholder="Например: Маникюр"' +
+    ' autocomplete="off" onfocus="openHints(\'f-title\')" oninput="renderHints(\'f-title\',this.value)"' +
+    ' onblur="closeHints(\'f-title\');' + (parseOnBlur ? 'spillTitle(this)' : '') + '">';
+}
+/* Подсказки были только у названия события; адрес, расход и название списка
+   открывали панель Safari во весь экран. Механизм один на все поля. */
+const TIME_HINTS = ['09:00','10:00','10:30','11:00','12:00','13:00','15:00','16:00','18:00','19:00'];
+function timeHints(onlyMine){
+  const stats = {};
+  (S.ev || []).forEach((e,i) => {
+    const t = e.time; if (!t) return;
+    if (!stats[t]) stats[t] = {t:t, count:0, last:i};
+    stats[t].count++; stats[t].last = i;
+  });
+  const mine = Object.keys(stats).map(k => stats[k])
+    .sort((a,b) => b.count - a.count || b.last - a.last).map(x => x.t);
+  return onlyMine ? mine : [...new Set(mine.concat(TIME_HINTS))];
+}
+function hintSource(kind, onlyMine){
+  const all = kind === 'time'    ? timeHints(onlyMine)
+            : kind === 'theme'   ? themeList()
+            : kind === 'event'   ? eventHintList(onlyMine)
+            : kind === 'address' ? addressHints()
+            : kind === 'expense' ? expenseHints(onlyMine)
+            : kind === 'list'    ? listTitleHints(onlyMine) : [];
+  return all;
+}
+/* Список раскрывается под полем, как привычная подсказка ввода: своё —
+   сверху и помечено, встроенные примеры — ниже. Свой список, а не системный:
+   Safari показывает собственный панелью во весь экран поверх формы. */
+function hintsBox(fieldId, kind, value){
+  return '<div class="hints" id="hints-' + fieldId + '" data-field="' + fieldId + '" data-kind="' + kind + '">' +
+    hintRows(kind, value || '') + '</div>';
+}
+function hintRows(kind, typed){
+  const mine = hintSource(kind, true);
+  const own = {};
+  mine.forEach(x => { own[x.toLowerCase()] = 1; });
+  const all = hintSource(kind);
+  const q = String(typed).trim().toLowerCase();
+  const fit = (q ? all.filter(x => x.toLowerCase().includes(q) && x.toLowerCase() !== q) : all).slice(0, 40);
+  if (!fit.length) return '';
+  return fit.map(x =>
+    '<button type="button" class="hint-row" data-v="' + esc(x) + '" onclick="useHint(this)">' +
+      '<span>' + esc(x) + '</span>' +
+      (own[x.toLowerCase()] ? '<em>вы записывали</em>' : '') +
+    '</button>').join('');
+}
+function renderHints(fieldId, typed){
+  const box = document.getElementById('hints-' + fieldId);
+  if (!box) return;
+  box.innerHTML = hintRows(box.dataset.kind, typed);
+  box.classList.toggle('open', !!box.innerHTML);
+}
+function openHints(fieldId){
+  const el = document.getElementById(fieldId);
+  renderHints(fieldId, el ? el.value : '');
+}
+function closeHints(fieldId){
+  /* задержка нужна, чтобы успело сработать нажатие по строке списка */
+  setTimeout(() => {
+    const box = document.getElementById('hints-' + fieldId);
+    if (box) box.classList.remove('open');
+  }, 160);
+}
+function useHint(btn){
+  const box = btn.closest('.hints');
+  const el = box && document.getElementById(box.dataset.field);
+  if (!el) return;
+  el.value = btn.dataset.v;
+  box.classList.remove('open');
+  if (box.dataset.kind === 'expense') syncExpenseCategory(el.value);
+  if (box.dataset.kind === 'list') fillListFromHistory(el.value);
+  el.focus();
+}
+function addressHints(){
+  const stats = {};
+  (S && S.ev ? S.ev : []).forEach((e,idx) => {
+    /* адрес не предложение: точку в конце дописывать не нужно */
+    const a = String(e.address || '').trim().replace(/\s+/g,' '), key = a.toLowerCase(); if (!key) return;
+    if (!stats[key]) stats[key] = {a:a, count:0, last:idx};
+    stats[key].count++; stats[key].last = idx;
+  });
+  return Object.keys(stats).map(k=>stats[k]).sort((x,y)=>y.count-x.count || y.last-x.last).map(x=>x.a).slice(0,20);
 }
 function addressInput(value){
-  const used=(S&&S.ev?S.ev.slice().reverse().map(e=>tidy(e.address||'')):[]).filter(Boolean);
-  const hints=[...new Set(used)].slice(0,20);
-  return '<input id="f-address" list="address-suggestions" value="'+esc(value||'')+'" placeholder="Например: ул. Ленина, 10" autocomplete="street-address">'+
-    '<datalist id="address-suggestions">'+hints.map(x=>'<option value="'+esc(x)+'"></option>').join('')+'</datalist>';
+  return '<input id="f-address" value="'+esc(value||'')+'" placeholder="Например: ул. Ленина, 10" autocomplete="street-address" onfocus="openHints(\'f-address\')" oninput="renderHints(\'f-address\',this.value)" onblur="closeHints(\'f-address\')">'+
+    hintsBox('f-address','address',value||'');
 }
 const EXPENSE_HINTS = ['Продукты','Кафе','Доставка','Коммунальные услуги','Маникюр','Аптека','Такси','Бензин','Одежда','Подарки'];
-function expenseHints(){
+function expenseHints(onlyMine){
   const stats = {};
   (S && S.exp ? S.exp : []).forEach((e,idx) => {
     const title = tidy(e.title || ''), key = title.toLowerCase(); if (!key) return;
@@ -1750,18 +2451,17 @@ function expenseHints(){
     stats[key].count++; stats[key].last=idx;
   });
   const learned = Object.values(stats).sort((a,b)=>b.count-a.count || b.last-a.last).map(x=>x.title);
-  return [...new Set(learned.concat(EXPENSE_HINTS))].slice(0,24);
+  return onlyMine ? learned : [...new Set(learned.concat(EXPENSE_HINTS))].slice(0,40);
 }
 function expenseInput(value){
-  return '<input id="f-title" list="expense-suggestions" value="' + esc(value || '') + '" placeholder="Например: Продукты" autocomplete="off" oninput="syncExpenseCategory(this.value)">' +
-    '<datalist id="expense-suggestions">' + expenseHints().map(x=>'<option value="'+esc(x)+'"></option>').join('') + '</datalist>';
+  return '<input id="f-title" value="' + esc(value || '') + '" placeholder="Например: Продукты" autocomplete="off" onfocus="openHints(\'f-title\')" oninput="syncExpenseCategory(this.value);renderHints(\'f-title\',this.value)" onblur="closeHints(\'f-title\')">';
 }
 function syncExpenseCategory(text){
   if (catTouched) return;
   const el = document.getElementById('f-cat'); if (el) el.value = pickCat(text);
 }
 const LIST_HINTS = ['Покупки','Дела на сегодня','Подготовить документы','В дорогу','Уборка','Звонки','Рабочие задачи'];
-function listTitleHints(){
+function listTitleHints(onlyMine){
   const stats = {}, lists = (S && S.notes ? S.notes.filter(n => n.items && (n.title || n.text)) : []);
   lists.forEach((n,idx) => {
     const title = tidy(n.title || n.text), key = title.toLowerCase();
@@ -1769,11 +2469,11 @@ function listTitleHints(){
     stats[key].count++; stats[key].last=idx;
   });
   const learned = Object.values(stats).sort((a,b) => b.count-a.count || b.last-a.last).map(x=>x.title);
-  return [...new Set(learned.concat(LIST_HINTS))].slice(0,20);
+  return onlyMine ? learned : [...new Set(learned.concat(LIST_HINTS))].slice(0,40);
 }
 function listTitleInput(){
-  return '<input id="f-list-title" list="list-title-suggestions" placeholder="Например: Покупки" autocomplete="off" onchange="fillListFromHistory(this.value)">' +
-    '<datalist id="list-title-suggestions">' + listTitleHints().map(x => '<option value="' + esc(x) + '"></option>').join('') + '</datalist>';
+  return '<input id="f-list-title" placeholder="Например: Покупки" autocomplete="off" onchange="fillListFromHistory(this.value)" onfocus="openHints(\'f-list-title\')" oninput="renderHints(\'f-list-title\',this.value)" onblur="closeHints(\'f-list-title\')">' +
+    hintsBox('f-list-title','list','');
 }
 function fillListFromHistory(title){
   const items = document.getElementById('f-list-items');
@@ -1800,21 +2500,19 @@ function finishWelcome(){
 
 const SHEETS = {
   cloudAuth: () => '<h3>Облачное сохранение</h3>'+
-    '<div class="mut" style="margin-bottom:12px">Войдите в существующий аккаунт или создайте новый. Текущие записи с телефона сохранятся и после входа будут перенесены в облако.</div>'+
+
     '<div class="fld"><label>Электронная почта</label><input id="cloud-email" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com"></div>'+
     '<div class="fld"><label>Пароль — не менее 8 символов</label><input id="cloud-password" type="password" autocomplete="current-password" minlength="8" placeholder="Введите пароль"></div>'+
     '<button class="btn" onclick="cloudLogin()">Войти</button>'+
     '<button class="btn ghost" style="margin-top:8px" onclick="cloudRegister()">Создать аккаунт</button>'+
+    '<button class="del" style="display:block;margin:10px auto 0" onclick="cloudReset()">Забыли пароль?</button>'+
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Пока не подключать</button>',
   day: (d) => daySheet(d || today()),
   welcome: () => '<h3>Добро пожаловать в «Точку дня»</h3>' +
-    '<div class="mut" style="margin-bottom:12px">Сначала настройте только два пункта. Остальное добавляется по мере необходимости.</div>' +
+
     '<div class="fld"><label>Ваше имя</label><input id="f-welcome-name" maxlength="40" placeholder="Например: Анастасия" autocomplete="name"></div>' +
     '<div class="fld"><label>Валюта расходов</label><select id="f-welcome-cur">' + CURR.map(c=>'<option value="'+c[0]+'"'+(c[0]==='RUB'?' selected':'')+'>'+c[2]+' '+c[1]+'</option>').join('') + '</select></div>' +
-    '<div class="item"><div class="ic">1</div><div class="txt"><b>План</b><small>Дела с датой и временем</small></div></div>' +
-    '<div class="item"><div class="ic">2</div><div class="txt"><b>Заметки</b><small>Информация и задачи без срока</small></div></div>' +
-    '<div class="item"><div class="ic">3</div><div class="txt"><b>Финансы</b><small>Ежедневные расходы по категориям</small></div></div>' +
-    '<div class="mut" style="margin-top:10px">Данные останутся в этом браузере. Резервная копия находится в разделе «Ещё».</div>' +
+
     '<button class="btn" style="margin-top:12px" onclick="finishWelcome()">Начать</button>',
 
   help: () => '<h3>Как пользоваться</h3>' +
@@ -1826,18 +2524,24 @@ const SHEETS = {
     '<button class="btn" style="margin-top:12px" onclick="closeSheet()">Понятно</button>',
 
   quick: () => '<h3>Что добавить?</h3>' +
-    '<div class="mut" style="margin-bottom:12px">Выберите один понятный тип записи.</div>' +
+
     '<button class="btn" onclick="openSheet(\'voice\')">🎙 Рассказать голосом</button>' +
-    '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'ev\')">✓ Дело или событие</button>' +
-    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet();goScreen(\'s-notes\');setTimeout(focusNote,120)">✎ Заметка</button>' +
+    /* «Дело или событие» вело в форму события, а дело в приложении — другое.
+       Теперь вид выбирается здесь один раз, и выпадающий список в форме не нужен. */
+    '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'ev\')">▦ Событие с датой и временем</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet();goScreen(\'s-notes\');setTimeout(()=>focusNote(\'task\'),120)">✓ Дело с галочкой</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet();goScreen(\'s-notes\');setTimeout(()=>focusNote(\'note\'),120)">✎ Заметка</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'list\')">☑ Список по пунктам</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
   list: () => '<h3>Новый список</h3>' +
     '<div class="fld"><label>Название</label>' + listTitleInput() + '</div>' +
     '<div class="fld"><label>Пункты — каждый с новой строки</label>' +
-      '<textarea id="f-list-items" rows="7" placeholder="Проверить заявление&#10;Приложить справку&#10;Отправить документы"></textarea>' +
+      '<textarea id="f-list-items" rows="7" onblur="spillList(this)" placeholder="Проверить заявление&#10;Приложить справку&#10;Отправить документы"></textarea>' +
       '</div>' +
+    '<div class="fld"><label>Когда нужно — необязательно</label><input id="f-list-due" type="date"></div>' +
+    themeInput('') +
+    '<label class="askring"><input type="checkbox" id="f-list-ring"><span>Сделать напоминание</span></label>' +
     '<button class="btn" onclick="saveQuickList()">Создать список</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
@@ -1847,13 +2551,13 @@ const SHEETS = {
     '<div class="item"><div class="ic">2</div><div class="txt"><b>Говорите, а не печатайте</b>' +
       '<small>На айфоне нажмите поле и микрофон на клавиатуре</small></div></div>' +
     '<div class="item"><div class="ic">3</div><div class="txt"><b>Данные в телефоне</b>' +
-      '<small>Никуда не отправляются. Раз в неделю делайте копию в «Ещё»</small></div></div>' +
+      '<small>' + (cloudUser ? 'Хранятся на телефоне и в облаке. Копию всё равно делайте раз в неделю' : 'Никуда не отправляются. Раз в неделю делайте копию в «Ещё»') + '</small></div></div>' +
     '<button class="btn" style="margin-top:12px" onclick="hideHi();closeSheet()">Понятно</button>',
 
   expEdit: () => {
     const e = S.exp.find(x => x.id === editId) || {};
     return '<h3>Изменить расход</h3>' +
-      fldMic('Расход', expenseInput(e.title || ''), 'f-title') +
+      fldMic('Расход', expenseInput(e.title || ''), 'f-title', 'text', hintsBox('f-title','expense',e.title || '')) +
       fldMic('Сумма, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" min="0" step="0.01" value="' + (e.sum || '') + '" placeholder="800">', 'f-sum', 'sum') +
       '<div class="fld"><label>Категория</label><select id="f-cat">' +
         CATS.map(c => '<option' + (c === e.cat ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>' +
@@ -1874,7 +2578,7 @@ const SHEETS = {
   },
 
   exp: () => '<h3>Расход</h3>' +
-    fldMic('Расход', expenseInput(''), 'f-title') +
+    fldMic('Расход', expenseInput(''), 'f-title', 'text', hintsBox('f-title','expense','')) +
     fldMic('Сумма, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" min="0" step="0.01" placeholder="800">', 'f-sum', 'sum') +
     '<div class="fld"><label>Категория</label><select id="f-cat" onchange="catTouched=1">' +
       CATS.map(c => '<option' + (c === 'Прочее' ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>' +
@@ -1891,16 +2595,22 @@ const SHEETS = {
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
   ev: (d) => '<h3>Событие</h3>' +
-    fldMic('Событие', eventInput('', true), 'f-title') +
-    '<div class="fld"><label>Что это</label><div class="pick" id="p-kind">' +
-      KINDS.map((k,i) => '<button data-v="' + k[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + k[1] + '</button>').join('') +
-    '</div></div>' +
+    fldMic('Событие', eventInput('', true), 'f-title', 'text', hintsBox('f-title','event','')) +
     '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (d || today()) + '"></div>' +
     fldMic('Время', timeSelect(''), 'f-time', 'time') +
     '<div class="fld"><label>Адрес — необязательно</label>'+addressInput('')+'</div>' +
+    /* значение отсюда читалось при сохранении, а самого поля в форме не было */
+    '<div class="fld"><label>Во сколько обойдётся, ' + sign() + ' — необязательно</label>' +
+      '<input id="f-sum" type="text" inputmode="decimal" placeholder="Например: 3000" onblur="fixSum(this)"></div>' +
     '<div class="fld"><label>Повторять</label><div class="pick" id="p-rep">' +
       REPEATS.map((r,i) => '<button data-v="' + r[0] + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + r[1] + '</button>').join('') +
     '</div></div>' +
+    /* Раньше это было спрятано в правке уже созданного события, то есть найти
+       его можно было только зная, что оно там есть. Теперь спрашиваем сразу. */
+    /* Объяснение, почему напоминание уходит в календарь айфона, читать никто
+   не станет. Оно нужно один раз — и его место в подсказке, а не в форме. */
+    '<label class="askring"><input type="checkbox" id="f-ring">' +
+      '<span>Сделать напоминание</span></label>' +
     '<button class="btn" onclick="saveEv()">Добавить в календарь</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
@@ -1908,10 +2618,7 @@ const SHEETS = {
     const e = S.ev.find(x => x.id === editId);
     if (!e) return '<h3>Событие не найдено</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
     return '<h3>Изменить событие</h3>' +
-      fldMic('Событие', eventInput(e.title || '', false), 'f-title') +
-      '<div class="fld"><label>Что это</label><div class="pick" id="p-kind">' +
-        KINDS.map(k => '<button data-v="' + k[0] + '" aria-pressed="' + (k[0] === (e.kind || 'plain')) + '" onclick="pickOne(this)">' + k[1] + '</button>').join('') +
-      '</div></div>' +
+      fldMic('Событие', eventInput(e.title || '', false), 'f-title', 'text', hintsBox('f-title','event',e.title || '')) +
       '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (e.date || today()) + '"></div>' +
       fldMic('Время', timeSelect(e.time || ''), 'f-time', 'time') +
       '<div class="fld"><label>Адрес — необязательно</label>'+addressInput(e.address || '')+'</div>' +
@@ -1919,47 +2626,57 @@ const SHEETS = {
         REPEATS.map(r => '<button data-v="' + r[0] + '" aria-pressed="' + (r[0] === (e.repeat || 'none')) + '" onclick="pickOne(this)">' + r[1] + '</button>').join('') +
       '</div></div>' +
       '<button class="btn" onclick="saveEvEdit()">Сохранить изменения</button>' +
-      '<button class="btn ghost" style="margin-top:8px" onclick="toPhoneCalendar(editId)">Добавить напоминание в телефон</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="toPhoneCalendar(editId)">Пусть телефон напомнит — передать в календарь айфона</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>' +
       '<button class="btn ghost" style="margin-top:8px;color:var(--stop)" onclick="confirmDropEv(editId,true)">Удалить событие</button>';
   },
 
   voice: () => '<h3>Расскажите свободно</h3>' +
-    '<div class="mut">Скажите всё подряд — про дела, траты и планы. Разложу по разделам.</div>' +
-    '<div class="card" style="margin:10px 0;background:#F4F8FB"><div class="lab">Например</div>' +
-      '<div class="mut">«Завтра врач в десять» · «Потратила восемьсот на продукты» · ' +
-      '«Не забыть купить творог и яйца» · «Через неделю приезжает дочь»</div></div>' +
     '<div class="fld"><div class="withmic">' +
       '<textarea id="f-speech" rows="4" placeholder="Потратила восемьсот на продукты, в пятницу маникюр в шесть, позвонить маме"></textarea>' +
       micBtn('f-speech','raw') + '</div></div>' +
-    '<div class="mut" style="margin-bottom:10px">' + (micWhyNot() || 'Нажмите микрофон справа или диктуйте с клавиатуры телефона.') +
-      ' Говорите как удобно. Что не разберётся — сохраню в заметки целиком, ничего не потеряется.</div>' +
-    '<div class="mut" style="margin-bottom:10px">Точнее всего получается, когда вы записываете прямо в разделе: ' +
-      'в календаре — событие, в деньгах — трату, в записях — мысль. Кнопка внизу подстраивается под открытый раздел.</div>' +
+    (micWhyNot() ? '<div class="mut" style="margin-bottom:10px">' + micWhyNot() + '</div>' : '') +
     '<button class="btn" onclick="doParse()">Разложить по полям</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
+
+  noteAppend: () => {
+    const n = findNote(editNoteId);
+    if (!n) return '<h3>Запись не найдена</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
+    const isList = !!n.items;
+    return '<h3>' + (isList ? 'Добавить в список' : 'Дописать в заметку') + '</h3>' +
+      '<div class="mut" style="margin-bottom:11px">«' + esc(noteTitle(n)) + '»</div>' +
+      fldMic(isList ? 'Что добавить' : 'Что дописать',
+        '<textarea id="f-append" rows="3" placeholder="' +
+        (isList ? 'Молоко, хлеб, яйца' : 'Продиктуйте или впишите — добавится в конец') + '"></textarea>',
+        'f-append', 'raw') +
+
+      '<button class="btn" onclick="saveAppend()">' + (isList ? 'Добавить' : 'Дописать') + '</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
+  },
 
   noteEdit: () => {
     const n = findNote(editNoteId);
     if (!n) return '<h3>Запись не найдена</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
     const body = n.items ?
       '<div class="fld"><label>Название списка</label><input id="f-note" value="' + esc(n.title || n.text || 'Список') + '" placeholder="Например: Подготовить документы"></div>' +
-      '<div class="fld"><label>Пункты — каждый с новой строки</label><textarea id="f-items" rows="6" placeholder="Проверить заявление&#10;Приложить справку&#10;Отправить документы">' +
-        esc(n.items.map(i => i.t).join('\n')) + '</textarea><small class="hint">У каждого пункта в списке будет своя галочка.</small></div>' +
+      '<div class="fld"><label>Пункты — каждый с новой строки</label><textarea id="f-items" rows="6" onblur="spillList(this)" placeholder="Проверить заявление&#10;Приложить справку&#10;Отправить документы">' +
+        esc(n.items.map(i => i.t).join('\n')) + '</textarea></div>' +
       '<div class="fld"><label>Где — необязательно</label><input id="f-where" value="' + esc(n.where || '') + '" placeholder="Например: работа или магазин"></div>' :
       '<div class="fld"><label>Тип записи</label><select id="f-kind"><option value="task"' + ((n.kind || 'task') === 'task' ? ' selected' : '') + '>Дело</option><option value="note"' + (n.kind === 'note' ? ' selected' : '') + '>Заметка</option></select></div>' +
       fldMic('Текст', '<textarea id="f-note" rows="3" placeholder="Например: позвонить врачу">' + esc(n.text || '') + '</textarea>', 'f-note', 'raw') +
-      '<div class="fld"><label>Статус</label><select id="f-done"><option value="0"' + (!n.done ? ' selected' : '') + '>Не выполнено</option><option value="1"' + (n.done ? ' selected' : '') + '>Выполнено</option></select><small class="hint">Статус применяется к делам. У обычной заметки галочка не показывается.</small></div>';
+      '<div class="fld"><label>Статус</label><select id="f-done"><option value="0"' + (!n.done ? ' selected' : '') + '>Не выполнено</option><option value="1"' + (n.done ? ' selected' : '') + '>Выполнено</option></select></div>';
     return '<h3>' + (n.items ? 'Изменить список' : 'Изменить запись') + '</h3>' + body +
-        '<div class="fld"><label>Дата напоминания — необязательно</label><input id="f-due" type="date" value="' + (n.due || '') + '"><small class="hint">Запись появится в плане на выбранную дату.</small></div>' +
+      themeInput(n.theme || '') +
+        '<div class="fld"><label>Дата напоминания — необязательно</label><input id="f-due" type="date" value="' + (n.due || '') + '"></div>' +
       '<button class="btn" onclick="saveNoteEdit()">Сохранить</button>' +
+      /* функция передачи в календарь телефона была написана, но кнопки к ней не было */
+      '<button class="btn ghost" style="margin-top:8px" onclick="noteToPhone(\'' + n.id + '\')">Сделать напоминание</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>' +
       '<button class="btn ghost" style="margin-top:8px;color:var(--stop)" onclick="deleteNoteFromEdit()">Удалить запись</button>';
   },
 
   backup: () => '<h3>Резервная копия</h3>' +
-    '<div class="mut">Копия — это файл со всеми вашими записями. Держите её не только на телефоне: ' +
-      'отправьте себе в мессенджер или в облако, тогда данные переживут потерю телефона.</div>' +
+    
     '<button class="btn" style="margin-top:12px" onclick="sendBackup()">Отправить копию себе</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="downloadBackup()">Сохранить файлом</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>',
@@ -1967,7 +2684,7 @@ const SHEETS = {
 
 
   check: () => '<h3>Чек</h3>' +
-    '<div class="mut">Сумму с чека внесите в расходы, а состав, если нужен, надиктуйте заметкой.</div>' +
+    
     '<button class="btn" style="margin-top:12px" onclick="openSheet(\'exp\')">Внести расход</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>'
 };
@@ -1986,6 +2703,7 @@ function editEv(id){ editId = id; openSheet('evEdit'); }
 function confirmDropEv(id, closeAfter){
   const e = S.ev.find(x => x.id === id);
   if (!e || !window.confirm('Удалить событие «' + e.title + '»?')) return;
+  killed(id);
   S.ev = S.ev.filter(x => x.id !== id);
   if (editId === id) editId = null;
   save(); if (closeAfter) closeSheet(); toast('Событие удалено');
@@ -1999,7 +2717,7 @@ function saveEvEdit(){
   if (timeEl) fixTime(timeEl);
   if (!validTime(val('f-time'))){ toast('Проверьте время: например 10:15'); return; }
   e.title = title;
-  e.kind = picked('p-kind', e.kind || 'plain');
+  e.kind = e.kind || 'plain';   /* тип больше не спрашиваем, у старых записей сохраняем */
   e.date = val('f-date') || e.date || today();
   e.time = val('f-time') || null;
   e.address = tidy(val('f-address')) || null;
@@ -2011,6 +2729,7 @@ function editExp(id){ editId = id; openSheet('expEdit'); }
 function confirmDropExp(id, closeAfter){
   const e = S.exp.find(x => x.id === id);
   if (!e || !window.confirm('Удалить расход «' + e.title + '» на сумму ' + money(e.sum,curOf(e)) + '?')) return;
+  killed(id);
   S.exp = S.exp.filter(x => x.id !== id);
   if (editId === id) editId = null;
   save(); if (closeAfter) closeSheet(); toast('Расход удалён');
@@ -2024,6 +2743,13 @@ function saveExpEdit(){
   editId = null; save(); closeSheet(); toast('Изменено');
 }
 function editInc(id){ editId = id; openSheet('incEdit'); }
+function confirmDropInc(id){
+  const e = S.inc.find(x => x.id === id);
+  if (!e || !window.confirm('Удалить доход «' + e.title + '» на сумму ' + money(e.sum, curOf(e)) + '?')) return;
+  killed(id);
+  S.inc = S.inc.filter(x => x.id !== id);
+  save(); toast('Доход удалён');
+}
 function saveIncEdit(){
   const e = S.inc.find(x => x.id === editId);
   if (!e) return;
@@ -2094,10 +2820,30 @@ function fixSum(el){
   if (n) el.value = n;
   else { el.value = ''; toast('Не поняла сумму — скажите «восемьсот» или напишите цифрами'); }
 }
+/* Двоеточие ставим прямо во время набора, а не когда человек уйдёт из поля:
+   иначе на экране висит «1015» и непонятно, понял ли его телефон.
+   Если час больше двух — час однозначно один: «815» это 8:15, а не 81:5. */
+function liveTime(el){
+  const raw = el.value;
+  if (/[^\d:.\s]/.test(raw)) return;   // продиктовано словами — не вмешиваемся
+  const d = raw.replace(/\D/g,'').slice(0,4);
+  if (!d){ el.value = ''; return; }
+  const hLen = (+d[0] >= 3) ? 1 : 2;
+  el.value = d.length > hLen ? d.slice(0,hLen) + ':' + d.slice(hLen, hLen + 2) : d;
+}
 function fixTime(el){
   const raw = (el.value || '').trim();
   if (!raw) return;
-  let t = parseTime(' в ' + raw + ' ') || parseTime(' ' + raw + ' ');
+  let t = null;
+  /* «0815» и «1930» — так время набирают на цифровой клавиатуре. Раньше сюда
+     первым добирался разбор речи, видел «08» и терял минуты: 0815 → 08:00. */
+  const compact = raw.match(/^([0-9]{1,2})([0-9]{2})$/);
+  if (compact){
+    const h = +compact[1], m = +compact[2];
+    if (h <= 23 && m <= 59) t = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+    else { el.value = ''; toast('Время должно быть от 00:00 до 23:59, например 10:15'); return; }
+  }
+  if (!t) t = parseTime(' в ' + raw + ' ') || parseTime(' ' + raw + ' ');
   if (!t){
     const m = raw.match(/^([0-9]{1,2})[^0-9]?([0-9]{2})?$/);
     if (m && +m[1] <= 23 && +(m[2] || 0) <= 59)
@@ -2113,17 +2859,26 @@ function saveEv(){
   const timeEl = document.getElementById('f-time');
   if (timeEl) fixTime(timeEl);
   if (!validTime(val('f-time'))){ toast('Проверьте время: например 10:15'); return; }
-  const kind = picked('p-kind','plain');
+  const kind = 'plain';
   // если дату и время сказали прямо в названии — вынимаем их оттуда
   const saidDate = parseDate(raw), saidTime = parseTime(' ' + raw + ' ');
   const t = clean(raw) || tidy(raw);
-  addEv({title: t,
+  const ring = document.getElementById('f-ring');
+  const wantRing = !!(ring && ring.checked);
+  const rec = {title: t,
          date: val('f-date') && val('f-date') !== today() ? val('f-date') : (saidDate || today()),
          time: val('f-time') || saidTime || null,
          address: tidy(val('f-address')) || null,
          plan: +val('f-sum') || null, kind: kind,
-         repeat: picked('p-rep', kind === 'bd' ? 'year' : 'none')});
-  closeSheet(); toast(kind === 'bd' ? 'День рождения запомнен — напомню за 10 дней' : 'Добавлено в календарь');
+         repeat: picked('p-rep', 'none')};
+  const saved = addEv(rec);
+  closeSheet();
+  if (wantRing){
+    if (!rec.time){ toast('Чтобы телефон напомнил, нужен час — впишите время'); return; }
+    toPhoneCalendarObj(saved || rec);
+    return;
+  }
+  toast('Добавлено в календарь');
 }
 /* ---------- разбор надиктованного ---------- */
 let parsed = null;
@@ -2146,12 +2901,6 @@ function doParse(){
         esc(parsed.rest.join('. ')) + '</div></div>' : '') +
     (nothing ? '' : '<button class="btn" style="margin-top:12px" onclick="applyParse()">Записать</button>') +
     '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'voice\')">Сказать заново</button>';
-}
-function restToNote(){
-  if (!parsed || !parsed.rest.length) return;
-  S.notes.push({id:uid(), date:today(), text:tidy(parsed.rest.join('. ')), kind:'note', done:false});
-  parsed.rest = [];
-  save(); closeSheet(); toast('Сохранено в заметки — ничего не потерялось');
 }
 function applyParse(){
   if (!parsed) return;
@@ -2199,7 +2948,12 @@ function restoreFile(input){
       const o = JSON.parse(r.result);
       const d = o && o.data ? o.data : o;
       if (!d || !Array.isArray(d.exp)) throw 0;
-      S = d; save(); toast('Копия загружена — все записи на месте');
+      const now = normalize(d);
+      if (hasUserData(S) && !window.confirm(
+        'Заменить всё, что сейчас в приложении, записями из копии? Текущие записи будут стёрты.')) return;
+      S = now;
+      if (cloudUser) S.settings.cloudOwner = cloudUser.id;
+      save(); toast('Копия загружена — все записи на месте');
     }catch(e){ toast('Это не похоже на копию «Точки дня»'); }
   };
   r.readAsText(f);
@@ -2228,9 +2982,9 @@ function micBtn(targetId, mode){
   return '<button type="button" class="mic" title="' + (kb ? 'Открыть клавиатуру с микрофоном' : 'Сказать голосом') +
     '" onclick="micStart(this,\'' + targetId + '\',\'' + (mode || 'text') + '\')">' + (kb ? '⌨' : '🎙') + '</button>';
 }
-function fldMic(labelText, inputHtml, targetId, mode){
+function fldMic(labelText, inputHtml, targetId, mode, below){
   return '<div class="fld"><label>' + labelText + '</label><div class="withmic">' +
-    inputHtml + micBtn(targetId, mode) + '</div></div>';
+    inputHtml + micBtn(targetId, mode) + '</div>' + (below || '') + '</div>';
 }
 let rec = null;
 function micStart(btn, targetId, mode){
@@ -2338,8 +3092,9 @@ function parseReceiptQR(raw){
 function openCheck(){
   if (!camSupported()){
     document.getElementById('sheet-in').innerHTML =
-      '<h3>Чек</h3><div class="mut">Этот браузер не умеет читать коды камерой. На айфоне откройте приложение в Chrome ' +
-      'или внесите сумму вручную — она есть на чеке крупно.</div>' +
+      '<h3>Чек</h3><div class="mut">' + (isIOS()
+        ? 'На айфоне чтение кодов камерой недоступно ни в одном браузере: все они работают на движке Safari, а он этого не умеет. Внесите сумму — на чеке она напечатана крупно — или продиктуйте.'
+        : 'Этот браузер не умеет читать коды камерой. Внесите сумму вручную — она есть на чеке крупно.') + '</div>' +
       '<button class="btn" style="margin-top:12px" onclick="openSheet(\'exp\')">Внести сумму</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'voice\')">Сказать голосом</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
@@ -2363,8 +3118,7 @@ function checkConfirm(r){
       CATS.map((c,i) => '<button data-v="' + esc(c) + '" aria-pressed="' + (i===0) + '" onclick="pickOne(this)">' + c + '</button>').join('') +
     '</div></div>' +
     '<div class="fld"><label>Название — необязательно</label><input id="f-title" placeholder="Магазин у дома"></div>' +
-    '<div class="mut">Состав по позициям в коде не записан: он хранится в базе ФНС и подключается отдельно. ' +
-      'Если нужно разделить чек — проговорите голосом, что в нём было.</div>' +
+    
     '<button class="btn" style="margin-top:12px" onclick="saveCheck(' + r.sum + ',\'' + r.date + '\')">Записать расход</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="openCheck()">Сканировать другой</button>';
 }
@@ -2378,7 +3132,6 @@ load();
 
 /* старое значение бюджета по умолчанию (60 000) осталось у тех,
    кто открывал ранние версии — стираем, чтобы не показывать чужую цифру */
-if (S.settings.budget){ delete S.settings.budget; saveQuiet(); }
 
 /* до этой версии валюта была одна на всё приложение: символ менялся, а суммы
    оставались прежними. Поэтому проставляем старым записям ту валюту,
@@ -2412,8 +3165,74 @@ if (S.settings.budget){ delete S.settings.budget; saveQuiet(); }
   S.settings.fixedEv = 1;
   if (changed) save(); else saveQuiet();
 })();
+/* Без этого любая незамеченная ошибка оставляла белый экран без единого слова.
+   Записи при этом целы — важно сказать об этом, а не молчать. */
+let crashShown = false;
+function showCrash(what){
+  if (crashShown) return;
+  crashShown = true;
+  try{ saveQuiet(); }catch(e){}
+  const bar = document.createElement('div');
+  bar.className = 'crashbar';
+  bar.innerHTML = '<b>Что-то пошло не так</b>' +
+    '<span>Записи сохранены — они на месте. Обновите страницу, а если повторится, сохраните резервную копию.</span>' +
+    '<span class="crash-why">' + esc(String(what || '').slice(0,140)) + '</span>' +
+    '<button type="button" onclick="location.reload()">Обновить</button>';
+  (document.body || document.documentElement).appendChild(bar);
+}
+/* Приложение, открытое в двух местах, затирало само себя: каждая вкладка
+   писала своё поверх чужого. Теперь чужая запись подхватывается и сливается
+   по тем же правилам, что и записи из облака. */
+window.addEventListener('storage', e => {
+  if (e.key !== KEY || !e.newValue) return;
+  try{
+    const other = normalize(JSON.parse(e.newValue));
+    const merged = mergeStates(S, other);
+    const changed = JSON.stringify(merged) !== JSON.stringify(other);
+    S = merged;
+    /* назад пишем только если добавилось наше — иначе вкладки будут
+       бесконечно передавать запись друг другу */
+    if (changed) saveQuiet();
+    renderAll();
+    toast('Записи обновлены — приложение открыто ещё в одном месте');
+  }catch(err){}
+});
+window.addEventListener('error', e => showCrash(e && e.message));
+window.addEventListener('unhandledrejection', e => showCrash(e && e.reason && e.reason.message));
+
 renderAll();
 setDock(curScreen);
+
+/* iOS не уменьшает окно, когда выезжает клавиатура: форма считает, что места
+   по-прежнему во весь экран, и кнопка сохранения уходит под клавиатуру.
+   Подгоняем высоту окна под то, что реально видно. */
+if (window.visualViewport){
+  const fitSheet = () => {
+    const box = document.getElementById('sheet-in');
+    if (!box) return;
+    const hidden = Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop);
+    if (hidden > 80){
+      box.style.maxHeight = (visualViewport.height - 24) + 'px';
+      box.style.paddingBottom = (hidden > 0 ? 26 : 22) + 'px';
+    } else {
+      box.style.maxHeight = '';
+      box.style.paddingBottom = '';
+    }
+  };
+  visualViewport.addEventListener('resize', fitSheet);
+  visualViewport.addEventListener('scroll', fitSheet);
+}
+/* и подводим само поле к глазам, а не оставляем у нижнего края */
+document.addEventListener('focusin', e => {
+  const el = e.target;
+  if (!el || !el.closest || !el.closest('#sheet-in')) return;
+  setTimeout(() => { try{ el.scrollIntoView({block:'center'}); }catch(err){} }, 280);
+});
+/* фон окна закрывается нажатием, но у клавиатуры нажатия нет — нужен Esc */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('sheet').classList.contains('open')
+      && sheetState.kind !== 'welcome') closeSheet();
+});
 initCloud();
 if (!S.settings.onboarded) setTimeout(() => openSheet('welcome'), 120);
 setInterval(() => {
