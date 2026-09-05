@@ -985,7 +985,7 @@ async function run() {
     'на «Сегодня» список свёрнут до итога, пункты не вываливаются');
   assert(seen('s-money').includes('6 записей') && !seen('s-money').includes('изменитьудалить'),
     'в «Финансах» операции свёрнуты до количества');
-  assert(seen('s-more').includes('имя, показ выполненного') && !seen('s-more').includes('Имя в приветствии'),
+  assert(seen('s-more').includes('имя, разделы, показ выполненного') && !seen('s-more').includes('Имя в приветствии'),
     'в «Ещё» настройки свёрнуты до подписи');
   assert(!seen('s-notes').includes('Сохранить дело'),
     'форма новой записи свёрнута, а не занимает пол-экрана');
@@ -1128,6 +1128,85 @@ async function run() {
   assert(w.document.getElementById('f-time').value === '10:15',
     'выбор подставляет время в поле');
   w.eval('closeSheet();');
+
+  // ---- ошибки облака говорят по-русски и подсказывают, что делать ----
+  const errText = m => w.cloudErrorText({message: m});
+  assert(errText('For security purposes, you can only request this after 0 seconds.').includes('Подождите минуту'),
+    'ограничение по частоте объяснено словами, а не ответом сервера');
+  assert(errText('User already registered').includes('«Войти»'),
+    'при существующем аккаунте сказано, какую кнопку нажать');
+  assert(errText('Invalid login credentials').includes('Забыли пароль?'),
+    'при неверном пароле показан путь к восстановлению');
+  assert(errText('Email not confirmed').includes('письмо'),
+    'неподтверждённая почта объяснена');
+  assert(errText('Failed to fetch').includes('интернет'),
+    'обрыв связи назван обрывом связи');
+  assert(errText('Signups not allowed for this instance').includes('приглашение'),
+    'при закрытой регистрации сказано, что нужно приглашение');
+  ['For security', 'User already', 'Invalid login', 'Failed to fetch', 'Нечто неизвестное'].forEach(m =>
+    assert(!/[a-z]{4,}/.test(errText(m)), 'в сообщении нет английских слов: ' + m.slice(0, 20)));
+
+  // ---- лента для календаря айфона ----
+  w.eval("S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; cloudUser = null; renderAll();");
+  const key1 = w.feedKey();
+  assert(key1.length >= 40, 'ключ ленты длинный и случайный — подобрать его нельзя');
+  assert(w.feedKey() === key1, 'ключ не меняется при каждом обращении');
+  assert(w.eval("S.settings.feedKey") === key1, 'ключ хранится вместе с записями и уезжает в облако');
+  assert(w.feedUrl('webcal').indexOf('webcal://') === 0 && w.feedUrl('webcal').includes(key1),
+    'ссылка для подписки собрана с ключом');
+
+  w.eval("openSheet('feed')");
+  assert(w.document.getElementById('sheet-in').textContent.includes('подключите облачное'),
+    'без аккаунта лента не предлагается — она берётся из облака');
+
+  w.eval("cloudUser = {id:'u', email:'a@b.c'}; openSheet('feed');");
+  const feedSheet = w.document.getElementById('sheet-in').textContent.replace(/\s+/g, ' ');
+  assert(w.document.getElementById('f-feed').value === w.feedUrl('webcal'),
+    'ссылка показана целиком и её можно скопировать');
+  assert(feedSheet.includes('Подписной календарь'),
+    'три шага настройки на месте — это делается один раз');
+  assert(w.document.querySelectorAll('#sheet-in .steps li').length === 3,
+    'шагов ровно три, без лишних объяснений');
+  w.eval('closeSheet(); cloudUser = null;');
+
+  // ---- разделы можно скрыть, у каждого свой набор ----
+  w.eval("S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; foldOpen = {}; renderAll(); goScreen('s-more'); toggleFold('more-set');");
+  const visibleTabs = () => [...w.document.querySelectorAll('.tabs button')].filter(b => !b.hidden).length;
+
+  assert(visibleTabs() === 5, 'по умолчанию видны все пять разделов');
+  assert(w.document.querySelectorAll('#s-more .askring').length === 3,
+    'скрыть можно три раздела — «Сегодня» и «Ещё» остаются всегда');
+
+  w.eval("toggleScreen('s-money')");
+  assert(visibleTabs() === 4 && w.document.getElementById('tab-money').hidden,
+    'выключенный раздел уходит из нижней панели');
+  assert(w.eval("S.exp !== undefined"), 'записи при этом остаются на месте');
+
+  w.eval("goScreen('s-cal'); toggleScreen('s-cal');");
+  assert(w.eval('curScreen') === 's-today',
+    'если выключить открытый раздел, приложение уводит на «Сегодня», а не оставляет на пустом');
+
+  w.eval("toggleScreen('s-money'); toggleScreen('s-cal');");
+  assert(visibleTabs() === 5, 'разделы возвращаются');
+
+  w.eval("S.settings.hidden = {'s-money':1}; renderAll();");
+  assert(w.document.getElementById('tab-money').hidden,
+    'настройка применяется при запуске, а не только при нажатии');
+
+  // ---- ссылку на календарь можно сменить, если она утекла ----
+  w.eval("S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; cloudUser = {id:'u', email:'a@b'}; renderAll(); openSheet('feed');");
+  const oldKey = w.feedKey();
+  assert(w.document.querySelector('#sheet-in button[onclick*="resetFeed"]'),
+    'в окне календаря есть кнопка смены ссылки');
+  w.eval('resetFeed()');
+  const newKey = w.feedKey();
+  assert(newKey !== oldKey && newKey.length === oldKey.length,
+    'ключ меняется на новый такой же длины');
+  assert(w.document.getElementById('f-feed').value.includes(newKey),
+    'в поле сразу показана новая ссылка');
+  assert(!w.document.getElementById('f-feed').value.includes(oldKey),
+    'старая ссылка больше нигде не фигурирует');
+  w.eval('closeSheet(); cloudUser = null;');
 
   assert(html.includes('Автор идеи и концепции приложения — Одинцова И. В.'),
     'авторство указано в приложении');

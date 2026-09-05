@@ -263,6 +263,9 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .fold-close{display:block;width:100%;margin-top:12px;padding:11px;border:1px solid var(--line);
   border-radius:12px;background:rgba(255,255,255,.6);cursor:pointer;
   font:500 13px 'Golos Text',sans-serif;color:var(--accent)}
+.steps{margin:14px 0 0;padding-left:20px;font:400 13px/1.5 'Golos Text',sans-serif;color:var(--ink)}
+.steps li{margin-bottom:5px}
+#f-feed{font:400 11px 'IBM Plex Mono',monospace;color:var(--mut)}
 .themes{display:flex;flex-wrap:wrap;gap:6px;margin:-3px 0 11px}
 .theme{border:1px solid var(--line);background:rgba(255,255,255,.7);color:var(--mut);
   border-radius:999px;padding:6px 11px;font:500 12px 'Golos Text',sans-serif;cursor:pointer}
@@ -479,7 +482,7 @@ let S = null, storageOk = true;
 
 function blank(){
   return {
-    settings:{income:0, save:0, cur:'RUB', notesTab:'task', name:'', showDone:1, onboarded:0, hi:1},
+    settings:{income:0, save:0, cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, onboarded:0, hi:1},
     exp:[], inc:[], ev:[], notes:[], day:{}, del:[], savedAt:null, backupAt:null, firstDataAt:null
   };
 }
@@ -677,6 +680,8 @@ function cloudErrorText(e){
     return 'Неверная почта или пароль. Если пароль забыт — «Забыли пароль?»';
   if (m.includes('email not confirmed'))
     return 'Почта не подтверждена. Откройте письмо и вернитесь сюда';
+  if (m.includes('signups not allowed') || m.includes('signup is disabled') || m.includes('email signups are disabled'))
+    return 'Регистрация закрыта. Попросите администратора выслать приглашение на вашу почту';
   if (m.includes('rate limit') || m.includes('too many'))
     return 'Слишком много попыток подряд. Попробуйте через несколько минут';
   if (m.includes('password') && m.includes('least'))
@@ -712,6 +717,36 @@ async function cloudReset(){
   const result=await cloudClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
   if(result.error){toast(cloudErrorText(result.error));return;}
   toast('Письмо для смены пароля отправлено на '+email);
+}
+/* Ссылка на ленту событий. Календарь айфона ходит по ней сам, когда
+   приложение закрыто, — пересылать события руками больше не нужно.
+   Ключ в ссылке и есть пропуск: он случайный и хранится в записях. */
+function feedKey(){
+  if (!S.settings.feedKey){
+    const a = new Uint8Array(24);
+    crypto.getRandomValues(a);
+    S.settings.feedKey = Array.from(a).map(b => b.toString(16).padStart(2,'0')).join('');
+    save();
+  }
+  return S.settings.feedKey;
+}
+function feedUrl(scheme){
+  return (scheme || 'https') + '://' + SUPABASE_URL.replace('https://','') +
+    '/functions/v1/kalendar?key=' + feedKey();
+}
+function resetFeed(){
+  if (!window.confirm('Создать новую ссылку? Старая перестанет работать, и подписку в календаре придётся добавить заново.')) return;
+  delete S.settings.feedKey;
+  save();
+  openSheet('feed');
+  toast('Новая ссылка готова — добавьте её в календарь заново');
+}
+async function copyFeed(){
+  try{ await navigator.clipboard.writeText(feedUrl('webcal')); toast('Ссылка скопирована'); }
+  catch(e){
+    const el = document.getElementById('f-feed');
+    if (el){ el.select(); try{ document.execCommand('copy'); toast('Ссылка скопирована'); }catch(err){} }
+  }
 }
 async function cloudSignOut(){
   if(!window.confirm('Выйти из облачного аккаунта? Данные на этом телефоне останутся.'))return;
@@ -1290,6 +1325,7 @@ const DOCK = {
 let curScreen = 's-today';
 function openContext(){
   if (curScreen === 's-money') return openSheet('exp');
+  if (curScreen === 's-today' && screenOff('s-money') && screenOff('s-notes') && screenOff('s-cal')) return openSheet('ev');
   if (curScreen === 's-cal') return openSheet('ev', selDay || today());
   if (curScreen === 's-notes') return focusNote();
   openSheet('quick');
@@ -1354,6 +1390,7 @@ function lab(t){ return '<div class="lab">' + esc(t) + '</div>'; }
 
 function renderAll(){
   dropIndex();
+  applyTabs();
   const d = new Date();
   document.getElementById('today-date').textContent =
     WDAYS[d.getDay()].charAt(0).toUpperCase() + WDAYS[d.getDay()].slice(1) + ', ' + humanDate(today());
@@ -2294,18 +2331,38 @@ function obsOff(){
   save(); closeSheet(); toast('Наблюдения отключены. Включить можно в «Ещё»');
 }
 /* ---------- Ещё: только настройки, инструкция и данные ---------- */
+/* Одному нужны финансы, другому только заметки. Раздел можно скрыть,
+   записи при этом остаются — убирается только вкладка. */
+const HIDEABLE = [['s-cal','tab-cal','План'],['s-notes','tab-notes','Заметки'],['s-money','tab-money','Финансы']];
+function screenOff(id){ return !!(S.settings.hidden || {})[id]; }
+function toggleScreen(id){
+  const h = S.settings.hidden = S.settings.hidden || {};
+  if (h[id]) delete h[id]; else h[id] = 1;
+  save(); applyTabs();
+}
+function applyTabs(){
+  HIDEABLE.forEach(x => {
+    const btn = document.getElementById(x[1]);
+    if (btn) btn.hidden = screenOff(x[0]);
+  });
+  if (screenOff(curScreen)) goScreen('s-today');
+}
 function renderMore(){
   const backupWarning = backupDue()
     ? '<button type="button" class="tip" style="margin-bottom:10px" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</button>' : '';
   const cloudCard = cloudUser
-    ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
+    ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openSheet(\'feed\')">Календарь айфона</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
     : card(lab('Облачное сохранение')+'<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
   document.getElementById('s-more').innerHTML =
-    cloudCard + fold('more-set', 'Настройки приложения', 'имя, показ выполненного',
+    cloudCard + fold('more-set', 'Настройки приложения', 'имя, разделы, показ выполненного',
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +
       '<div class="fld"><label>Выполненные дела на экране «Сегодня»</label><select onchange="setBool(\'showDone\',this.value)">' +
         '<option value="1"' + (S.settings.showDone ? ' selected' : '') + '>Показывать</option>' +
         '<option value="0"' + (!S.settings.showDone ? ' selected' : '') + '>Скрывать</option></select></div>' +
+      '<div class="fld"><label>Разделы внизу экрана</label>' +
+        HIDEABLE.map(x => '<label class="askring" style="margin:0 0 7px">' +
+          '<input type="checkbox"' + (screenOff(x[0]) ? '' : ' checked') +
+          ' onchange="toggleScreen(\'' + x[0] + '\')"><span>' + x[2] + '</span></label>').join('') + '</div>' +
       '<button class="btn ghost" onclick="openSheet(\'help\')">Как пользоваться приложением</button>') +
     /* валюта выбирается там, где ею пользуются — на экране «Финансы» */
     fold('more-data', 'Данные приложения', backupDue() ? 'пора сделать копию' : 'копия и восстановление',
@@ -2664,6 +2721,25 @@ const SHEETS = {
     (micWhyNot() ? '<div class="mut" style="margin-bottom:10px">' + micWhyNot() + '</div>' : '') +
     '<button class="btn" onclick="doParse()">Разложить по полям</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
+
+  feed: () => {
+    if (!cloudUser) return '<h3>Календарь айфона</h3>' +
+      '<div class="mut" style="margin-bottom:12px">Сначала подключите облачное сохранение — лента берётся оттуда.</div>' +
+      '<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить</button>' +
+      '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
+    return '<h3>Календарь айфона</h3>' +
+      '<div class="fld"><input id="f-feed" readonly value="' + esc(feedUrl('webcal')) + '"></div>' +
+      '<button class="btn" onclick="copyFeed()">Скопировать ссылку</button>' +
+      '<a class="btn ghost" style="display:block;margin-top:8px;text-align:center;text-decoration:none" ' +
+        'href="' + esc(feedUrl('webcal')) + '">Открыть в календаре</a>' +
+      '<ol class="steps">' +
+        '<li>Настройки → Приложения → Календарь → Учётные записи</li>' +
+        '<li>Добавить учётную запись → Другое → Подписной календарь</li>' +
+        '<li>Вставить ссылку → Далее → Сохранить</li>' +
+      '</ol>' +
+      '<button class="del" style="display:block;margin:12px auto 0" onclick="resetFeed()">Ссылка попала не туда — сменить</button>' +
+      '<button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">Закрыть</button>';
+  },
 
   noteAppend: () => {
     const n = findNote(editNoteId);
