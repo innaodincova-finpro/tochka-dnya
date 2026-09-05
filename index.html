@@ -214,6 +214,8 @@ body{
 /* ---- рабочая версия: формы, поля, всплывающие сообщения ---- */
 html{overflow-x:hidden}
 body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
+.phone,.screen,.sheet-in{max-width:100%;overflow-x:hidden}
+.phone *{min-width:0}
 .screen{overflow-x:hidden}
 .card,.item,.parse,.daycard{max-width:100%}
 .item .txt b,.item .txt small,.mut,.empty{overflow-wrap:anywhere}
@@ -267,7 +269,7 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .fold{padding:0;overflow:hidden}
 .fold-head{display:flex;width:100%;align-items:center;gap:9px;border:0;background:transparent;
   padding:15px 16px;cursor:pointer;text-align:left;font:inherit}
-.fold-title{font:600 11px/1.2 'Golos Text',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--navy)}
+.fold-title{font:600 14px/1.25 'Golos Text',sans-serif;letter-spacing:0;text-transform:none;color:var(--navy)}
 .fold-sum{flex:1;font:400 12.5px 'Golos Text',sans-serif;color:var(--mut);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fold-arrow{flex:0 0 auto;color:var(--accent);font-size:15px;line-height:1}
@@ -286,7 +288,7 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .theme-tag{font-style:normal;font-weight:600;color:var(--accent)}
 .pin{border:0;background:transparent;cursor:pointer;font-size:16px;line-height:1;padding:4px 2px;color:var(--mut)}
 .pin.on{color:var(--ochre)}
-.note-block.pinned{background:linear-gradient(135deg,rgba(212,119,148,.07),rgba(118,82,168,.05));
+.note-block.pinned,.note-card.pinned{background:linear-gradient(135deg,rgba(212,119,148,.07),rgba(118,82,168,.05));
   border-radius:12px;padding:0 8px;margin:0 -8px}
 .note-block{border-bottom:1px solid var(--line);padding:4px 0}
 .note-block:last-child{border-bottom:0}
@@ -320,6 +322,37 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
   color:var(--ink);font:500 12px 'Golos Text',sans-serif;text-align:left;cursor:pointer}
 .note-menu-pop button:active{background:#F4EDF8}
 .note-menu-pop .danger{color:var(--stop)}
+.note-card{padding:13px 0;border-bottom:1px solid var(--line)}
+.note-card:last-child{border-bottom:0}
+.note-open{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;width:100%;min-width:0;
+  border:0;background:transparent;padding:0;text-align:left;color:inherit;font-family:inherit;cursor:pointer}
+.note-card-title{display:block;font:600 16px/1.38 'Golos Text',sans-serif;color:var(--ink);overflow-wrap:anywhere}
+.note-card-date{display:block;margin-top:5px;font-size:12px;color:var(--mut)}
+.note-card-open{align-self:center;color:var(--accent);font-size:12px;font-weight:600}
+.note-reader{min-width:0}
+.note-reader-head{margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.note-reader-title{font:600 21px/1.28 'Spectral',Georgia,serif;color:var(--navy);overflow-wrap:anywhere}
+.note-reader-date{margin-top:5px;font-size:12px;color:var(--mut)}
+.note-reader-body{font:400 16px/1.62 'Golos Text',sans-serif;color:var(--ink);overflow-wrap:anywhere}
+.note-reader-body a{color:var(--accent);overflow-wrap:anywhere;word-break:break-word}
+.note-reader-body .nt-p{margin:0 0 16px}
+.note-reader-body .nt-h1,.note-reader-body .nt-h2,.note-reader-body .nt-h3{margin:20px 0 9px;color:var(--navy)}
+.note-reader-body .nt-h1:first-child,.note-reader-body .nt-h2:first-child,.note-reader-body .nt-h3:first-child{display:none}
+.note-reader-body .nt-h2{font-size:17px;padding-left:10px;border-left:3px solid rgba(118,82,168,.45)}
+.note-reader-body .nt-ul{padding-left:22px;margin:0 0 16px}.note-reader-body .nt-ul li{margin-bottom:8px}
+.note-reader-body .nt-num{display:grid;grid-template-columns:25px minmax(0,1fr);gap:6px;margin:0 0 9px;
+  padding:10px 11px;border-radius:10px;background:rgba(118,82,168,.06)}
+.note-reader-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
+.note-reader-actions .btn{margin:0;min-width:0}
+.note-reader-secondary{display:flex;justify-content:space-between;gap:12px;margin-top:10px}
+.note-reader-secondary button{border:0;background:transparent;padding:8px 0;color:var(--accent);font:500 13px 'Golos Text',sans-serif}
+.note-reader-secondary .danger{color:var(--stop)}
+@media (max-width:420px){
+  .note-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%}
+  .note-tools .mini,.note-tools .note-menu summary{justify-content:center;text-align:center;padding-left:7px;padding-right:7px}
+  .switch button,.tabs button{min-width:0}
+  .tabs button{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+}
 .hint-row em{flex:0 0 auto;font:400 10.5px 'Golos Text',sans-serif;color:var(--mut);font-style:normal}
 .askring{display:flex;gap:10px;align-items:center;margin:4px 0 12px;padding:10px 12px;
   border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.7);cursor:pointer}
@@ -503,7 +536,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '4.5';
+const APP_VERSION = '5.0';
 const APP_UPDATED = '5 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -1789,6 +1822,7 @@ function renderNotes(){
     (sorted.length ? sorted.map(x =>
       (x.items && x.items.length
         ? listFold(x)
+        : noteBucket(x) === 'note' ? noteCard(x)
         : '<div class="note-block' + (x.pinned ? ' pinned' : '') + '">' +
           '<div class="item note-row" style="align-items:flex-start">' +
           ((x.kind || 'task') === 'task' ? '<button class="tick' + (x.done ? ' on' : '') + '" onclick="toggleNoteDone(\'' + x.id + '\')" title="' + (x.done ? 'Вернуть в работу' : 'Отметить выполненным') + '">' + (x.done ? '✓' : '') + '</button>' : '<div class="ic">✎</div>') +
@@ -2038,6 +2072,18 @@ function listFold(x){
       '<button type="button" class="fold-close" onclick="toggleFold(\'' + key + '\')">свернуть ↑</button>' : '') +
   '</div>';
 }
+function noteCard(x){
+  return '<article class="note-card' + (x.pinned ? ' pinned' : '') + '">' +
+    '<button type="button" class="note-open" onclick="openNote(\'' + x.id + '\')" aria-label="Открыть заметку">' +
+      '<span><span class="note-card-title">' + esc(noteHead(x.text) || 'Заметка') + '</span>' +
+      '<small class="note-card-date">' + humanDate(x.date) + '</small></span>' +
+      '<span class="note-card-open">Открыть</span>' +
+    '</button></article>';
+}
+function openNote(id){ editNoteId = id; openSheet('noteView'); }
+function noteViewTitle(n){
+  return /^\s*#{1,6}\s+/.test(String(n.text || '')) ? (noteHead(n.text) || 'Заметка') : 'Заметка';
+}
 function noteActions(x){
   return '<button class="mini" onclick="openAppend(\'' + x.id + '\')">' + (x.items ? 'Добавить' : 'Дописать') + '</button>' +
     '<button class="mini" onclick="editNote(\'' + x.id + '\')">изменить</button>' +
@@ -2201,10 +2247,13 @@ function saveAppend(){
     toast(lines.length > 1 ? 'Добавлено ' + lines.length + ' ' + plural(lines.length,'пункт','пункта','пунктов') : 'Пункт добавлен');
   } else {
     n.text = String(n.text || '').replace(/\s+$/,'') + '\n' + add;
-    noteOpen[n.id] = true;   /* сразу показываем, что получилось */
     toast('Дописано');
   }
-  editNoteId = null; save(); closeSheet();
+  const returnToNote = !n.items;
+  const savedId = n.id;
+  save();
+  if (returnToNote) openNote(savedId);
+  else { editNoteId = null; closeSheet(); }
 }
 /* ---- 3. закрепление: несколько записей держатся первыми ---- */
 function togglePin(id){
@@ -2784,6 +2833,23 @@ const SHEETS = {
       '</ol>' +
       '<button class="del" style="display:block;margin:12px auto 0" onclick="resetFeed()">Ссылка попала не туда — сменить</button>' +
       '<button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">Закрыть</button>';
+  },
+
+  noteView: () => {
+    const n = findNote(editNoteId);
+    if (!n) return '<h3>Заметка не найдена</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
+    return '<div class="note-reader">' +
+      '<div class="note-reader-head"><div class="note-reader-title">' + esc(noteViewTitle(n)) + '</div>' +
+      '<div class="note-reader-date">' + humanDate(n.date) + '</div></div>' +
+      '<div class="note-reader-body">' + noteMarkup(noteBody(n.text)) + '</div>' +
+      '<div class="note-reader-actions">' +
+        '<button class="btn ghost" onclick="openAppend(\'' + n.id + '\')">Дописать</button>' +
+        '<button class="btn" onclick="editNote(\'' + n.id + '\')">Изменить</button>' +
+      '</div>' +
+      '<div class="note-reader-secondary">' +
+        '<button onclick="closeSheet()">Закрыть</button>' +
+        '<button class="danger" onclick="dropNote(\'' + n.id + '\')">Удалить</button>' +
+      '</div></div>';
   },
 
   noteAppend: () => {

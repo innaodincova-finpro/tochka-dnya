@@ -673,21 +673,14 @@ async function run() {
 
   assert(notesText().includes('Аджика на зиму') && !notesText().includes('варите 60 минут'),
     'длинная заметка показана первой строкой, а не целиком');
-  const more = w.document.querySelector('.note-more');
-  assert(more && more.textContent.includes('Открыть'),
-    'есть кнопка, чтобы раскрыть');
-  const collapsed = notesText().length;
-
-  w.eval("toggleNoteText('long')");
-  assert(notesText().includes('варите 60 минут'), 'по нажатию текст раскрывается целиком');
-  assert(notesText().length > collapsed, 'развёрнутый вид длиннее свёрнутого');
-  assert(w.document.querySelector('.note-full') && w.document.querySelector('.fold-close').textContent.includes('Свернуть'),
-    'текст читается в отдельной области и сворачивается одной кнопкой');
-  w.eval("toggleNoteText('long')");
-  assert(!notesText().includes('варите 60 минут'), 'сворачивание работает');
-
-  assert(!w.document.querySelector('.note-more[onclick*="short"]'),
-    'короткой записи кнопка раскрытия не нужна');
+  const more = w.document.querySelector('.note-card-open');
+  assert(more && more.textContent.includes('Открыть'), 'есть понятная кнопка открытия');
+  w.eval("openNote('long')");
+  const readerText = w.document.getElementById('sheet-in').textContent;
+  assert(readerText.includes('варите 60 минут'), 'заметка открывается целиком на отдельном экране');
+  assert(w.document.querySelector('.note-reader-body'), 'для чтения используется отдельная область');
+  w.eval('closeSheet()');
+  assert(!notesText().includes('варите 60 минут'), 'после закрытия лента снова компактная');
   w.eval("setNotesTab('task')");
   assert(!notesText().includes('Добавлено сегодня · создано'),
     'подпись не повторяет одно и то же дважды');
@@ -737,9 +730,9 @@ async function run() {
     noteOpen = {}; noteQuery = '';
     S.notes = [{id:'adj', date:today(), kind:'note', text:${JSON.stringify(adjika)}}];
     renderAll(); goScreen('s-notes');`);
-  w.eval("toggleNoteText('adj')");
-  const full = w.document.querySelector('.note-full');
-  assert(full, 'развёрнутый текст выведен отдельным блоком во всю ширину');
+  w.eval("openNote('adj')");
+  const full = w.document.querySelector('.note-reader-body');
+  assert(full, 'текст выведен на отдельном экране чтения');
   assert(!full.closest('.txt'),
     'он не зажат в узкую колонку между значком и кнопками');
   const bullets = [...full.querySelectorAll('.nt-ul li')].map(li => li.textContent);
@@ -788,12 +781,13 @@ async function run() {
     'сообщение о пустом результате выводится один раз, а не двумя карточками');
   w.eval("noteFind('')");
 
-  // развёрнутая заметка не повторяет своё начало дважды
-  w.eval("setNotesTab('note'); toggleNoteText('o2');");
-  const one = w.document.querySelector('.note-block').textContent;
+  // открытая заметка не повторяет своё начало в ленте
+  w.eval("setNotesTab('note'); openNote('o2');");
+  const one = w.document.getElementById('sheet-in').textContent;
   assert((one.match(/Аджика на зиму/g) || []).length === 1,
-    'у развёрнутой заметки начало текста не показано дважды');
-  assert(/свернуть/i.test(one), 'кнопка сворачивания на месте');
+    'в открытой заметке начало текста не показано дважды');
+  assert(/закрыть/i.test(one), 'кнопка закрытия на месте');
+  w.eval('closeSheet()');
 
   // ---- вкладка и форма — один выбор, а не два независимых ----
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; noteQuery = '';
@@ -840,7 +834,8 @@ async function run() {
   w.eval('saveAppend()');
   assert(w.eval("S.notes.find(n => n.id === 'ap1').text").endsWith('\nХранить в погребе'),
     'дописанное встаёт в конец новой строкой');
-  assert(w.eval("!!noteOpen['ap1']"), 'заметка сразу раскрывается — видно, что получилось');
+  assert(w.document.getElementById('sheet-in').textContent.includes('Хранить в погребе'),
+    'после дописывания заметка снова открыта и результат виден');
 
   // в список дописываются пункты, а не строка текста
   w.eval(`S.notes.push({id:'ap3', date:today(), title:'Покупки', items:[{t:'Хлеб', done:false}]});
@@ -858,16 +853,15 @@ async function run() {
 
   // ---- закрепление держит запись первой ----
   w.eval("setNotesTab('note'); renderNotes();");
-  const firstNote = () => w.document.querySelector('#s-notes .note-block').textContent;
+  const firstNote = () => w.document.querySelector('#s-notes .note-card').textContent;
   const wasFirst = firstNote();
   assert(!wasFirst.includes('Аджика'), 'сначала порядок обычный');
   w.eval("togglePin('ap1')");
   assert(firstNote().includes('Аджика'), 'закреплённая поднимается наверх');
-  assert(w.document.querySelector('.pin.on') && firstNote().includes('Открепить'), 'закрепление обозначено понятным действием');
-  assert(w.document.querySelector('.note-block.pinned'), 'и выделена фоном');
+  assert(w.document.querySelector('.note-card.pinned'), 'и выделена фоном');
   w.eval("togglePin('ap1')");
   assert(!firstNote().includes('Аджика'), 'открепление возвращает обычный порядок');
-  assert(!w.document.querySelector('.pin.on'), 'и состояние закрепления снимается');
+  assert(!w.document.querySelector('.note-card.pinned'), 'и состояние закрепления снимается');
 
   // ---- темы не перегружают обычные заметки ----
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; S.settings.notesTab = 'note';
@@ -877,7 +871,7 @@ async function run() {
                {id:'th3', date:today(), kind:'note', text:'Плитка в ванной', theme:'Ремонт'},
                {id:'th4', date:today(), kind:'note', text:'Адрес мастера'}];
     renderAll(); goScreen('s-notes');`);
-  const shown = () => w.document.querySelectorAll('#s-notes .note-block').length;
+  const shown = () => w.document.querySelectorAll('#s-notes .note-card').length;
   const notesAll = () => w.document.getElementById('s-notes').textContent.replace(/\s+/g, ' ');
 
   assert(shown() === 4, 'все заметки видны независимо от старых тем');
@@ -918,12 +912,10 @@ async function run() {
     noteQuery = ''; themeFilter = ''; noteOpen = {};
     S.notes = [{id:'wide', date:today(), kind:'note', text:${JSON.stringify(longNote)}, theme:'Заготовки'}];
     renderAll(); goScreen('s-notes');`);
-  const blockEl = w.document.querySelector('.note-block');
-  assert(!blockEl.querySelector('.note-row .mini'),
-    'кнопки убраны из строки с текстом — она больше не сжимается в колонку');
-  assert(blockEl.querySelector('.note-tools .mini'),
-    'кнопки стоят своей строкой под записью');
-  assert(!blockEl.querySelector('.note-row').textContent.includes('*'),
+  const blockEl = w.document.querySelector('.note-card');
+  assert(blockEl && !blockEl.querySelector('.note-tools'),
+    'в ленте заметок нет панели действий, сжимающей карточку');
+  assert(!blockEl.textContent.includes('*'),
     'в свёрнутом виде звёздочки перечня не показываются');
 
   // ---- при открытии экрана всё свёрнуто до заголовка ----
@@ -979,12 +971,10 @@ async function run() {
   w.document.querySelector('#s-notes .fold-head').click();
   assert(!w.document.querySelector('.fold-body'), 'та же стрелка сворачивает обратно');
 
-  w.eval("toggleNoteText('cl1')");
-  const openNote = w.document.querySelector('.note-block');
-  assert(openNote.lastElementChild.classList.contains('fold-close'),
-    'у раскрытой заметки тоже есть «свернуть» под текстом');
-  openNote.lastElementChild.click();
-  assert(!w.document.querySelector('.note-full'), 'заметка сворачивается снизу');
+  w.eval("openNote('cl1')");
+  assert(w.document.querySelector('.note-reader'), 'заметка открывается отдельно от ленты');
+  w.eval('closeSheet()');
+  assert(!w.document.getElementById('sheet').classList.contains('open'), 'экран заметки закрывается');
 
   w.eval("setNotesTab('list'); toggleFold('list-cl2');");
   const openList = w.document.querySelector('#s-notes .note-block');
@@ -1227,8 +1217,8 @@ async function run() {
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; S.settings.notesTab = 'note';
     noteOpen = {}; noteQuery = ''; themeFilter = ''; foldOpen = {};
     S.notes = [{id:'md', date:today(), kind:'note', text:${JSON.stringify(md)}}];
-    renderAll(); goScreen('s-notes'); toggleNoteText('md');`);
-  const md_full = w.document.querySelector('.note-full');
+    renderAll(); goScreen('s-notes'); openNote('md');`);
+  const md_full = w.document.querySelector('.note-reader-body');
 
   assert(md_full.querySelectorAll('.nt-h1, .nt-h2, .nt-h3').length === 2,
     'заголовки выделены, а не идут вровень с текстом');
