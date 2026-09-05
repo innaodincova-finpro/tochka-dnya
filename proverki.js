@@ -1275,6 +1275,32 @@ async function run() {
   assert(!w.document.getElementById('f-theme'),
     'необязательная тема не перегружает форму быстрого ввода');
 
+  // ---- в тёмной теме не остаётся светлых пятен ----
+  const darkCss = html.slice(html.indexOf('[data-theme="dark"]'));
+  ['.chip', '.hints', '.hint-row', '.note-search', '.theme', '.askring', '.pick button',
+   '.tick', '.crashbar', '.warnbar', '.plan-toggle', '.note-menu-pop',
+   '.continuous-cal .d.has-plan', '.continuous-cal .d.day-missed', '.continuous-cal .d.day-done',
+   '.tl-dot', '.sheet-in'].forEach(sel =>
+    assert(darkCss.includes('[data-theme="dark"] ' + sel),
+      'в тёмной теме перекрыт элемент: ' + sel));
+
+  w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; S.settings.theme = 'dark';
+    applyColorTheme();
+    S.ev = [{id:'dk', date:iso(new Date(Date.now()+3*86400000)), title:'Садовод', time:'06:00'}];
+    dropIndex(); renderAll();`);
+  assert(w.document.documentElement.dataset.theme === 'dark', 'тёмная тема включается');
+  const darkChip = w.document.querySelector('#s-today .chip');
+  assert(darkChip && w.getComputedStyle(darkChip).backgroundImage.includes('#3A2C4C'),
+    'кнопка-таблетка получает тёмный фон, а не остаётся светлой под светлым текстом');
+
+  w.eval("openSheet('voice')");
+  const darkSheet = w.document.getElementById('sheet-in');
+  assert(w.getComputedStyle(darkSheet).backgroundColor === 'rgb(37, 30, 49)',
+    'окно открывается тёмным, а не белым');
+  assert(!darkSheet.textContent.includes('диктует клавиатура'),
+    'подпись про микрофон убрана — значок и так на месте');
+  w.eval("closeSheet(); S.settings.theme = 'light'; applyColorTheme();");
+
   assert(html.includes('Автор идеи и концепции приложения — Одинцова И. В.'),
     'авторство указано в приложении');
   assert(!/год рождения/i.test(html), 'поле года рождения удалено');

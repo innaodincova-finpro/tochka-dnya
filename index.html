@@ -493,6 +493,36 @@ body{
 [data-theme="dark"] .cal .d.out{opacity:.42}
 [data-theme="dark"] .item,[data-theme="dark"] .plan-event,[data-theme="dark"] .note-card{border-bottom-color:#493B56}
 [data-theme="dark"] a{color:#D5AEFF}
+/* эти оставались светлыми на тёмном фоне: кнопка-таблетка была почти не видна,
+   окна подсказок и переключатели светились белым */
+[data-theme="dark"] .chip{background:linear-gradient(110deg,#3A2C4C,#4A2F44);color:#DDBBF6}
+[data-theme="dark"] .chip.warn{background:#4A3A2C;color:#E9C08A}
+[data-theme="dark"] .hints{background:#251E31;border-color:#493B56;box-shadow:0 16px 38px rgba(0,0,0,.32)}
+[data-theme="dark"] .hint-row{color:#F4EDF8;border-bottom-color:#493B56}
+[data-theme="dark"] .hint-row:active{background:#332742}
+[data-theme="dark"] .note-search{background:#251E31;border-color:#493B56;color:#F4EDF8}
+[data-theme="dark"] .theme{background:#30263C;border-color:#544263;color:#C0B3C8}
+[data-theme="dark"] .theme.on{background:#6B4A96;border-color:#6B4A96;color:#fff}
+[data-theme="dark"] .askring{background:#2B2237;border-color:#493B56}
+[data-theme="dark"] .pick button{background:#30263C;border-color:#544263;color:#D6B6F3}
+[data-theme="dark"] .pick button[aria-pressed="true"]{background:#6B4A96;border-color:#6B4A96;color:#fff}
+[data-theme="dark"] .tick{background:#2B2237;border-color:#594361}
+[data-theme="dark"] .crashbar{background:#2B2237;border-color:#6A4550;color:#F4EDF8}
+[data-theme="dark"] .warnbar{background:#3A2630;color:#F0C7CE}
+[data-theme="dark"] .plan-toggle{background:#30263C;border-color:#544263;color:#D6B6F3}
+[data-theme="dark"] .note-menu summary,[data-theme="dark"] .note-menu[open] summary{background:#30263C;border-color:#544263;color:#D6B6F3}
+[data-theme="dark"] .note-menu-pop{background:#251E31;border-color:#493B56}
+[data-theme="dark"] .note-menu-pop button{color:#F4EDF8}
+[data-theme="dark"] .note-menu-pop button:active{background:#332742}
+[data-theme="dark"] .continuous-cal .d.has-plan{background:linear-gradient(145deg,#332545,#3D2739);border-color:#7A5AA0}
+[data-theme="dark"] .continuous-cal .d.has-plan .day-preview,[data-theme="dark"] .continuous-cal .d.has-plan .day-num{color:#D5AEFF}
+[data-theme="dark"] .continuous-cal .d.day-missed{background:linear-gradient(145deg,#3E2C28,#41282E);border-color:#9A6B4A}
+[data-theme="dark"] .continuous-cal .d.day-missed .day-preview,[data-theme="dark"] .continuous-cal .d.day-missed .day-num{color:#E8A87C}
+[data-theme="dark"] .continuous-cal .d.day-done{background:#26332C;border-color:#4C6B58}
+[data-theme="dark"] .continuous-cal .d.day-done .day-preview,[data-theme="dark"] .continuous-cal .d.day-done .day-num{color:#8FC7AC}
+[data-theme="dark"] .tl-dot{background:#2B2237;border-color:#594361}
+[data-theme="dark"] .card.tap:active,[data-theme="dark"] .item.tapline:active{background:#2E2439}
+[data-theme="dark"] .sheet-in:before{background:#544263}
 .sheet{background:rgba(48,34,60,.48);backdrop-filter:blur(4px)}
 .sheet-in{border-radius:26px 26px 0 0;box-shadow:0 -18px 50px rgba(59,38,75,.2)}
 .sheet-in:before{content:'';display:block;width:42px;height:4px;border-radius:99px;background:#DED1E3;margin:-7px auto 14px}
@@ -558,7 +588,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.3';
+const APP_VERSION = '5.4';
 const APP_UPDATED = '5 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -2859,7 +2889,6 @@ const SHEETS = {
     '<div class="fld"><div class="withmic">' +
       '<textarea id="f-speech" rows="4" placeholder="Потратила восемьсот на продукты, в пятницу маникюр в шесть, позвонить маме"></textarea>' +
       micBtn('f-speech','raw') + '</div></div>' +
-    (micWhyNot() ? '<div class="mut" style="margin-bottom:10px">' + micWhyNot() + '</div>' : '') +
     '<button class="btn" onclick="doParse()">Разложить по полям</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
