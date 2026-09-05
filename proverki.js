@@ -742,10 +742,10 @@ async function run() {
   assert(full, 'развёрнутый текст выведен отдельным блоком во всю ширину');
   assert(!full.closest('.txt'),
     'он не зажат в узкую колонку между значком и кнопками');
-  const bullets = full.textContent.split('\n').filter(l => l.trim().indexOf('•') === 0);
-  assert(bullets.length === 4, 'каждый пункт перечня встал на свою строку');
+  const bullets = [...full.querySelectorAll('.nt-ul li')].map(li => li.textContent);
+  assert(bullets.length === 4, 'каждый пункт перечня стал отдельным пунктом списка');
   assert(bullets[0].includes('помидоры') && !full.textContent.includes('*'),
-    'звёздочки заменены на нормальные маркеры');
+    'звёздочки заменены на настоящие маркеры списка');
 
   // обычный текст без перечня не должен ломаться
   assert(w.noteBody('Позвонить в 5*7 раз') === 'Позвонить в 5*7 раз',
@@ -986,11 +986,11 @@ async function run() {
     renderAll(); goScreen('s-notes');`);
 
   w.document.querySelector('#s-notes .fold-head').click();
-  const openBody = w.document.querySelector('.fold-body');
-  assert(openBody.lastElementChild.classList.contains('fold-close'),
-    'у раскрытой формы кнопка «свернуть» стоит в конце, а не только сверху');
-  openBody.lastElementChild.click();
-  assert(!w.document.querySelector('.fold-body'), 'нажатие на неё сворачивает блок');
+  assert(w.document.querySelector('.fold-body'), 'короткая форма раскрывается стрелкой в заголовке');
+  assert(!w.document.querySelector('.fold-body .fold-close'),
+    'у короткой формы кнопки «свернуть» внизу нет — она бы дублировала стрелку');
+  w.document.querySelector('#s-notes .fold-head').click();
+  assert(!w.document.querySelector('.fold-body'), 'та же стрелка сворачивает обратно');
 
   w.eval("toggleNoteText('cl1')");
   const openNote = w.document.querySelector('.note-block');
@@ -1222,6 +1222,56 @@ async function run() {
   assert(cellText && cellText.textContent.includes('Гинеколог') && !cellText.textContent.includes('-'),
     'название стоит в клетке целиком, без дефиса');
   assert(cellText.className.includes('p-s'), 'и уменьшено, чтобы влезть');
+
+  // ---- вставленный текст не портится причёсыванием ----
+  const md = '# Как пригласить человека\n\nТри действия. Занимает две минуты.\n\n---\n\n' +
+    '## Действие 1. Спросить почту\n\nУзнать адрес его почты. **Записать.**\n\n' +
+    '- первый пункт\n- второй пункт\n\n1. Кнопка Add user\n2. Send invitation\n\n' +
+    'Ссылка: https://supabase.com/dashboard';
+
+  assert(w.keepOrTidy(md) === md,
+    'вставленный текст сохраняется буква в букву — запятые в него не добавляются');
+  assert(w.keepOrTidy('потратила восемьсот на продукты потом маникюр') === 'Потратила восемьсот на продукты, потом маникюр.',
+    'надиктованная фраза по-прежнему причёсывается');
+  assert(w.keepOrTidy('Три действия.\nЗанимает две минуты') === 'Три действия.\nЗанимает две минуты',
+    'многострочный текст сохраняется построчно, без слипания в абзац');
+
+  // ---- разметка отображается, а не вываливается сплошняком ----
+  w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; S.settings.notesTab = 'note';
+    noteOpen = {}; noteQuery = ''; themeFilter = ''; foldOpen = {};
+    S.notes = [{id:'md', date:today(), kind:'note', text:${JSON.stringify(md)}}];
+    renderAll(); goScreen('s-notes'); toggleNoteText('md');`);
+  const md_full = w.document.querySelector('.note-full');
+
+  assert(md_full.querySelectorAll('.nt-h1, .nt-h2, .nt-h3').length === 2,
+    'заголовки выделены, а не идут вровень с текстом');
+  assert(md_full.querySelectorAll('.nt-ul li').length === 2,
+    'пункты списка стоят каждый на своей строке');
+  assert(md_full.querySelectorAll('.nt-num').length === 2,
+    'нумерованные шаги видны как шаги');
+  assert(md_full.querySelector('a') && md_full.querySelector('a').getAttribute('href').indexOf('https://') === 0,
+    'ссылка нажимается');
+  assert(md_full.querySelectorAll('.nt-hr').length === 1, 'разделитель отрисован чертой');
+  assert(!md_full.textContent.includes('#') && !md_full.textContent.includes('**'),
+    'значки разметки не показываются человеку');
+  assert(w.noteHead(md) === 'Как пригласить человека',
+    'в свёрнутом виде заголовок чистый, без решёток');
+
+  // ---- в формах не осталось лишних слов ----
+  w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1;
+    noteQuery = ''; foldOpen = {}; renderAll(); goScreen('s-notes'); toggleFold('new-task');`);
+  const formBox = w.document.getElementById('s-notes').children[1];
+  const formWords = formBox.textContent.replace(/\s+/g, ' ').trim();
+
+  assert(formWords.includes('Новое дело') && formWords.includes('Сохранить дело'),
+    'в форме остались только название и кнопка');
+  assert(!formWords.includes('записать то, что нужно'),
+    'пересказ названия рядом с названием убран');
+  assert(!formBox.querySelector('.fold-close'),
+    'у короткой формы нет кнопки «свернуть» внизу');
+  assert(w.document.getElementById('f-theme').placeholder === 'Тема — необязательно' &&
+         !formWords.includes('Например: заготовки'),
+    'у поля темы одна подпись вместо двух');
 
   assert(html.includes('Автор идеи и концепции приложения — Одинцова И. В.'),
     'авторство указано в приложении');
