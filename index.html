@@ -598,7 +598,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.6.4';
+const APP_VERSION = '5.7.0';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -1019,6 +1019,72 @@ async function copyFeed(){
     if(el){el.select();toast('Выделена ссылка. Нажмите «Скопировать» в меню телефона.');}
   }
 }
+let pushPublicKey='',pushBusy=false,pushStatus=null;
+function pushLocalKey(){return KEY+':push:'+cloudUser?.id;}
+function pushId(){return cloudUser?localStorage.getItem(pushLocalKey()):null;}
+async function pushApi(action,extra={}){
+ if(!cloudClient||!cloudUser)throw new Error('Сначала войдите в облачное сохранение');
+ const {data,error}=await cloudClient.auth.getSession();if(error||!data.session)throw new Error('Войдите в приложение заново');
+ const res=await fetch(SUPABASE_URL+'/functions/v1/push',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({action,id:pushId(),...extra})});
+ const body=await res.json();if(!res.ok)throw new Error(body.error||'Не удалось подключить уведомления');return body;
+}
+function pushAvailable(){return 'Notification' in window&&'PushManager' in window&&'serviceWorker' in navigator;}
+async function openPushSheet(){
+ pushStatus=null;openSheet('push');
+ if(!cloudUser||!pushAvailable())return;
+ try{
+  const key=await pushApi('key');pushPublicKey=key.publicKey;
+  if(pushId())pushStatus=await pushApi('status');
+  if(sheetState.kind==='push')openSheet('push');
+ }catch(e){toast(e.message);if(sheetState.kind==='push')openSheet('push');}
+}
+async function enablePush(){
+ if(pushBusy||!pushAvailable()||!cloudUser||!pushPublicKey)return;
+ pushBusy=true;const owner=cloudUser.id;
+ try{
+  // Permission must be requested directly from this button click on iOS.
+  const permission=await Notification.requestPermission();
+  if(permission!=='granted')throw new Error('Уведомления не разрешены. Разрешите их для «Точки дня» в настройках iPhone.');
+  const reg=await navigator.serviceWorker.register('./sw.js');await reg.update();
+  await navigator.serviceWorker.ready;
+  const pending=reg.installing||reg.waiting;
+  if(pending&&pending.state!=='activated')await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Обновление приложения ещё не завершилось. Повторите включение.')),20000);pending.addEventListener('statechange',()=>{if(pending.state==='activated'){clearTimeout(timer);resolve();}if(pending.state==='redundant'){clearTimeout(timer);reject(new Error('Не удалось обновить приложение'));}});});
+  const bytes=Uint8Array.from(atob(pushPublicKey.replace(/-/g,'+').replace(/_/g,'/')),x=>x.charCodeAt(0));
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:bytes});
+  if(cloudUser?.id!==owner)throw new Error('Аккаунт изменился. Откройте уведомления заново.');
+  const data=await pushApi('subscribe',{subscription:sub.toJSON(),timezone:Intl.DateTimeFormat().resolvedOptions().timeZone});
+  if(cloudUser?.id!==owner)throw new Error('Аккаунт изменился. Откройте уведомления заново.');
+  localStorage.setItem(pushLocalKey(),data.id);pushStatus={enabled:true};openSheet('push');toast('Уведомления подключены. Теперь нажмите «Проверить уведомление».');
+ }catch(e){toast(e.message||'Не удалось подключить уведомления');}
+ finally{pushBusy=false;}
+}
+async function testPush(){
+ if(pushBusy)return;pushBusy=true;
+ try{const result=await pushApi('test');toast('Проверка запланирована. Закройте приложение: уведомление ожидается через 1–2 минуты.');const el=document.getElementById('push-test-result');if(el)el.textContent='Закройте «Точку дня». Проверка запланирована на '+new Date(result.due).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+'. Ожидайте уведомление в течение двух минут.';}
+ catch(e){toast(e.message);}finally{pushBusy=false;}
+}
+async function disablePush(){
+ if(!pushId())return;
+ await pushApi('disable');localStorage.removeItem(pushLocalKey());
+ const reg=await navigator.serviceWorker.getRegistration('./');const sub=await reg?.pushManager.getSubscription();if(sub)await sub.unsubscribe();pushStatus=null;
+}
+async function turnOffPush(){try{await disablePush();openSheet('push');toast('Уведомления на этом устройстве отключены');}catch(e){toast(e.message);}}
+function pushSheet(){
+ const intro='<h3>Уведомления «Точки дня»</h3><p>О встречах с указанным временем напомним за час до начала, даже когда приложение закрыто. Встреча должна быть сохранена в облаке заранее.</p>';
+ if(!cloudUser)return intro+'<p>Сначала войдите в облачное сохранение.</p><button class="btn" onclick="openSheet(\'cloudAuth\')">Войти</button>';
+ const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ if(ios&&!(navigator.standalone||matchMedia('(display-mode: standalone)').matches))return intro+'<p>На iPhone откройте «Точку дня» значком с главного экрана. Если значка нет: Safari → Поделиться → На экран Домой. Затем здесь появится кнопка включения.</p>';
+ if(!pushAvailable())return intro+'<p>Этот браузер не поддерживает уведомления. На iPhone требуется iOS 16.4 или новее и запуск значком с главного экрана.</p>';
+ const enabled=pushStatus?.enabled&&Notification.permission==='granted';
+ return intro+'<p><b>'+ (enabled?'Подключено на этом устройстве':'На этом устройстве не подключено')+'</b></p>'+
+  '<p class="mut">Часовой пояс: '+esc(Intl.DateTimeFormat().resolvedOptions().timeZone)+'. События без времени не отправляются этим способом.</p>'+
+  (enabled?'<button class="btn" onclick="testPush()">Проверить уведомление</button><p id="push-test-result">Проверочное уведомление придёт через 1–2 минуты. После нажатия закройте приложение.</p><button class="btn ghost" onclick="openPushSheet()">Проверить состояние</button><button class="btn ghost" onclick="turnOffPush()">Отключить на этом устройстве</button>':'<button class="btn" onclick="enablePush()" '+(!pushPublicKey?'disabled':'')+'>Включить уведомления</button>')+
+  (pushStatus?.error?'<p>'+esc(pushStatus.error)+'</p>':'')+
+  (pushStatus?.testSentAt?'<p>Сервер передал проверку службе доставки. Подтверждение работы — уведомление на вашем экране.</p>':'')+
+  '<details><summary>Календарь Apple</summary><p>Для этих уведомлений подписка на календарь не требуется. Если она уже есть, после успешной проверки можно отключить в ней напоминания, чтобы избежать повторов.</p><button class="btn ghost" onclick="openSheet(\'feed\')">Настройки подписки</button></details>';
+}
+
 /* Кабинет виден только администратору. Числа считает сервер и отдаёт только их —
    содержимое чужих записей сюда не приходит. */
 const ADMIN_EMAIL = 'inna_odincova@mail.ru';
@@ -1099,6 +1165,7 @@ function adminCard(){
 }
 async function cloudSignOut(){
   if(!window.confirm('Выйти из облачного аккаунта? Данные на этом телефоне останутся.'))return;
+  try{await disablePush();}catch(e){toast('Не удалось отключить уведомления перед выходом. '+e.message);return;}
   cloudReady=false;cloudEpoch++;clearTimeout(cloudTimer);
   const result=await cloudClient.auth.signOut();if(result.error){setCloudState('error',result.error.message);toast('Не удалось выйти. Повторите при подключении к сети.');return;}cloudUser=null;setCloudState('local');renderAll();toast('Вы вышли. Автосохранение на телефоне продолжает работать');
 }
@@ -2737,10 +2804,10 @@ function renderMore(){
   const backupWarning = backupDue()
     ? '<button type="button" class="tip" style="margin-bottom:10px" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</button>' : '';
   const cloudCard = cloudUser
-    ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openSheet(\'feed\')">Напоминания</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
+    ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openPushSheet()">Напоминания</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
     : card(lab('Облачное сохранение')+'<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
   document.getElementById('s-more').innerHTML =
-    (loadBlocked ? card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены без изменений. Скачайте их для восстановления или загрузите исправную резервную копию ниже.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>') : '') + (cloudConflict ? card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>') : '') + cloudCard + (!cloudUser ? card(lab('Напоминания')+'<button class="btn" onclick="openSheet(\'feed\')">Настроить напоминания</button>') : '') + fold('more-set', 'Настройки приложения', 'оформление и разделы',
+    (loadBlocked ? card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены без изменений. Скачайте их для восстановления или загрузите исправную резервную копию ниже.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>') : '') + (cloudConflict ? card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>') : '') + cloudCard + (!cloudUser ? card(lab('Напоминания')+'<button class="btn" onclick="openPushSheet()">Настроить напоминания</button>') : '') + fold('more-set', 'Настройки приложения', 'оформление и разделы',
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +
       '<div class="fld"><label>Оформление</label><select onchange="setColorTheme(this.value)">' +
         '<option value="light"' + ((S.settings.theme || 'light') === 'light' ? ' selected' : '') + '>Светлая тема</option>' +
@@ -2983,6 +3050,7 @@ function finishWelcome(){
 }
 
 const SHEETS = {
+  push: () => pushSheet(),
   adminInviteResult: () => '<h3>Доступ создан</h3><p>Отправьте этот текст только человеку с указанной почтой. Ссылка персональная и одноразовая. Если она истечёт до первого входа, создайте новую в кабинете.</p><div class="fld"><textarea id="invite-message" rows="7" readonly>'+esc('Ваш доступ к «Точке дня» для '+(adminInvitation?.email||'')+'. Откройте ссылку и задайте свой пароль для приложения: '+(adminInvitation?.url||''))+'</textarea></div><button class="btn" onclick="copyInvitation()">Скопировать приглашение</button><p>После отправки откройте кабинет и нажмите «Обновить»: появится статус входа и облачного сохранения.</p>',
 
   cloudPassword: () => '<h3>Новый пароль</h3><div class="fld"><label>Не менее 8 символов</label><input id="new-password" type="password" autocomplete="new-password"></div><div class="fld"><label>Повторите пароль</label><input id="repeat-password" type="password" autocomplete="new-password"></div><button class="btn" onclick="cloudSetPassword()">Сохранить пароль</button>',

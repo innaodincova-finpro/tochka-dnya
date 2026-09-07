@@ -12,3 +12,7 @@ verify_jwt = false
 # Проверку токена делает сама функция: она смотрит, кто спрашивает,
 # и отвечает только администратору.
 verify_jwt = false
+
+[functions.push]
+# Auth is checked against /auth/v1/user; cron uses a private random token.
+verify_jwt = false
