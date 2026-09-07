@@ -788,8 +788,11 @@ async function run() {
   const one = w.document.getElementById('sheet-in').textContent;
   assert((one.match(/Аджика на зиму/g) || []).length === 1,
     'в открытой заметке начало текста не показано дважды');
-  assert(/закрыть/i.test(one), 'кнопка закрытия на месте');
-  w.eval('closeSheet()');
+  const back = w.document.querySelector('.note-back');
+  assert(back && /Назад к заметкам/.test(back.textContent), 'возврат к заметкам на месте');
+  assert(w.document.querySelector('.note-reader-menu .danger'), 'удаление в меню');
+  back.click();
+  assert(!w.document.querySelector('.sheet.open'), 'возврат закрывает окно заметки');
 
   // ---- вкладка и форма — один выбор, а не два независимых ----
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; noteQuery = '';
