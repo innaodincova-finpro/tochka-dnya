@@ -2449,7 +2449,7 @@ function noteListCopy(text){
   const sentence=first.match(/^.*?[.!?](?=\s|$)/);
   const title=sentence&&sentence[0].length>=12?sentence[0]:first;
   const preview=[first.slice(title.length).trim(),...lines.slice(1).map(plain)].filter(Boolean).join(' ');
-  return {title,preview};
+  return {title,preview:preview.length>160?preview.slice(0,160).replace(/\s+\S*$/,'')+'…':preview};
 }
 function noteCard(x){
   const copy=noteListCopy(x.text);
