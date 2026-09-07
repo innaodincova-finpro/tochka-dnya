@@ -675,9 +675,9 @@ async function run() {
 
   assert(notesText().includes('Аджика на зиму') && !notesText().includes('варите 60 минут'),
     'длинная заметка показана первой строкой, а не целиком');
-  const more = w.document.querySelector('.note-card-open');
-  assert(more && more.textContent.includes('Открыть'), 'есть понятная кнопка открытия');
-  w.eval("openNote('long')");
+  const more = w.document.querySelector('.note-card .note-open');
+  assert(more && !more.querySelector('.note-card-open'), 'карточка открывается без отдельной подписи');
+  more.click();
   const readerText = w.document.getElementById('sheet-in').textContent;
   assert(readerText.includes('варите 60 минут'), 'заметка открывается целиком на отдельном экране');
   assert(w.document.querySelector('.note-reader-body'), 'для чтения используется отдельная область');

@@ -332,10 +332,10 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
   color:var(--ink);font:500 12px 'Golos Text',sans-serif;text-align:left;cursor:pointer}
 .note-menu-pop button:active{background:#F4EDF8}
 .note-menu-pop .danger{color:var(--stop)}
-.note-card{padding:13px 0;border-bottom:1px solid var(--line)}
+.note-card{padding:0;border-bottom:1px solid var(--line)}
 .note-card:last-child{border-bottom:0}
-.note-open{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;width:100%;min-width:0;
-  border:0;background:transparent;padding:0;text-align:left;color:inherit;font-family:inherit;cursor:pointer}
+.note-open{display:grid;grid-template-columns:minmax(0,1fr);gap:0;width:100%;min-width:0;
+  border:0;background:transparent;padding:16px 0;text-align:left;color:inherit;font-family:inherit;cursor:pointer}
 .note-card-title{display:block;font:600 16px/1.38 'Golos Text',sans-serif;color:var(--ink);overflow-wrap:anywhere}
 .note-card-date{display:block;margin-top:5px;font-size:12px;color:var(--mut)}
 .note-card-open{align-self:center;color:var(--accent);font-size:12px;font-weight:600}
@@ -606,7 +606,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.7.8';
+const APP_VERSION = '5.7.9';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -2437,7 +2437,7 @@ function noteCard(x){
     '<button type="button" class="note-open" onclick="openNote(\'' + x.id + '\')" aria-label="Открыть заметку">' +
       '<span><span class="note-card-title">' + esc(noteHead(x.text) || 'Заметка') + '</span>' +
       '<small class="note-card-date">' + humanDate(x.date) + '</small></span>' +
-      '<span class="note-card-open">Открыть</span>' +
+      '' +
     '</button></article>';
 }
 function openNote(id){ editNoteId = id; openSheet('noteView'); }
@@ -2445,7 +2445,7 @@ function taskCard(x){
   return '<article class="note-card' + (x.done ? ' done' : '') + '"><button type="button" class="note-open" onclick="openTask(\'' + x.id + '\')">' +
     '<span><span class="note-card-title"' + (x.done ? ' style="text-decoration:line-through;color:var(--mut)"' : '') + '>' + esc(noteHead(x.text) || 'Дело') + '</span>' +
     '<small class="note-card-date">' + (x.done ? 'Выполнено' : noteAge(x)) + (x.due ? ' · ' + dueLabel(x) : '') + '</small></span>' +
-    '<span class="note-card-open">Открыть</span></button></article>';
+    '</button></article>';
 }
 function openTask(id){ editNoteId = id; openSheet('taskView'); }
 function toggleTaskFromView(id){ toggleNoteDone(id); editNoteId = id; openSheet('taskView'); }
@@ -2454,7 +2454,7 @@ function listCard(x){
   return '<article class="note-card"><button type="button" class="note-open" onclick="openListView(\'' + x.id + '\')">' +
     '<span><span class="note-card-title">' + esc(x.title || 'Список') + '</span>' +
     '<small class="note-card-date">' + (left ? 'Осталось ' + left + ' из ' + x.items.length : 'Всё выполнено') + '</small></span>' +
-    '<span class="note-card-open">Открыть</span></button></article>';
+    '</button></article>';
 }
 function openListView(id){ editNoteId = id; openSheet('listView'); }
 function tickItemView(id, idx){ tickItem(id, idx); editNoteId = id; openSheet('listView'); }
