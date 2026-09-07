@@ -598,7 +598,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.6.2';
+const APP_VERSION = '5.6.3';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -900,7 +900,7 @@ async function connectCloudUser(user){
 async function initCloud(){
   if(!window.supabase||!window.supabase.createClient){setCloudState('local');return;}
   const recovery=/type=recovery/.test(location.hash);
-  cloudClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:{'x-client-info':'tochka-dnya/5.6.1'}},auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  cloudClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:{'X-Client-Info':'tochka-dnya/5.6.1'}},auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   cloudClient.auth.onAuthStateChange((event,session)=>{
     if(event==='PASSWORD_RECOVERY')setTimeout(()=>openSheet('cloudPassword'),0);
     if(session&&(!cloudUser||cloudUser.id!==session.user.id))setTimeout(()=>connectCloudUser(session.user),0);
@@ -922,6 +922,8 @@ async function cloudSetPassword(){
    ошибка должна говорить, что произошло и что делать дальше. */
 function cloudErrorText(e){
   const m = String((e && e.message) || '').toLowerCase();
+  if (m.includes('обновите точку дня'))
+    return 'Обновите страницу приложения и повторите сохранение';
   if (m.includes('only request this after'))
     return 'Слишком часто. Подождите минуту и попробуйте войти — возможно, аккаунт уже создан';
   if (m.includes('already registered') || m.includes('already been registered'))
@@ -994,10 +996,11 @@ async function prepareFeed(){
     if(!cloudReady)await connectCloudUser(cloudUser);
     if(!cloudReady || !cloudUser || cloudUser.id!==user || loadBlocked)return;
     feedKey();
+    clearTimeout(cloudTimer);
     await pushCloud();
     if(!cloudUser || cloudUser.id!==user)return;
     if(!feedReady() || cloudState!=='synced'){
-      toast('Не удалось сохранить календарь. Проверьте интернет и попробуйте снова.');return;
+      toast(cloudConflict ? 'Есть разные версии записей. Откройте «Ещё» и выберите версию.' : cloudState==='syncing' ? 'Записи ещё сохраняются. Повторите через несколько секунд.' : 'Календарь не сохранён. ' + cloudErrorText({message:cloudError}));return;
     }
     openSheet('feed');
   }finally{feedPreparing=false;}
