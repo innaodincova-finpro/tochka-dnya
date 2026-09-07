@@ -598,7 +598,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.6.1';
+const APP_VERSION = '5.6.2';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -975,20 +975,45 @@ function feedKey(){
 }
 function feedUrl(scheme){
   return (scheme || 'https') + '://' + SUPABASE_URL.replace('https://','') +
-    '/functions/v1/kalendar?key=' + feedKey();
+    '/functions/v1/kalendar?key=' + (S.settings.feedKey || '');
+}
+function feedReady(){
+  return !!(cloudUser && cloudReady && !loadBlocked && !cloudConflict &&
+    S.settings.cloudOwner===cloudUser.id && cloudBase &&
+    S.settings.feedKey && cloudBase.settings.feedKey===S.settings.feedKey);
+}
+let feedPreparing=false;
+async function prepareFeed(){
+  if(feedPreparing)return;
+  if(!cloudUser){openSheet('cloudAuth');return;}
+  if(!navigator.onLine){toast('Для подключения нужен интернет');return;}
+  if(cloudBusy){toast('Записи ещё сохраняются. Нажмите ещё раз через несколько секунд.');return;}
+  const user=cloudUser.id;
+  feedPreparing=true;
+  try{
+    if(!cloudReady)await connectCloudUser(cloudUser);
+    if(!cloudReady || !cloudUser || cloudUser.id!==user || loadBlocked)return;
+    feedKey();
+    await pushCloud();
+    if(!cloudUser || cloudUser.id!==user)return;
+    if(!feedReady() || cloudState!=='synced'){
+      toast('Не удалось сохранить календарь. Проверьте интернет и попробуйте снова.');return;
+    }
+    openSheet('feed');
+  }finally{feedPreparing=false;}
 }
 function resetFeed(){
-  if (!window.confirm('Создать новую ссылку? Старая перестанет работать, и подписку в календаре придётся добавить заново.')) return;
+  if (!window.confirm('Создать новую ссылку? Старая перестанет работать после сохранения в облаке. Подписку придётся добавить заново.')) return;
   delete S.settings.feedKey;
   save();
   openSheet('feed');
-  toast('Новая ссылка готова — добавьте её в календарь заново');
 }
 async function copyFeed(){
+  if(!feedReady()){toast('Сначала подготовьте календарь');return;}
   try{ await navigator.clipboard.writeText(feedUrl('webcal')); toast('Ссылка скопирована'); }
   catch(e){
     const el = document.getElementById('f-feed');
-    if (el){ el.select(); try{ document.execCommand('copy'); toast('Ссылка скопирована'); }catch(err){} }
+    if(el){el.select();toast('Выделена ссылка. Нажмите «Скопировать» в меню телефона.');}
   }
 }
 /* Кабинет виден только администратору. Числа считает сервер и отдаёт только их —
@@ -2686,10 +2711,10 @@ function renderMore(){
   const backupWarning = backupDue()
     ? '<button type="button" class="tip" style="margin-bottom:10px" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</button>' : '';
   const cloudCard = cloudUser
-    ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openSheet(\'feed\')">Календарь айфона</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
+    ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openSheet(\'feed\')">Напоминания</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
     : card(lab('Облачное сохранение')+'<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
   document.getElementById('s-more').innerHTML =
-    (loadBlocked ? card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены без изменений. Скачайте их для восстановления или загрузите исправную резервную копию ниже.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>') : '') + (cloudConflict ? card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>') : '') + cloudCard + fold('more-set', 'Настройки приложения', 'оформление и разделы',
+    (loadBlocked ? card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены без изменений. Скачайте их для восстановления или загрузите исправную резервную копию ниже.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>') : '') + (cloudConflict ? card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>') : '') + cloudCard + (!cloudUser ? card(lab('Напоминания')+'<button class="btn" onclick="openSheet(\'feed\')">Настроить напоминания</button>') : '') + fold('more-set', 'Настройки приложения', 'оформление и разделы',
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +
       '<div class="fld"><label>Оформление</label><select onchange="setColorTheme(this.value)">' +
         '<option value="light"' + ((S.settings.theme || 'light') === 'light' ? ' selected' : '') + '>Светлая тема</option>' +
@@ -3073,21 +3098,16 @@ const SHEETS = {
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
   feed: () => {
-    if (!cloudUser) return '<h3>Календарь айфона</h3>' +
-      '<div class="mut" style="margin-bottom:12px">Сначала подключите облачное сохранение — лента берётся оттуда.</div>' +
-      '<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить</button>' +
-      '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
-    return '<h3>Календарь айфона</h3>' +
-      '<div class="fld"><input id="f-feed" readonly value="' + esc(feedUrl('webcal')) + '"></div>' +
-      '<button class="btn" onclick="copyFeed()">Скопировать ссылку</button>' +
-      '<a class="btn ghost" style="display:block;margin-top:8px;text-align:center;text-decoration:none" ' +
-        'href="' + esc(feedUrl('webcal')) + '">Открыть в календаре</a>' +
-      '<ol class="steps">' +
-        '<li>Настройки → Приложения → Календарь → Учётные записи</li>' +
-        '<li>Добавить учётную запись → Другое → Подписной календарь</li>' +
-        '<li>Вставить ссылку → Далее → Сохранить</li>' +
-      '</ol>' +
-      '<button class="del" style="display:block;margin:12px auto 0" onclick="resetFeed()">Ссылка попала не туда — сменить</button>' +
+    const intro='<h3>Напоминания</h3><p>О событиях напомнит приложение «Календарь» на iPhone, даже когда «Точка дня» закрыта.</p>' +
+      '<p>Событие со временем — за час до начала.<br>Событие без времени или дело со сроком — накануне в 09:00.</p>';
+    if(!cloudUser)return intro + '<p>Сначала войдите в облачное сохранение, чтобы календарь получал ваши события.</p><button class="btn" onclick="openSheet(\'cloudAuth\')">Войти в облако</button>';
+    if(!feedReady())return intro + '<p>Подготовим ссылку и сохраним события для календаря.</p><button class="btn" onclick="prepareFeed()">Подготовить календарь</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
+    return intro +
+      '<a class="btn" style="display:block;text-align:center;text-decoration:none" href="' + esc(feedUrl('webcal')) + '">Подключить на iPhone</a>' +
+      '<p>В открывшемся окне подтвердите подписку. Разрешите уведомления календаря и включите «Оповещения о событиях» для «Точки дня».</p>' +
+      '<p class="mut">Новые события появляются после обновления подписки календарём, поэтому напоминание о событии, добавленном перед самым началом, может не успеть прийти.</p>' +
+      '<details><summary>Если кнопка не открывает календарь</summary><p>Скопируйте ссылку. В приложении «Календарь» откройте список календарей → Добавить календарь → Добавить подписной календарь и вставьте ссылку.</p><div class="fld"><input id="f-feed" readonly value="' + esc(feedUrl('webcal')) + '"></div><button class="btn ghost" onclick="copyFeed()">Скопировать ссылку</button></details>' +
+      '<button class="del" style="display:block;margin:12px auto 0" onclick="resetFeed()">Сменить ссылку</button>' +
       '<button class="btn ghost" style="margin-top:10px" onclick="closeSheet()">Закрыть</button>';
   },
 
