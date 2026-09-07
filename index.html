@@ -606,7 +606,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.7.9';
+const APP_VERSION = '5.7.10';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -2374,13 +2374,13 @@ function noteIsLong(t){
   const s = String(t || '');
   return s.length > NOTE_HEAD || s.indexOf('\n') >= 0;
 }
-function noteHead(t){
+function noteHead(t, full = false){
   /* в свёрнутом виде значки разметки выглядят мусором — берём первую
      содержательную строку и чистим её от решёток и звёздочек */
   const first = (noteBody(t).split('\n').map(x => x.trim())
     .find(x => x && !/^-{3,}$/.test(x)) || '')
     .replace(/^#{1,6}\s*/, '').replace(/\*\*/g, '').replace(/^[-*•]\s*/, '');
-  if (first.length <= NOTE_HEAD) return first;
+  if (full || first.length <= NOTE_HEAD) return first;
   return first.slice(0, NOTE_HEAD).replace(/\s+\S*$/, '') + '…';
 }
 function toggleNoteText(id){ noteOpen[id] = !noteOpen[id]; renderNotes(); }
@@ -2435,7 +2435,7 @@ function listFold(x){
 function noteCard(x){
   return '<article class="note-card' + (x.pinned ? ' pinned' : '') + '">' +
     '<button type="button" class="note-open" onclick="openNote(\'' + x.id + '\')" aria-label="Открыть заметку">' +
-      '<span><span class="note-card-title">' + esc(noteHead(x.text) || 'Заметка') + '</span>' +
+      '<span><span class="note-card-title">' + esc(noteHead(x.text, true) || 'Заметка') + '</span>' +
       '<small class="note-card-date">' + humanDate(x.date) + '</small></span>' +
       '' +
     '</button></article>';
@@ -2443,7 +2443,7 @@ function noteCard(x){
 function openNote(id){ editNoteId = id; openSheet('noteView'); }
 function taskCard(x){
   return '<article class="note-card' + (x.done ? ' done' : '') + '"><button type="button" class="note-open" onclick="openTask(\'' + x.id + '\')">' +
-    '<span><span class="note-card-title"' + (x.done ? ' style="text-decoration:line-through;color:var(--mut)"' : '') + '>' + esc(noteHead(x.text) || 'Дело') + '</span>' +
+    '<span><span class="note-card-title"' + (x.done ? ' style="text-decoration:line-through;color:var(--mut)"' : '') + '>' + esc(noteHead(x.text, true) || 'Дело') + '</span>' +
     '<small class="note-card-date">' + (x.done ? 'Выполнено' : noteAge(x)) + (x.due ? ' · ' + dueLabel(x) : '') + '</small></span>' +
     '</button></article>';
 }
