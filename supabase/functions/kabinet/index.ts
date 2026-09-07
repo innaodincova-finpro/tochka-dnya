@@ -12,13 +12,13 @@ const ADMIN = (Deno.env.get('ADMIN_EMAIL') || 'inna_odincova@mail.ru').toLowerCa
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-headers': 'authorization, content-type',
-  'access-control-allow-methods': 'GET, OPTIONS',
+  'access-control-allow-methods': 'GET, POST, OPTIONS',
 };
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...CORS, 'content-type': 'application/json; charset=utf-8' },
+    headers: { ...CORS, 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
   });
 }
 
@@ -70,12 +70,39 @@ Deno.serve(async (req: Request) => {
 
   const head = { apikey: SERVICE_KEY, Authorization: 'Bearer ' + SERVICE_KEY };
 
-  const uRes = await fetch(SUPABASE_URL + '/auth/v1/admin/users?per_page=200', { headers: head });
-  if (!uRes.ok) return json({ error: 'Список людей недоступен' }, 502);
-  const users = (await uRes.json())?.users || [];
+  if (!['GET', 'POST'].includes(req.method)) return json({error:'Метод не поддерживается'},405);
+  const users: any[] = [];
+  for (let page=1; ; page++) {
+    const res = await fetch(SUPABASE_URL + '/auth/v1/admin/users?per_page=200&page='+page, {headers:head});
+    if (!res.ok) return json({error:'Список людей недоступен'},502);
+    const part = (await res.json())?.users;
+    if (!Array.isArray(part)) return json({error:'Некорректный ответ сервиса'},502);
+    users.push(...part);
+    if (part.length < 200) break;
+  }
+  if (req.method === 'POST') {
+    if (Number(req.headers.get('content-length')) > 2048) return json({error:'Запрос слишком большой'},413);
+    let input;
+    try { const raw=await req.text(); if(raw.length>2048)return json({error:'Запрос слишком большой'},413); input=JSON.parse(raw); }
+    catch {return json({error:'Проверьте адрес почты'},400);}
+    const target=String(input.email||'').trim().toLowerCase();
+    if (input.action!=='invite' || target.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))
+      return json({error:'Введите корректный адрес почты'},400);
+    const existing=users.find(u=>String(u.email||'').toLowerCase()===target);
+    if (existing && (existing.email_confirmed_at || existing.last_sign_in_at))
+      return json({error:'У этого человека уже есть доступ. Он может войти по почте и паролю или нажать «Забыли пароль».'},409);
+    const res=await fetch(SUPABASE_URL+'/auth/v1/admin/generate_link',{
+      method:'POST',headers:{...head,'Content-Type':'application/json'},body:JSON.stringify({type:'invite',email:target})
+    });
+    if(!res.ok)return json({error:'Не удалось создать приглашение. Повторите позже.'},502);
+    const link=await res.json();
+    if(!link.hashed_token || link.verification_type!=='invite')return json({error:'Сервис не вернул приглашение'},502);
+    return json({email:target,url:'https://innaodincova-finpro.github.io/tochka-dnya/activate.html#token='+encodeURIComponent(link.hashed_token)+'&email='+encodeURIComponent(target)});
+  }
 
   const dRes = await fetch(SUPABASE_URL + '/rest/v1/user_app_data?select=user_id,payload,updated_at', { headers: head });
-  const rows = dRes.ok ? await dRes.json() : [];
+  if(!dRes.ok)return json({error:'Данные о сохранениях недоступны. Повторите позже.'},502);
+  const rows = await dRes.json();
   const byId: Record<string, any> = {};
   (Array.isArray(rows) ? rows : []).forEach((r: any) => { byId[r.user_id] = r; });
 

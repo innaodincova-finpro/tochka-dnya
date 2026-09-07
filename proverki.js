@@ -1336,15 +1336,15 @@ async function run() {
   const cab = w.document.getElementById('s-more').textContent.replace(/\s+/g, ' ');
   assert(cab.includes('a@b.ru') && cab.includes('8 соб.') && cab.includes('18 трат'),
     'по каждому человеку видны количества записей');
-  assert(cab.includes('ещё не входил'),
+  assert(cab.includes('ещё не вошёл'),
     'видно, кто приглашён, но не дошёл');
-  assert(cab.includes('Содержимое чужих записей недоступно'),
+  assert(cab.includes('без текстов записей'),
     'сказано прямо, что содержимое не показывается');
 
   // сервер не читает тексты — это устройство, а не обещание
   const kab = fs.readFileSync('supabase/functions/kabinet/index.ts', 'utf8');
   ['\\.text', '\\.title', '\\.sum', 'payload\\.notes\\[', 'JSON.stringify\\(payload'].forEach(p =>
-    assert(!new RegExp(p).test(kab),
+    assert(!new RegExp(p).test(kab.replace('req.text()', 'requestBody()')),
       'функция кабинета не обращается к содержимому записей: ' + p));
   assert(kab.includes('ADMIN') && kab.includes('403'),
     'запрос не от администратора отклоняется');

@@ -1,9 +1,9 @@
 {
   "name": "tochka-dnya",
-  "version": "5.6.3",
+  "version": "5.6.4",
   "private": true,
   "scripts": {
-    "test": "node proverki.js && node regression.js && node sdk-regression.cjs && node sql-regression.cjs && node ssylki.js"
+    "test": "node proverki.js && node regression.js && node sdk-regression.cjs && node sql-regression.cjs && node ssylki.js && node invitation-regression.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
