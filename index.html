@@ -598,7 +598,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.7.2';
+const APP_VERSION = '5.7.3';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -1162,7 +1162,7 @@ function adminCard(){
         '<span class="mut">' + adminData.voshli + ' вошли · ' + adminData.ne_voshli + ' ещё нет</span></div>' +
       adminData.lyudi.map(p =>
         '<div class="admin-row">' +
-          '<div class="admin-mail">' + esc(p.pochta) + (p.kalendar ? ' <em>ссылка календаря создана</em>' : '') + '</div>' +
+          '<div class="admin-mail">' + esc(p.pochta) + '</div>' +
           '<div class="mut" style="font-size:12px">' +
             (p.zahodil ? 'Вошёл · последний вход ' + adminAgo(p.zahodil) : 'Доступ создан · ещё не вошёл') +
             (p.sinhronizaciya ? ' · есть облачное сохранение: ' + adminAgo(p.sinhronizaciya) : ' · облачных сохранений пока нет') + '</div>' +
