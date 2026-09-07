@@ -1120,17 +1120,17 @@ async function run() {
     'ссылка для подписки собрана с ключом');
 
   w.eval("openSheet('feed')");
-  assert(w.document.getElementById('sheet-in').textContent.includes('подключите облачное'),
+  assert(w.document.getElementById('sheet-in').textContent.includes('войдите в облачное'),
     'без аккаунта лента не предлагается — она берётся из облака');
 
-  w.eval("cloudUser = {id:'u', email:'a@b.c'}; openSheet('feed');");
+  w.eval("cloudUser = {id:'u', email:'a@b.c'}; cloudReady=true; S.settings.cloudOwner='u'; cloudBase=cloneState(S); openSheet('feed');");
   const feedSheet = w.document.getElementById('sheet-in').textContent.replace(/\s+/g, ' ');
   assert(w.document.getElementById('f-feed').value === w.feedUrl('webcal'),
     'ссылка показана целиком и её можно скопировать');
-  assert(feedSheet.includes('Подписной календарь'),
+  assert(feedSheet.includes('подписной календарь'),
     'три шага настройки на месте — это делается один раз');
-  assert(w.document.querySelectorAll('#sheet-in .steps li').length === 3,
-    'шагов ровно три, без лишних объяснений');
+  assert(!!w.document.querySelector('#sheet-in a[href^="webcal:"]'),
+    'готовую подписку можно открыть кнопкой');
   w.eval('closeSheet(); cloudUser = null;');
 
   // ---- разделы можно скрыть, у каждого свой набор ----
@@ -1160,15 +1160,16 @@ async function run() {
   // ---- ссылку на календарь можно сменить, если она утекла ----
   w.eval("S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; cloudUser = {id:'u', email:'a@b'}; renderAll(); openSheet('feed');");
   const oldKey = w.feedKey();
+  w.eval("cloudReady=true;S.settings.cloudOwner=cloudUser.id;cloudBase=cloneState(S);openSheet('feed');");
   assert(w.document.querySelector('#sheet-in button[onclick*="resetFeed"]'),
     'в окне календаря есть кнопка смены ссылки');
   w.eval('resetFeed()');
   const newKey = w.feedKey();
   assert(newKey !== oldKey && newKey.length === oldKey.length,
     'ключ меняется на новый такой же длины');
-  assert(w.document.getElementById('f-feed').value.includes(newKey),
-    'в поле сразу показана новая ссылка');
-  assert(!w.document.getElementById('f-feed').value.includes(oldKey),
+  assert(!w.feedReady(),
+    'новая ссылка ожидает подтверждения облаком');
+  assert(!w.document.getElementById('f-feed'),
     'старая ссылка больше нигде не фигурирует');
   w.eval('closeSheet(); cloudUser = null;');
 

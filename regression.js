@@ -31,6 +31,15 @@ async function main(){
  ok(run("writes===beforeWrites&&!cloudReady&&S.settings.cloudOwner==='A'"),'сбой входного чтения Б не отправляет записи А');
  run(`readFail=false;db={payload:blank(),updated_at:'2026-03-01T00:00:00Z'};`);await run("connectCloudUser({id:'B'})");
  ok(run("S.settings.cloudOwner==='B'&&db.payload.notes.length===0&&JSON.parse(localStorage.getItem(KEY+':account:A')).notes.length>0"),'успешная смена аккаунта изолирует записи и сохраняет предыдущие');
+ run('clearTimeout(cloudTimer);delete S.settings.feedKey;');
+ run("openSheet('feed')");
+ ok(run("!S.settings.feedKey&&!document.querySelector('#sheet-in a[href^=\"webcal:\"]')"),'открытие формы не создаёт неподтверждённую ссылку');
+ run('readFail=true');await run('prepareFeed()');
+ ok(run('!feedReady()'),'ошибка сохранения не разрешает подписку');
+ run('readFail=false;clearTimeout(cloudTimer)');await run('prepareFeed()');
+ ok(run('feedReady()&&db.payload.settings.feedKey===S.settings.feedKey'),'подписка доступна после подтверждения облаком');
+ run('resetFeed()');
+ ok(run('!feedReady()'),'смена ссылки требует нового сохранения');
  run('clearTimeout(cloudTimer);cloudReady=false;cloudUser=null;');
  for(const raw of [{exp:[{id:'bad',sum:100}]},{exp:[{id:'bad',sum:100,date:'2026-02-31'}]},{notes:[{id:'bad',date:'2026-09-07',items:[null]}]}]){
   let failed=false;try{w.normalize(raw);}catch{failed=true;}ok(failed,'некорректная запись отвергается до замены данных');
