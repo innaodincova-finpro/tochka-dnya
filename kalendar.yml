@@ -1,4 +1,4 @@
-name: Выкладка функции календаря
+name: Выкладка серверных функций
 
 # Файлы могут лежать где угодно — в папках или прямо в корне.
 # Перед выкладкой нужная структура собирается здесь сама.
@@ -38,7 +38,12 @@ jobs:
         with:
           version: latest
 
-      - name: Выложить функцию
+      - name: Выложить функции
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: supabase functions deploy kalendar --project-ref dcpthwmuiodrjepifzsd
+        run: |
+          for f in supabase/functions/*/; do
+            name=$(basename "$f")
+            echo "выкладываю $name"
+            supabase functions deploy "$name" --project-ref dcpthwmuiodrjepifzsd
+          done

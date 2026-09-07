@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.4.0';
+const CACHE = 'tochka-dnya-v5.6.1';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
@@ -19,7 +19,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE && key !== FONTS).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key.startsWith('tochka-dnya-') && key !== CACHE && key !== FONTS).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
@@ -50,6 +50,7 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(request)
         .then(response => {
+          if (!response.ok) return response;
           const copy = response.clone();
           caches.open(CACHE).then(cache => cache.put('./index.html', copy));
           return response;
@@ -61,7 +62,8 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(
     caches.match(request).then(cached => cached || fetch(request).then(response => {
-      const copy = response.clone();
+      if (!response.ok) return response;
+          const copy = response.clone();
       caches.open(CACHE).then(cache => cache.put(request, copy));
       return response;
     }))
