@@ -2443,7 +2443,7 @@ function listFold(x){
   '</div>';
 }
 function noteListCopy(text){
-  const lines=String(text||'').split('\n').map(t=>t.trim()).filter(t=>t&&!/^-{3,}$/.test(t));
+  const lines=noteBody(text).split('\n').map(t=>t.trim()).filter(t=>t&&!/^-{3,}$/.test(t));
   const plain=t=>t.replace(/^#{1,6}\s*/,'').replace(/\*\*/g,'').replace(/^[-*•]\s*/,'');
   const first=plain(lines[0]||'Заметка');
   const sentence=first.match(/^.*?[.!?](?=\s|$)/);
