@@ -542,6 +542,15 @@ body{
 button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline:3px solid rgba(118,82,168,.38);outline-offset:2px}
 @media (min-width:600px){.phone{margin:22px auto;min-height:calc(100vh - 44px);border:1px solid rgba(220,205,228,.9);border-radius:34px;box-shadow:0 28px 70px rgba(68,43,84,.18)}.appbar{border-radius:33px 33px 0 0}.tabs{bottom:22px;border-radius:0 0 33px 33px}}
 @media (prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+
+.note-reader-nav{position:sticky;top:-18px;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;background:var(--card);border-bottom:1px solid var(--line);margin-bottom:14px}
+.note-back,.note-reader-menu summary{min-height:44px;display:flex;align-items:center;border:0;background:none;color:var(--accent);font:600 15px 'Golos Text',sans-serif;cursor:pointer}
+.note-reader-menu{position:relative;flex-shrink:0}
+.note-reader-menu summary{list-style:none;padding:0 10px}
+.note-reader-menu summary::-webkit-details-marker{display:none}
+.note-reader-menu-pop{position:absolute;right:0;top:100%;min-width:180px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 8px 24px #0002}
+.note-reader-menu-pop button{width:100%;min-height:44px;border:0;background:none;color:var(--stop);font:500 14px 'Golos Text',sans-serif}
+.note-reader .note-reader-actions{position:sticky;bottom:-22px;z-index:2;background:var(--card);padding:12px 0 calc(12px + env(safe-area-inset-bottom));margin-bottom:-22px}
 </style>
 </head>
 <body>
@@ -597,7 +606,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.7.6';
+const APP_VERSION = '5.7.7';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -3255,6 +3264,9 @@ const SHEETS = {
     const n = findNote(editNoteId);
     if (!n) return '<h3>Заметка не найдена</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
     return '<div class="note-reader">' +
+      '<div class="note-reader-nav"><button type="button" class="note-back" onclick="closeSheet()">‹ Назад к заметкам</button>' +
+      '<details class="note-reader-menu"><summary>Ещё ⋯</summary><div class="note-reader-menu-pop">' +
+      '<button type="button" class="danger" onclick="dropNote(\'' + n.id + '\')">Удалить заметку</button></div></details></div>' +
       '<div class="note-reader-head"><div class="note-reader-title">' + esc(noteViewTitle(n)) + '</div>' +
       '<div class="note-reader-date">' + humanDate(n.date) + '</div></div>' +
       '<div class="note-reader-body">' + noteMarkup(noteBody(n.text)) + '</div>' +
@@ -3262,10 +3274,7 @@ const SHEETS = {
         '<button class="btn ghost" onclick="openAppend(\'' + n.id + '\')">Дописать</button>' +
         '<button class="btn" onclick="editNote(\'' + n.id + '\')">Изменить</button>' +
       '</div>' +
-      '<div class="note-reader-secondary">' +
-        '<button onclick="closeSheet()">Закрыть</button>' +
-        '<button class="danger" onclick="dropNote(\'' + n.id + '\')">Удалить</button>' +
-      '</div></div>';
+      '</div>';
   },
 
   noteAppend: () => {
