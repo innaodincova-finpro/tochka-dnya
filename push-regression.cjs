@@ -1,0 +1,38 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const {PGlite}=require('@electric-sql/pglite');
+(async()=>{
+ const {dueEvents,zonedTime,validSubscription}=await import('./supabase/functions/push/schedule.js');
+ const at=Date.parse('2026-09-07T08:00:30Z'),e={id:'e',date:'2026-09-07',time:'12:00',title:'Встреча'};
+ assert.equal(dueEvents({ev:[e]},'Europe/Moscow',at).length,1);
+ assert.equal(dueEvents({ev:[e]},'Europe/Moscow',at-60000).length,0,'not early');
+ assert.equal(dueEvents({ev:[e]},'Europe/Moscow',at+300000).length,0,'not stale');
+ assert.equal(dueEvents({ev:[{...e,time:'13:00'}]},'Europe/Moscow',at).length,0,'moved');
+ assert.equal(dueEvents({ev:[]},'Europe/Moscow',at).length,0,'deleted');
+ assert.equal(dueEvents({ev:[e],day:{'2026-09-07':{done:['e']}}},'Europe/Moscow',at).length,0,'completed');
+ assert.equal(dueEvents({ev:[{...e,date:'2026-08-31',repeat:'week'}]},'Europe/Moscow',at).length,1,'weekly');
+ assert.equal(dueEvents({ev:[{...e,date:'2025-09-07',repeat:'year'}]},'Europe/Moscow',at).length,1,'yearly');
+ assert.equal(dueEvents({ev:[{...e,date:'2026-08-07',repeat:'month'}]},'Europe/Moscow',at).length,1,'monthly');
+ assert.equal(dueEvents({ev:[{...e,date:'2026-09-08',time:'00:30'}]},'Europe/Moscow',Date.parse('2026-09-07T20:30:20Z')).length,1,'midnight');
+ assert.equal(zonedTime('2026-03-29','03:30','Europe/Berlin'),Date.parse('2026-03-29T01:30Z'),'DST');
+ assert(Number.isNaN(zonedTime('2026-03-29','02:30','Europe/Berlin')),'nonexistent DST time skipped');
+ const webpush=require('web-push'),crypto=require('node:crypto'),ece=require('http_ece');
+ const dh=crypto.createECDH('prime256v1');dh.generateKeys();const auth=crypto.randomBytes(16);
+ const sub={endpoint:'https://web.push.apple.com/test',keys:{p256dh:dh.getPublicKey().toString('base64url'),auth:auth.toString('base64url')}};
+ assert(validSubscription(sub));assert(!validSubscription({...sub,endpoint:'https://127.0.0.1/x'}));assert(!validSubscription({...sub,endpoint:'https://web.push.apple.com.evil.test/x'}));
+ const keys=webpush.generateVAPIDKeys(),payload=JSON.stringify({title:'Встреча',body:'Сегодня в 12:00'});
+ const details=webpush.generateRequestDetails(sub,payload,{TTL:300,contentEncoding:'aes128gcm',vapidDetails:{subject:'mailto:inna_odincova@mail.ru',...keys}});
+ assert.equal(ece.decrypt(details.body,{version:'aes128gcm',privateKey:dh,authSecret:auth}).toString(),payload,'real push payload decrypts');
+ assert(details.headers.Authorization.startsWith('vapid '));
+ const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);');
+ let sql=fs.readFileSync('supabase/migrations/20260907110737_direct_push.sql','utf8').replace(/create extension[^;]+;/g,'');sql=sql.slice(0,sql.indexOf('-- Only invokes'));
+ await db.exec(sql);await db.exec("insert into auth.users values('00000000-0000-0000-0000-000000000001');insert into public.push_subscriptions(id,user_id,endpoint,subscription,timezone) values('00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001','test','{}','Europe/Moscow');");
+ for(const role of ['anon','authenticated']){await db.exec('set role '+role);let denied=false;try{await db.query('select * from push_configuration');}catch{denied=true;}assert(denied,'secret denied '+role);denied=false;try{await db.query("select claim_push_delivery('x','00000000-0000-0000-0000-000000000002')");}catch{denied=true;}assert(denied,'dispatch denied '+role);await db.exec('reset role');}
+ await db.exec('set role service_role');const claim=()=>db.query("select claim_push_delivery('x','00000000-0000-0000-0000-000000000002') as yes");
+ assert((await claim()).rows[0].yes);assert.equal((await claim()).rows[0].yes,false,'duplicate lease blocked');
+ await db.exec("update push_deliveries set claimed_at=now()-interval '66 seconds'");assert((await claim()).rows[0].yes,'retry after lease');
+ await db.exec("update push_deliveries set sent_at=now(),claimed_at=now()-interval '66 seconds'");assert.equal((await claim()).rows[0].yes,false,'accepted never repeated');await db.close();
+ const handlers={};let shown,clicked;
+ vm.runInNewContext(fs.readFileSync('sw.js','utf8'),{self:{addEventListener:(k,f)=>handlers[k]=f,registration:{scope:'https://test.invalid/app/',showNotification:async(title,options)=>{shown={title,...options};}},clients:{matchAll:async()=>[],openWindow:async u=>{clicked=u;}}},URL});
+ let promise;handlers.push({data:{json:()=>({title:'Встреча',body:'В 12:00',url:'https://evil.test'})},waitUntil:p=>promise=p});await promise;assert.equal(shown.title,'Встреча');handlers.notificationclick({notification:{close(){}},waitUntil:p=>promise=p});await promise;assert.equal(clicked,'https://test.invalid/app/');
+ console.log('PUSH PASS: time zones, repeats, midnight, DST, deletion/move/done, actual encryption, SSRF, secret permissions, atomic claim, worker display and safe click.');
+})().catch(e=>{console.error(e);process.exitCode=1});

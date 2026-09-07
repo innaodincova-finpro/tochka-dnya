@@ -1,12 +1,13 @@
 {
   "name": "tochka-dnya",
-  "version": "5.6.4",
+  "version": "5.7.0",
   "private": true,
   "scripts": {
-    "test": "node proverki.js && node regression.js && node sdk-regression.cjs && node sql-regression.cjs && node ssylki.js && node invitation-regression.cjs"
+    "test": "node proverki.js && node regression.js && node sdk-regression.cjs && node sql-regression.cjs && node ssylki.js && node invitation-regression.cjs && node push-regression.cjs && node push-handler-regression.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",
-    "jsdom": "^26.1.0"
+    "jsdom": "^26.1.0",
+    "web-push": "3.6.7"
   }
 }
