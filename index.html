@@ -598,7 +598,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.7.3';
+const APP_VERSION = '5.7.4';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -3499,7 +3499,15 @@ let parsed = null;
 function doParse(){
   const text = val('f-speech');
   if (!text){ toast('Сначала надиктуйте или впишите текст'); return; }
-  parsed = parseSpeech(text);
+  parsed = looksPasted(text)
+    ? {exp:[], inc:[], ev:[], notes:[], rest:[text.trim()]}
+    : parseSpeech(text);
+  // Preview and save must use exactly the same single residual note.
+  if (!parsed.exp.length && !parsed.inc.length && !parsed.ev.length && !parsed.notes.length){
+    parsed.rest = [text.trim()];
+  } else if (parsed.rest.length){
+    parsed.rest = [parsed.rest.join('. ')];
+  }
   const line = (ic, t, where) => '<div class="to">' + ic + ' <span>' + esc(t) + '</span><em>' + where + '</em></div>';
   let rows = '';
   parsed.exp.forEach(e => rows += line('💸', e.title + ' · ' + money(e.sum) + ' · ' + e.cat, 'Деньги'));
@@ -3508,7 +3516,7 @@ function doParse(){
   parsed.notes.forEach(t => rows += line('✎', t, 'Записи'));
   const nothing = !rows && !parsed.rest.length;
   document.getElementById('sheet-in').innerHTML =
-    '<h3>Разложено</h3>' +
+    '<h3>Проверьте перед сохранением</h3>' +
     (nothing ? '<div class="mut">Не удалось ничего распознать. Попробуйте назвать сумму или время: «потратила 800 на продукты».</div>'
       : '<div class="parse">' + rows + '</div>') +
     (parsed.rest.length ? '<div class="card" style="margin:0"><div class="lab">Сохраню как заметку</div><div class="mut">' +
@@ -3522,7 +3530,7 @@ function applyParse(){
   parsed.inc.forEach(e => S.inc.push(Object.assign({id:uid(), date:today(), cur:S.settings.cur}, e)));
   parsed.ev.forEach(e => S.ev.push(Object.assign({id:uid()}, e)));
   parsed.notes.forEach(t => S.notes.push(makeNote(t)));
-  parsed.rest.forEach(t => S.notes.push({id:uid(), date:today(), text:tidy(t), kind:'note', done:false}));
+  parsed.rest.forEach(t => S.notes.push({id:uid(), date:today(), text:t, kind:'note', done:false}));
   save(); closeSheet(); toast('Записано');
   parsed = null;
 }

@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+const html=fs.readFileSync('index.html','utf8');
+const code=html.slice(html.indexOf('let parsed = null;'),html.indexOf('/* ---------- копия данных'));
+let input='',result,saves=0,shown='';
+const state={exp:[],inc:[],ev:[],notes:[],settings:{}};
+const c={S:state,val:()=>input,parseSpeech:()=>result,looksPasted:t=>t.includes('\n'),document:{getElementById:()=>({set innerHTML(v){shown=v}})},toast:()=>{},esc:s=>s,money:s=>s,humanDate:s=>s,uid:()=>String(Math.random()),today:()=> '2026-09-07',makeNote:t=>({text:t}),save:()=>saves++,closeSheet:()=>{}};
+vm.createContext(c);vm.runInContext(code,c);
+input='Результат: увидите статус «Вошёл», а после сохранения первой записи — «Есть облачное сохранение». Если приглашение уже отправлено, повторно создавать его не нужно.';
+result={exp:[],inc:[],ev:[],notes:[],rest:Array.from({length:14},(_,i)=>'часть '+i)};
+c.doParse();assert.equal(state.notes.length,0);assert.equal(saves,0);assert(shown.includes(input));c.applyParse();assert.equal(state.notes.length,1);assert.equal(state.notes[0].text,input);c.applyParse();assert.equal(state.notes.length,1);
+state.notes=[];input='Инструкция\n1. Войти в 14:00\n2. Создать 14 записей.';c.doParse();c.applyParse();assert.equal(state.notes.length,1);assert.equal(state.notes[0].text,input);assert.equal(state.exp.length,0);
+state.notes=[];input='встреча и комментарий';result={exp:[],inc:[],ev:[{title:'Встреча',time:'16:30'}],notes:[],rest:['Контекст','Продолжение']};c.doParse();assert.equal(state.ev.length,0);c.applyParse();assert.equal(state.ev.length,1);assert.equal(state.notes.length,1);assert.equal(state.notes[0].text,'Контекст. Продолжение');
+console.log('PASS: preview does not save, prose retained exactly, multiline retained, mixed event and one note, no double save');
