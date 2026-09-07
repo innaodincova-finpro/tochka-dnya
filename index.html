@@ -598,7 +598,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.7.4';
+const APP_VERSION = '5.7.5';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -2511,6 +2511,8 @@ function noteMarkup(text){
 function noteReadingText(text){
   let v = String(text || '').replace(/\r/g, '').trim();
   if (!v) return '';
+  // Existing line breaks already define the structure; never re-segment it.
+  if (v.includes('\n')) return v;
 
   v = v.replace(/(?<!#)\s+(Действие|Шаг)\s+(\d+)\.\s*/gi, '\n\n## $1 $2\n');
   v = v.replace(/\s+([1-9]\d?)\.\s+(?=[А-ЯЁA-Z])/g, (match, number, offset, whole) => {
