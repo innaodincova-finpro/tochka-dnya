@@ -162,13 +162,15 @@ async function run() {
   // ---- облако: подменяем клиента, настоящая сеть в проверках не участвует ----
   w.eval(`
     globalThis.__sent = null; globalThis.__reset = null;
+    const write = row => ({eq(){return this;},select(){globalThis.__sent=row;return Promise.resolve({data:[{updated_at:new Date().toISOString()}],error:globalThis.__failPush?{message:'нет сети'}:null});}});
     cloudClient = {
       auth: { resetPasswordForEmail: (email) => { globalThis.__reset = email; return Promise.resolve({ error: null }); } },
       from: () => ({
-        upsert: (row) => { globalThis.__sent = row; return Promise.resolve({ error: globalThis.__failPush ? { message: 'нет сети' } : null }); },
-        select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { payload: globalThis.__remote }, error: null }) }) })
+        update: write, insert: write,
+        select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: globalThis.__remote ? {payload:globalThis.__remote,updated_at:'2026-01-01T00:00:00Z'} : null, error: null }) }) })
       })
     };
+    S=blank();S.settings.cloudOwner='u1';cloudReady=true;cloudBase=blank();
     cloudUser = { id: 'u1', email: 'a@b.c' };
   `);
 
@@ -203,15 +205,15 @@ async function run() {
     'записи прежнего аккаунта не попадают в чужое облако');
   assert(w.eval("JSON.stringify(globalThis.__sent.payload.exp).indexOf('mine') === -1"),
     'чужие записи не отправляются на сервер');
-  assert(w.eval("JSON.parse(localStorage.getItem(KEY + ':prev')).exp.some(e => e.id === 'mine')"),
+  assert(w.eval("JSON.parse(localStorage.getItem(KEY + ':account:someone-else')).exp.some(e => e.id === 'mine')"),
     'записи прежнего аккаунта отложены, а не стёрты');
 
   // список покупок правится с двух телефонов: пункты не должны теряться
   const listA = w.normalize({ settings:{cur:'RUB'}, exp:[], inc:[], ev:[], day:{},
-    notes:[{ id:'list-1', title:'Покупки', items:[{t:'Молоко',done:true},{t:'Хлеб',done:false}] }],
+    notes:[{ id:'list-1', date:w.today(), title:'Покупки', items:[{t:'Молоко',done:true},{t:'Хлеб',done:false}] }],
     savedAt: new Date().toISOString() });
   const listB = w.normalize({ settings:{cur:'RUB'}, exp:[], inc:[], ev:[], day:{},
-    notes:[{ id:'list-1', title:'Покупки', items:[{t:'Молоко',done:false},{t:'Яйца',done:false}] }],
+    notes:[{ id:'list-1', date:w.today(), title:'Покупки', items:[{t:'Молоко',done:false},{t:'Яйца',done:false}] }],
     savedAt: new Date(Date.now() - 60000).toISOString() });
   const lists = w.mergeStates(listA, listB).notes[0].items.map(i => i.t);
   assert(lists.indexOf('Хлеб') >= 0 && lists.indexOf('Яйца') >= 0 && lists.indexOf('Молоко') >= 0,
@@ -1300,6 +1302,52 @@ async function run() {
   assert(!darkSheet.textContent.includes('диктует клавиатура'),
     'подпись про микрофон убрана — значок и так на месте');
   w.eval("closeSheet(); S.settings.theme = 'light'; applyColorTheme();");
+
+  // ---- интерфейс не обещает того, чего сервер не даст ----
+  w.eval("S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; renderAll(); openSheet('cloudAuth');");
+  const authSheet = w.document.getElementById('sheet-in').textContent.replace(/\s+/g, ' ');
+  assert(!authSheet.includes('Создать аккаунт'),
+    'кнопки регистрации нет — она вела в тупик при закрытых записях');
+  assert(authSheet.includes('Вход по приглашению'),
+    'вместо неё сказано, как получить доступ');
+  assert(authSheet.includes('Войти') && authSheet.includes('Забыли пароль?'),
+    'вход и восстановление пароля остались');
+  assert(!html.includes('cloudRegister'),
+    'функция регистрации убрана вместе с кнопкой');
+  w.eval('closeSheet();');
+
+  // ---- кабинет виден только администратору ----
+  w.eval("S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; foldOpen = {}; cloudUser = null; renderAll(); goScreen('s-more');");
+  const moreHas = () => w.document.getElementById('s-more').textContent.includes('Кабинет');
+
+  assert(!moreHas(), 'без входа кабинета нет');
+  w.eval("cloudUser = {id:'u', email:'anastasia@mail.ru'}; renderMore();");
+  assert(!moreHas(), 'обычному пользователю кабинет не показывается');
+  w.eval("cloudUser = {id:'u', email:'Inna_Odincova@Mail.ru'}; renderMore();");
+  assert(moreHas() && w.isAdmin(), 'администратору кабинет виден, регистр почты не мешает');
+
+  w.eval(`adminData = {vsego:2, voshli:1, ne_voshli:1, s_zapisyami:1, lyudi:[
+      {pochta:'a@b.ru', zahodil:new Date().toISOString(), sinhronizaciya:new Date().toISOString(),
+       sobytiya:8, dela:3, spiski:2, rashody:18, kalendar:true},
+      {pochta:'c@d.ru', zahodil:null, sinhronizaciya:null,
+       sobytiya:0, dela:0, spiski:0, rashody:0, kalendar:false}]};
+    foldOpen['more-admin'] = true; renderMore();`);
+  const cab = w.document.getElementById('s-more').textContent.replace(/\s+/g, ' ');
+  assert(cab.includes('a@b.ru') && cab.includes('8 соб.') && cab.includes('18 трат'),
+    'по каждому человеку видны количества записей');
+  assert(cab.includes('ещё не входил'),
+    'видно, кто приглашён, но не дошёл');
+  assert(cab.includes('Содержимое чужих записей недоступно'),
+    'сказано прямо, что содержимое не показывается');
+
+  // сервер не читает тексты — это устройство, а не обещание
+  const kab = fs.readFileSync('supabase/functions/kabinet/index.ts', 'utf8');
+  ['\\.text', '\\.title', '\\.sum', 'payload\\.notes\\[', 'JSON.stringify\\(payload'].forEach(p =>
+    assert(!new RegExp(p).test(kab),
+      'функция кабинета не обращается к содержимому записей: ' + p));
+  assert(kab.includes('ADMIN') && kab.includes('403'),
+    'запрос не от администратора отклоняется');
+  w.eval("cloudUser = null; adminData = null;");
 
   assert(html.includes('Автор идеи и концепции приложения — Одинцова И. В.'),
     'авторство указано в приложении');

@@ -1,0 +1,12 @@
+const {PGlite}=require('@electric-sql/pglite');const fs=require('fs');
+(async()=>{const db=new PGlite();await db.exec(`create role authenticated;create role anon;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select current_setting('request.jwt.claim.sub',true)::uuid$$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;`);
+await db.exec(fs.readFileSync('supabase/DATABASE_SETUP.sql','utf8'));
+await db.exec(fs.readFileSync('supabase/DATABASE_SYNC_GUARD.sql','utf8'));
+await db.exec(`insert into auth.users values('00000000-0000-0000-0000-000000000001'),('00000000-0000-0000-0000-000000000002');set role authenticated;set request.jwt.claim.sub='00000000-0000-0000-0000-000000000001';`);
+let rejected=false;try{await db.exec(`insert into public.user_app_data(user_id) values('00000000-0000-0000-0000-000000000001')`);}catch(e){rejected=true;}if(!rejected)throw Error('legacy insert not rejected');
+await db.exec(`set request.headers='{"x-client-info":"tochka-dnya/5.6.1"}';insert into public.user_app_data(user_id) values('00000000-0000-0000-0000-000000000001');update public.user_app_data set payload='{"ok":true}' where user_id='00000000-0000-0000-0000-000000000001';`);
+await db.exec(`set request.headers='{}';`);rejected=false;try{await db.exec(`update public.user_app_data set payload='{}'`);}catch(e){rejected=true;}if(!rejected)throw Error('legacy update not rejected');
+await db.exec(`set request.headers='{"x-client-info":"tochka-dnya/5.6.1"}';set request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';`);
+const r=await db.query('select * from public.user_app_data');if(r.rows.length)throw Error('RLS leaked row');
+const u=await db.query(`update public.user_app_data set payload='{}' returning user_id`);if(u.rows.length)throw Error('RLS allowed foreign update');
+console.log('SQL PASS: legacy insert/update rejected; 561 insert/update allowed; foreign select/update denied.');await db.close();})().catch(e=>{console.error(e);process.exitCode=1;});

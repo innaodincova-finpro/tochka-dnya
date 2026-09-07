@@ -278,6 +278,16 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
    оказывался внизу и вернуть блок в свёрнутый вид было нечем. */
 .fold-close{display:block;margin:10px 0 0 auto;padding:7px 2px;border:0;
   background:transparent;cursor:pointer;font:500 12px 'Golos Text',sans-serif;color:var(--accent)}
+.admin-row{padding:11px 0;border-bottom:1px solid var(--line)}
+.admin-row:last-of-type{border-bottom:0}
+.admin-mail{font:500 14px 'Golos Text',sans-serif;color:var(--ink);overflow-wrap:anywhere}
+.admin-mail em{font-style:normal;font-size:10.5px;color:var(--accent);
+  background:rgba(112,82,165,.1);border-radius:99px;padding:2px 7px;margin-left:5px}
+.admin-nums{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.admin-nums span{font:500 11px 'IBM Plex Mono',monospace;color:var(--mut);
+  background:rgba(112,82,165,.08);border-radius:7px;padding:3px 8px}
+[data-theme="dark"] .admin-mail em,[data-theme="dark"] .admin-nums span{background:rgba(213,174,255,.12)}
+[data-theme="dark"] .admin-row{border-bottom-color:#493B56}
 .steps{margin:14px 0 0;padding-left:20px;font:400 13px/1.5 'Golos Text',sans-serif;color:var(--ink)}
 .steps li{margin-bottom:5px}
 #f-feed{font:400 11px 'IBM Plex Mono',monospace;color:var(--mut)}
@@ -588,8 +598,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.4';
-const APP_UPDATED = '5 сентября 2026';
+const APP_VERSION = '5.6.1';
+const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -602,7 +612,7 @@ function cur(){ return (CURR.find(c => c[0] === (S && S.settings && S.settings.c
 function sign(){ return cur()[1]; }
 function notable(){ return cur()[3] || 1000; }
 
-let S = null, storageOk = true;
+let S = null, storageOk = true, loadBlocked = false;
 
 function blank(){
   return {
@@ -616,9 +626,31 @@ function blank(){
    поэтому запись старого образца из облака или из копии роняла экран.
    Теперь любые данные проходят здесь. */
 const DEL_KEEP_DAYS = 180;
+function validateData(raw){
+  const obj = v => v && typeof v === 'object' && !Array.isArray(v);
+  const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v+'T12:00:00Z')) && new Date(v+'T12:00:00Z').toISOString().slice(0,10) === v;
+  if (!obj(raw)) throw new Error('Некорректная структура копии');
+  for (const k of ['exp','inc','ev','notes']) {
+    if (raw[k] === undefined) continue;
+    if (!Array.isArray(raw[k])) throw new Error('Некорректный раздел: '+k);
+    const ids = new Set();
+    for (const r of raw[k]) {
+      if (!obj(r) || !date(r.date)) throw new Error('Запись без корректной даты: '+k);
+      if (r.id && (typeof r.id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(r.id) || ids.has(r.id))) throw new Error('Некорректный или повторный номер записи');
+      if (r.id) ids.add(r.id);
+      if ((k==='exp'||k==='inc') && (!Number.isFinite(Number(r.sum)) || r.sum===null || r.sum==='')) throw new Error('Некорректная сумма');
+      if (k==='ev' && (typeof r.title!=='string' || (r.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(r.time)))) throw new Error('Некорректное событие');
+      if (k==='notes' && ((r.text!==undefined && typeof r.text!=='string') || (r.due && !date(r.due)) || (r.items!==undefined && (!Array.isArray(r.items)||r.items.some(i=>!obj(i)||typeof i.t!=='string'))))) throw new Error('Некорректная заметка');
+    }
+  }
+  if (raw.settings!==undefined && !obj(raw.settings)) throw new Error('Некорректные настройки');
+  if (raw.day!==undefined && (!obj(raw.day)||Object.entries(raw.day).some(([d,r])=>!date(d)||!obj(r)||(r.done!==undefined&&!Array.isArray(r.done))))) throw new Error('Некорректные отметки календаря');
+  return raw;
+}
 function normalize(raw){
+  if (raw != null) validateData(raw);
   const b = blank();
-  const d = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {};
+  const d = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? JSON.parse(JSON.stringify(raw)) : {};
   for (const k in b){
     if (Array.isArray(b[k])) d[k] = Array.isArray(d[k]) ? d[k] : [];
     else if (b[k] && typeof b[k] === 'object') d[k] = (d[k] && typeof d[k] === 'object' && !Array.isArray(d[k])) ? d[k] : {};
@@ -641,10 +673,11 @@ function load(){
   try{ raw = localStorage.getItem(KEY); }
   catch(e){ storageOk = false; }
   try{ S = normalize(raw ? JSON.parse(raw) : null); }
-  catch(e){ S = blank(); storageOk = false; }
+  catch(e){ S = blank(); storageOk = false; loadBlocked = true; }
 }
-function saveQuiet(){ dropIndex(); try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ storageOk = false; } }
+function saveQuiet(){ if(loadBlocked)return; dropIndex(); try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ storageOk = false; } }
 function save(){
+  if(loadBlocked){toast('Сохранение остановлено: исходные данные повреждены. Сначала восстановите корректную копию.');return;}
   const hasData = S.exp.length || S.inc.length || S.ev.length || S.notes.length || Object.keys(S.day || {}).length;
   if (hasData && !S.firstDataAt) S.firstDataAt = new Date().toISOString();
   S.savedAt = new Date().toISOString();
@@ -656,6 +689,56 @@ function save(){
 
 /* ---------- автоматическое облачное сохранение ---------- */
 let cloudClient=null,cloudUser=null,cloudTimer=null,cloudState='local',cloudError='',cloudRetry=0;
+let cloudReady=false, cloudEpoch=0, cloudBusy=false, cloudAgain=false, cloudBase=null, cloudConflict=null;
+const cloneState = x => JSON.parse(JSON.stringify(x));
+function stable(x){
+  if(Array.isArray(x))return '['+x.map(stable).join(',')+']';
+  if(x && typeof x==='object')return '{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+stable(x[k])).join(',')+'}';
+  return JSON.stringify(x);
+}
+function mergeThree(base, local, remote, choice){
+  const revived=new Set();
+  const eq=(a,b)=>stable(a)===stable(b);
+  const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
+  function merge(b,l,r,path){
+    if(eq(l,r))return l;
+    if(eq(l,b))return r;
+    if(eq(r,b))return l;
+    if(['exp','inc','ev','notes'].includes(path)){
+      const map=a=>Object.fromEntries((a||[]).map(x=>[x.id,x]));
+      const bm=map(b),lm=map(l),rm=map(r);
+      return [...new Set([...Object.keys(lm),...Object.keys(rm)])].sort().map(id=>merge(bm[id],lm[id],rm[id],path+'.'+id)).filter(x=>x!==undefined);
+    }
+    if(path==='del')return Array.from(new Map([...(l||[]),...(r||[])].map(x=>[x.id,x])).values());
+    if(path==='savedAt'||path==='backupAt')return [l,r].filter(Boolean).sort().pop()||null;
+    if(object(l)&&object(r)&&(object(b)||b===undefined)){
+      const out={};
+      for(const k of new Set([...Object.keys(l),...Object.keys(r),...Object.keys(b||{})])){
+        const v=merge((b||{})[k],l[k],r[k],path?path+'.'+k:k);if(v!==undefined)out[k]=v;
+      }
+      return out;
+    }
+    if(choice){const picked=choice==='local'?l:r;const parts=path.split('.');if(parts.length===2&&['exp','inc','ev','notes'].includes(parts[0])&&picked!==undefined)revived.add(parts[1]);return picked;}
+    const e=new Error('Одна запись изменена в двух местах. Выберите версию в разделе «Ещё».');e.conflict=true;throw e;
+  }
+  const out=merge(base,local,remote,'');
+  out.del=(out.del||[]).filter(x=>!revived.has(x.id));
+  const dead=new Set(out.del.map(x=>x.id));
+  for(const k of ['exp','inc','ev','notes'])out[k]=(out[k]||[]).filter(x=>!dead.has(x.id));
+  return normalize(out);
+}
+function rememberBase(data){
+  localStorage.setItem(KEY+':base:'+cloudUser.id,JSON.stringify(data));
+  cloudBase=cloneState(data);
+}
+function resolveCloudConflict(choice){
+  if(!cloudConflict || !cloudUser || cloudConflict.user!==cloudUser.id)return;
+  try{
+    localStorage.setItem(KEY+':conflict:'+cloudUser.id+':'+Date.now(),JSON.stringify({local:S,remote:cloudConflict.remote}));
+    S=mergeThree(cloudConflict.base,S,cloudConflict.remote,choice);
+    rememberBase(cloudConflict.remote);cloudConflict=null;save();closeSheet();
+  }catch(e){toast('Не удалось сохранить обе версии. Сделайте резервную копию перед повтором.');}
+}
 function hasUserData(data){
   if(!data||typeof data!=='object')return false;
   const n=k=>Array.isArray(data[k])?data[k].length:0;
@@ -672,20 +755,20 @@ function stamp(x){ return x&&x.savedAt?new Date(x.savedAt).getTime():0; }
    новый телефон с одной записью затирал в облаке весь прошлый год.
    Теперь записи складываются по номерам, а удалённые остаются удалёнными. */
 function mergeStates(local, remote){
-  const localNewer = stamp(local) >= stamp(remote);
+  const localNewer = stamp(local) > stamp(remote) || (stamp(local) === stamp(remote) && stable(local) >= stable(remote));
   const older = localNewer ? remote : local;
   const newer = localNewer ? local : remote;
   const out = normalize(JSON.parse(JSON.stringify(newer)));
 
   const dead = {};
   [].concat(older.del||[], newer.del||[]).forEach(x => { if(x&&x.id) dead[x.id]=x; });
-  out.del = Object.keys(dead).map(id => dead[id]);
+  out.del = Object.keys(dead).sort().map(id => dead[id]);
 
   ['exp','inc','ev','notes'].forEach(k => {
     const by = {}, old = {};
     (older[k]||[]).forEach(r => { if(r&&r.id){ by[r.id]=r; old[r.id]=r; } });
     (newer[k]||[]).forEach(r => { if(r&&r.id) by[r.id]=r; });
-    out[k] = Object.keys(by).filter(id => !dead[id]).map(id => {
+    out[k] = Object.keys(by).sort().filter(id => !dead[id]).map(id => {
       const rec = by[id], was = old[id];
       /* список покупок правится с двух телефонов вперемешку. Если брать
          запись целиком, пункты, добавленные на другом телефоне, пропадут. */
@@ -714,13 +797,14 @@ function mergeStates(local, remote){
   const first = [older.firstDataAt, newer.firstDataAt].filter(Boolean).sort();
   out.firstDataAt = first[0] || null;
   out.backupAt = [older.backupAt, newer.backupAt].filter(Boolean).sort().pop() || null;
-  out.savedAt = new Date().toISOString();
+  out.savedAt = [older.savedAt, newer.savedAt].filter(Boolean).sort().pop() || null;
   return normalize(out);
 }
 /* Строка отвечает на один вопрос: цела ли запись. Поэтому в каждом состоянии
    стоит законченная фраза, а не обрывок, и даже при сбое облака сказано,
    что на устройстве всё сохранено. */
 function cloudLabel(){
+  if(loadBlocked)return 'Сохранение остановлено · нужна проверка копии';
   if(!storageOk)return 'НЕ СОХРАНЯЕТСЯ';
   if(cloudState==='syncing')return '⟳ сохраняю в облако';
   if(cloudState==='synced')return '✓ сохранено в облаке';
@@ -738,59 +822,101 @@ function scheduleCloudSync(){
   cloudTimer=setTimeout(pushCloud,900);
 }
 async function pushCloud(){
-  if(!cloudClient||!cloudUser)return;
+  if(!cloudClient||!cloudUser||loadBlocked)return;
+  if(!cloudReady){await connectCloudUser(cloudUser);return;}
+  if(cloudBusy){cloudAgain=true;return;}
   if(!navigator.onLine){setCloudState('offline');return;}
+  const user=cloudUser.id, epoch=cloudEpoch;
+  const current=()=>epoch===cloudEpoch&&cloudUser&&cloudUser.id===user&&cloudReady;
+  cloudBusy=true;
   try{
-    const payload=JSON.parse(JSON.stringify(S));
-    const result=await cloudClient.from('user_app_data').upsert({user_id:cloudUser.id,payload:payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-    if(result.error)throw result.error;
-    cloudRetry=0;
-    setCloudState('synced');
-  }catch(e){
-    setCloudState('error',e&&e.message);
-    /* раньше одна неудачная отправка оставляла записи неотправленными
-       до следующей правки. Пробуем сами, с растущей паузой. */
-    if(cloudRetry<5){
-      const wait=Math.min(60000,4000*Math.pow(2,cloudRetry));
-      cloudRetry++;
-      clearTimeout(cloudTimer);
-      cloudTimer=setTimeout(pushCloud,wait);
+    if(S.settings.cloudOwner!==user)throw new Error('Владелец локальных записей не совпадает с аккаунтом');
+    for(let attempt=0;attempt<4;attempt++){
+      const read=await cloudClient.from('user_app_data').select('payload,updated_at').eq('user_id',user).maybeSingle();
+      if(!current())return;
+      if(read.error)throw read.error;
+      const remote=read.data?normalize(read.data.payload):blank();
+      remote.settings.cloudOwner=user;
+      const before=cloneState(S);
+      let payload;
+      try{payload=mergeThree(cloudBase||blank(),before,remote);}catch(e){
+        if(e.conflict)cloudConflict={user,base:cloneState(cloudBase||blank()),remote};throw e;
+      }
+      payload.settings.cloudOwner=user;payload.syncProtocol=561;
+      const timestamp=new Date(Math.max(Date.now(),read.data?Date.parse(read.data.updated_at)+1:0)).toISOString();
+      const query=read.data
+        ? cloudClient.from('user_app_data').update({payload,updated_at:timestamp}).eq('user_id',user).eq('updated_at',read.data.updated_at)
+        : cloudClient.from('user_app_data').insert({user_id:user,payload,updated_at:timestamp});
+      const result=await query.select('updated_at');
+      if(!current())return;
+      if(result.error){if(result.error.code==='23505')continue;throw result.error;}
+      if(!result.data||!result.data.length)continue;
+      // Объединяем новые локальные правки с подтверждённым снимком,
+      // иначе отсутствие только что полученной записи выглядело бы удалением.
+      let integrated;
+      try{integrated=mergeThree(before,S,payload);}catch(e){
+        if(e.conflict){cloudConflict={user,base:before,remote:payload};rememberBase(before);}throw e;
+      }
+      rememberBase(payload);
+      if(stable(integrated)!==stable(payload))cloudAgain=true;
+      S=integrated;saveQuiet();renderAll();
+      cloudConflict=null;cloudRetry=0;
+      setCloudState(cloudAgain?'syncing':'synced');return;
     }
+    throw new Error('Данные одновременно меняются на другом устройстве. Повторяем сохранение.');
+  }catch(e){
+    if(!current())return;
+    setCloudState('error',e&&e.message);
+    if(e.conflict){toast(e.message);renderMore();}
+    else if(cloudRetry<5){cloudRetry++;clearTimeout(cloudTimer);cloudTimer=setTimeout(pushCloud,Math.min(60000,4000*Math.pow(2,cloudRetry-1)));}
+  }finally{
+    cloudBusy=false;
+    if(cloudAgain){cloudAgain=false;scheduleCloudSync();}
   }
 }
 async function connectCloudUser(user){
-  cloudUser=user;setCloudState('syncing');
+  if(loadBlocked){setCloudState('error','Проверьте локальные данные перед подключением облака');return;}
+  const epoch=++cloudEpoch;
+  cloudReady=false;cloudUser=user;cloudBase=null;cloudConflict=null;clearTimeout(cloudTimer);setCloudState('syncing');
   try{
     const result=await cloudClient.from('user_app_data').select('payload,updated_at').eq('user_id',user.id).maybeSingle();
+    if(epoch!==cloudEpoch)return;
     if(result.error)throw result.error;
-    const remote=result.data&&result.data.payload?normalize(result.data.payload):null;
-    /* записи на этом телефоне принадлежат другому аккаунту: складывать их
-       с чужими нельзя, но и стирать молча тоже. Убираем в отдельный ящик. */
+    const remote=result.data?normalize(result.data.payload):blank();
+    remote.settings.cloudOwner=user.id;
     const foreign=S.settings.cloudOwner&&S.settings.cloudOwner!==user.id;
-    if(foreign&&hasUserData(S)){
-      try{localStorage.setItem(KEY+':prev',JSON.stringify(S));}catch(e){}
-      S=remote||blank();
-      S.settings.cloudOwner=user.id;saveQuiet();renderAll();
-      toast('Записи прежнего аккаунта отложены и в это облако не отправлены');
-      setCloudState('synced');await pushCloud();renderAll();return;
+    if(foreign){
+      localStorage.setItem(KEY+':account:'+S.settings.cloudOwner,JSON.stringify(S));
+      const own=localStorage.getItem(KEY+':account:'+user.id);
+      S=own?normalize(JSON.parse(own)):cloneState(remote);
     }
-    if(remote&&hasUserData(remote))S=mergeStates(S,remote);
     S.settings.cloudOwner=user.id;
-    saveQuiet();renderAll();
-    await pushCloud();
-    if(cloudState!=='error')setCloudState('synced');
-  }catch(e){setCloudState(navigator.onLine?'error':'offline',e&&e.message);}
-  renderAll();
+    const stored=localStorage.getItem(KEY+':base:'+user.id);
+    cloudBase=stored?normalize(JSON.parse(stored)):blank();
+    saveQuiet();cloudReady=true;renderAll();await pushCloud();
+  }catch(e){if(epoch===cloudEpoch)setCloudState(navigator.onLine?'error':'offline',e&&e.message);}
+  if(epoch===cloudEpoch)renderAll();
 }
 async function initCloud(){
   if(!window.supabase||!window.supabase.createClient){setCloudState('local');return;}
-  cloudClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  const sessionResult=await cloudClient.auth.getSession();
-  if(sessionResult.data&&sessionResult.data.session)await connectCloudUser(sessionResult.data.session.user);
+  const recovery=/type=recovery/.test(location.hash);
+  cloudClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{headers:{'x-client-info':'tochka-dnya/5.6.1'}},auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   cloudClient.auth.onAuthStateChange((event,session)=>{
+    if(event==='PASSWORD_RECOVERY')setTimeout(()=>openSheet('cloudPassword'),0);
     if(session&&(!cloudUser||cloudUser.id!==session.user.id))setTimeout(()=>connectCloudUser(session.user),0);
-    if(!session){cloudUser=null;setCloudState('local');renderAll();}
+    if(!session){cloudEpoch++;cloudReady=false;clearTimeout(cloudTimer);cloudUser=null;cloudBase=null;cloudConflict=null;setCloudState('local');renderAll();}
   });
+  const result=await cloudClient.auth.getSession();
+  if(result.data&&result.data.session&&!cloudUser)await connectCloudUser(result.data.session.user);
+  if(recovery&&result.data&&result.data.session)openSheet('cloudPassword');
+}
+async function cloudSetPassword(){
+  const password=val('new-password');
+  if(password.length<8){toast('Пароль должен содержать не менее 8 символов');return;}
+  if(password!==val('repeat-password')){toast('Пароли не совпадают');return;}
+  if(!cloudClient){toast('Сервис входа недоступен');return;}
+  try{const result=await cloudClient.auth.updateUser({password});if(result.error)throw result.error;closeSheet();toast('Новый пароль сохранён');}
+  catch(e){toast(cloudErrorText(e));}
 }
 /* Сервер отвечает по-английски. Показывать это человеку нельзя:
    ошибка должна говорить, что произошло и что делать дальше. */
@@ -817,6 +943,7 @@ function cloudErrorText(e){
   return 'Не получилось. Попробуйте ещё раз через минуту';
 }
 async function cloudLogin(){
+  if(!cloudClient){toast('Сервис входа недоступен. Обновите страницу при подключении к сети.');return;}
   const email=val('cloud-email').toLowerCase(),password=val('cloud-password');
   if(!email||password.length<8){toast('Введите почту и пароль не короче 8 символов');return;}
   setCloudState('syncing');
@@ -824,18 +951,10 @@ async function cloudLogin(){
   if(result.error){setCloudState('error',result.error.message);toast(cloudErrorText(result.error));return;}
   closeSheet();toast('Вход выполнен. Данные сохраняются в облаке');
 }
-async function cloudRegister(){
-  const email=val('cloud-email').toLowerCase(),password=val('cloud-password');
-  if(!email||password.length<8){toast('Введите почту и пароль не короче 8 символов');return;}
-  setCloudState('syncing');
-  const result=await cloudClient.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});
-  if(result.error){setCloudState('error',result.error.message);toast(cloudErrorText(result.error));return;}
-  if(result.data&&result.data.session){closeSheet();toast('Аккаунт создан. Данные отправляются в облако');}
-  else toast('Откройте письмо подтверждения, затем вернитесь и войдите');
-}
 /* без этого забытый пароль означал безвозвратно потерянный доступ
    к облачным записям: другого способа войти не было */
 async function cloudReset(){
+  if(!cloudClient){toast('Сервис входа недоступен');return;}
   const email=val('cloud-email').toLowerCase();
   if(!email){toast('Введите почту, на которую заведён аккаунт');return;}
   const result=await cloudClient.auth.resetPasswordForEmail(email,{redirectTo:location.origin+location.pathname});
@@ -872,9 +991,65 @@ async function copyFeed(){
     if (el){ el.select(); try{ document.execCommand('copy'); toast('Ссылка скопирована'); }catch(err){} }
   }
 }
+/* Кабинет виден только администратору. Числа считает сервер и отдаёт только их —
+   содержимое чужих записей сюда не приходит. */
+const ADMIN_EMAIL = 'inna_odincova@mail.ru';
+let adminData = null, adminBusy = false;
+function isAdmin(){
+  return !!(cloudUser && String(cloudUser.email || '').toLowerCase() === ADMIN_EMAIL);
+}
+async function loadAdmin(){
+  if (adminBusy) return;
+  adminBusy = true; renderMore();
+  try{
+    const ses = cloudClient && (await cloudClient.auth.getSession()).data.session;
+    if (!ses){ toast('Нужен вход в аккаунт'); return; }
+    const res = await fetch(SUPABASE_URL + '/functions/v1/kabinet', {
+      headers: {Authorization: 'Bearer ' + ses.access_token}
+    });
+    const body = await res.json();
+    if (!res.ok){ toast(body.error || 'Кабинет недоступен'); return; }
+    adminData = body;
+  } catch(e){ toast('Нет связи с облаком'); }
+  finally { adminBusy = false; renderMore(); }
+}
+function adminAgo(iso){
+  if (!iso) return '—';
+  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+  if (days <= 0) return 'сегодня';
+  if (days === 1) return 'вчера';
+  if (days < 30) return days + ' ' + plural(days,'день','дня','дней') + ' назад';
+  return humanDate(iso.slice(0,10));
+}
+function adminCard(){
+  if (!isAdmin()) return '';
+  const body = adminBusy ? '<div class="mut">Считаю…</div>'
+    : !adminData ? '<button class="btn ghost" onclick="loadAdmin()">Показать</button>'
+    : '<div class="row" style="margin-bottom:12px">' +
+        '<span><b style="font-size:22px">' + adminData.vsego + '</b> ' +
+          plural(adminData.vsego,'человек','человека','человек') + '</span>' +
+        '<span class="mut">' + adminData.voshli + ' вошли · ' + adminData.ne_voshli + ' ещё нет</span></div>' +
+      adminData.lyudi.map(p =>
+        '<div class="admin-row">' +
+          '<div class="admin-mail">' + esc(p.pochta) + (p.kalendar ? ' <em>календарь</em>' : '') + '</div>' +
+          '<div class="mut" style="font-size:12px">' +
+            (p.zahodil ? 'заходил ' + adminAgo(p.zahodil) : 'ещё не входил') +
+            (p.sinhronizaciya ? ' · сохранял ' + adminAgo(p.sinhronizaciya) : '') + '</div>' +
+          (p.sinhronizaciya
+            ? '<div class="admin-nums">' +
+                '<span>' + p.sobytiya + ' соб.</span><span>' + p.dela + ' дел</span>' +
+                '<span>' + p.spiski + ' спис.</span><span>' + p.rashody + ' трат</span>' +
+              '</div>'
+            : '') +
+        '</div>').join('') +
+      '<button class="btn ghost" style="margin-top:12px" onclick="adminData=null;loadAdmin()">Обновить</button>' +
+      '<div class="mut" style="font-size:11px;margin-top:10px">Только количества. Содержимое чужих записей недоступно никому, включая администратора.</div>';
+  return fold('more-admin', 'Кабинет', adminData ? adminData.vsego + ' ' + plural(adminData.vsego,'человек','человека','человек') : 'кто пользуется', body);
+}
 async function cloudSignOut(){
   if(!window.confirm('Выйти из облачного аккаунта? Данные на этом телефоне останутся.'))return;
-  await cloudClient.auth.signOut();cloudUser=null;setCloudState('local');renderAll();toast('Вы вышли. Автосохранение на телефоне продолжает работать');
+  cloudReady=false;cloudEpoch++;clearTimeout(cloudTimer);
+  const result=await cloudClient.auth.signOut();if(result.error){setCloudState('error',result.error.message);toast('Не удалось выйти. Повторите при подключении к сети.');return;}cloudUser=null;setCloudState('local');renderAll();toast('Вы вышли. Автосохранение на телефоне продолжает работать');
 }
 window.addEventListener('online',()=>scheduleCloudSync());
 window.addEventListener('offline',()=>{if(cloudUser)setCloudState('offline')});
@@ -2514,7 +2689,7 @@ function renderMore(){
     ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openSheet(\'feed\')">Календарь айфона</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
     : card(lab('Облачное сохранение')+'<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
   document.getElementById('s-more').innerHTML =
-    cloudCard + fold('more-set', 'Настройки приложения', 'оформление и разделы',
+    (loadBlocked ? card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены без изменений. Скачайте их для восстановления или загрузите исправную резервную копию ниже.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>') : '') + (cloudConflict ? card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>') : '') + cloudCard + fold('more-set', 'Настройки приложения', 'оформление и разделы',
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +
       '<div class="fld"><label>Оформление</label><select onchange="setColorTheme(this.value)">' +
         '<option value="light"' + ((S.settings.theme || 'light') === 'light' ? ' selected' : '') + '>Светлая тема</option>' +
@@ -2528,6 +2703,7 @@ function renderMore(){
           ' onchange="toggleScreen(\'' + x[0] + '\')"><span>' + x[2] + '</span></label>').join('') + '</div>' +
       '<button class="btn ghost" onclick="openSheet(\'help\')">Как пользоваться приложением</button>') +
     /* валюта выбирается там, где ею пользуются — на экране «Финансы» */
+    adminCard() +
     fold('more-data', 'Данные приложения', backupDue() ? 'пора сделать копию' : 'копия и восстановление',
       '<div style="margin-bottom:8px;font-size:13px;color:var(--ok)">✓ Все изменения сохраняются автоматически</div>' + backupWarning +
       '<div class="mut" style="margin-bottom:10px">' + (cloudUser ? 'Записи хранятся на телефоне и в вашем облаке. ' : 'Все записи хранятся только в этом браузере и никуда не отправляются. ') +
@@ -2756,12 +2932,16 @@ function finishWelcome(){
 }
 
 const SHEETS = {
+  cloudPassword: () => '<h3>Новый пароль</h3><div class="fld"><label>Не менее 8 символов</label><input id="new-password" type="password" autocomplete="new-password"></div><div class="fld"><label>Повторите пароль</label><input id="repeat-password" type="password" autocomplete="new-password"></div><button class="btn" onclick="cloudSetPassword()">Сохранить пароль</button>',
+  cloudConflict: () => '<h3>Запись изменена в двух местах</h3><p>Независимые изменения будут объединены. Для полей, изменённых одновременно, выберите версию. Обе исходные базы сохранятся на этом устройстве.</p><button class="btn" onclick="resolveCloudConflict(\'local\')">Оставить мои изменения</button><button class="btn ghost" onclick="resolveCloudConflict(\'remote\')">Оставить изменения из облака</button>',
   cloudAuth: () => '<h3>Облачное сохранение</h3>'+
 
     '<div class="fld"><label>Электронная почта</label><input id="cloud-email" type="email" inputmode="email" autocomplete="email" placeholder="name@example.com"></div>'+
     '<div class="fld"><label>Пароль — не менее 8 символов</label><input id="cloud-password" type="password" autocomplete="current-password" minlength="8" placeholder="Введите пароль"></div>'+
     '<button class="btn" onclick="cloudLogin()">Войти</button>'+
-    '<button class="btn ghost" style="margin-top:8px" onclick="cloudRegister()">Создать аккаунт</button>'+
+    /* Регистрация в облаке закрыта: вход только по приглашению.
+       Кнопка «Создать аккаунт» обещала то, чего сервер не даст. */
+    '<div class="mut" style="margin-top:12px;text-align:center">Вход по приглашению</div>'+
     '<button class="del" style="display:block;margin:10px auto 0" onclick="cloudReset()">Забыли пароль?</button>'+
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Пока не подключать</button>',
   day: (d) => daySheet(d || today()),
@@ -3219,6 +3399,7 @@ function applyParse(){
 
 /* ---------- копия данных ---------- */
 function backupBlob(){
+  if(loadBlocked)return new File([localStorage.getItem(KEY)||''], 'tochka-dnya-recovery-'+today()+'.json', {type:'application/json'});
   const data = JSON.stringify({app:'tochka-dnya', v:1, at:new Date().toISOString(), data:S}, null, 1);
   return new File([data], 'tochka-dnya-' + today() + '.json', {type:'application/json'});
 }
@@ -3255,6 +3436,10 @@ function restoreFile(input){
       const now = normalize(d);
       if (hasUserData(S) && !window.confirm(
         'Заменить всё, что сейчас в приложении, записями из копии? Текущие записи будут стёрты.')) return;
+      localStorage.setItem(KEY+':before-restore:'+Date.now(),loadBlocked ? localStorage.getItem(KEY) : JSON.stringify(S));
+      loadBlocked=false;storageOk=true;
+      const missing=[];for(const k of ['exp','inc','ev','notes'])for(const r of S[k])if(!now[k].some(x=>x.id===r.id))missing.push({id:r.id,at:new Date().toISOString()});
+      now.del=Array.from(new Map([...(S.del||[]),...(now.del||[]),...missing].map(x=>[x.id,x])).values());
       S = now;
       if (cloudUser) S.settings.cloudOwner = cloudUser.id;
       save(); toast('Копия загружена — все записи на месте');
@@ -3394,12 +3579,14 @@ window.addEventListener('storage', e => {
   if (e.key !== KEY || !e.newValue) return;
   try{
     const other = normalize(JSON.parse(e.newValue));
+    if((S.settings.cloudOwner||'')!==(other.settings.cloudOwner||''))return;
     const merged = mergeStates(S, other);
-    const changed = JSON.stringify(merged) !== JSON.stringify(other);
+    const changed = stable(merged) !== stable(other);
     S = merged;
     /* назад пишем только если добавилось наше — иначе вкладки будут
        бесконечно передавать запись друг другу */
     if (changed) saveQuiet();
+    if(cloudReady)scheduleCloudSync();
     renderAll();
     toast('Записи обновлены — приложение открыто ещё в одном месте');
   }catch(err){}
@@ -3441,7 +3628,7 @@ document.addEventListener('keydown', e => {
       && sheetState.kind !== 'welcome') closeSheet();
 });
 initCloud();
-if (!S.settings.onboarded) setTimeout(() => openSheet('welcome'), 120);
+if (!S.settings.onboarded && !/type=recovery/.test(location.hash)) setTimeout(() => {if(sheetState.kind!=='cloudPassword')openSheet('welcome');}, 120);
 setInterval(() => {
   if (!document.getElementById('s-today').hidden) renderToday();
 }, 60000);

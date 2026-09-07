@@ -6,7 +6,7 @@
 
 ## Часть 1. Функция на сервере
 
-Ничего делать не нужно. Функция уезжает в Supabase сама, когда файлы попадают на GitHub — это настроено один раз по инструкции [VYKLADKA.md](../VYKLADKA.md).
+Ничего делать не нужно. Функция уезжает в Supabase сама, когда файлы попадают на GitHub — это настроено один раз по инструкции [VYKLADKA.md](VYKLADKA.md).
 
 Проверить, что она встала: https://supabase.com/dashboard/project/dcpthwmuiodrjepifzsd/functions — в списке должна быть `kalendar`.
 
