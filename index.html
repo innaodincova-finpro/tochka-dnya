@@ -598,7 +598,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.7.1';
+const APP_VERSION = '5.7.2';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -2818,7 +2818,7 @@ function renderMore(){
   const backupWarning = backupDue()
     ? '<button type="button" class="tip" style="margin-bottom:10px" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</button>' : '';
   const cloudCard = cloudUser
-    ? card(lab('Облачное сохранение')+'<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openPushSheet()">Напоминания</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
+    ? fold('more-cloud', 'Облачное сохранение', '✓ Подключено', '<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openPushSheet()">Напоминания</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
     : card(lab('Облачное сохранение')+'<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
   document.getElementById('s-more').innerHTML =
     (loadBlocked ? card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены без изменений. Скачайте их для восстановления или загрузите исправную резервную копию ниже.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>') : '') + (cloudConflict ? card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>') : '') + cloudCard + (!cloudUser ? card(lab('Напоминания')+'<button class="btn" onclick="openPushSheet()">Настроить напоминания</button>') : '') + fold('more-set', 'Настройки приложения', 'оформление и разделы',
