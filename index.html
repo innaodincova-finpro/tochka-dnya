@@ -551,6 +551,16 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
 .note-reader-menu-pop{position:absolute;right:0;top:100%;min-width:180px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 8px 24px #0002}
 .note-reader-menu-pop button{width:100%;min-height:44px;border:0;background:none;color:var(--stop);font:500 14px 'Golos Text',sans-serif}
 .note-reader .note-reader-actions{position:sticky;bottom:-22px;z-index:2;background:var(--card);padding:12px 0 calc(12px + env(safe-area-inset-bottom));margin-bottom:-22px}
+
+/* Compact note list: two predictable lines, full text in the reader. */
+.compact-note .note-open{min-height:68px;padding:12px 0;align-items:center}
+.note-list-content{display:block;min-width:0;width:100%}
+.note-list-title{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px;line-height:1.45;font-weight:600;color:var(--ink)}
+.note-list-meta{display:flex;align-items:baseline;gap:10px;min-width:0;margin-top:5px;line-height:1.4;font-size:12px;color:var(--mut)}
+.note-list-date{flex-shrink:0;font-size:11px}
+.note-list-preview{display:block;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:400}
+.compact-note .note-open:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+.compact-note .note-open:active{background:rgba(118,82,168,.07)}
 </style>
 </head>
 <body>
@@ -606,7 +616,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.7.10';
+const APP_VERSION = '5.8.0';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -2432,13 +2442,23 @@ function listFold(x){
       '<button type="button" class="fold-close" onclick="toggleFold(\'' + key + '\')">свернуть ↑</button>' : '') +
   '</div>';
 }
+function noteListCopy(text){
+  const lines=noteBody(text).split('\n').map(t=>t.trim()).filter(t=>t&&!/^-{3,}$/.test(t));
+  const plain=t=>t.replace(/^#{1,6}\s*/,'').replace(/\*\*/g,'').replace(/^[-*•]\s*/,'');
+  const first=plain(lines[0]||'Заметка');
+  const sentence=first.match(/^.*?[.!?](?=\s|$)/);
+  const title=sentence&&sentence[0].length>=12?sentence[0]:first;
+  const preview=[first.slice(title.length).trim(),...lines.slice(1).map(plain)].filter(Boolean).join(' ');
+  return {title,preview:preview.length>160?preview.slice(0,160).replace(/\s+\S*$/,'')+'…':preview};
+}
 function noteCard(x){
-  return '<article class="note-card' + (x.pinned ? ' pinned' : '') + '">' +
-    '<button type="button" class="note-open" onclick="openNote(\'' + x.id + '\')" aria-label="Открыть заметку">' +
-      '<span><span class="note-card-title">' + esc(noteHead(x.text, true) || 'Заметка') + '</span>' +
-      '<small class="note-card-date">' + humanDate(x.date) + '</small></span>' +
-      '' +
-    '</button></article>';
+  const copy=noteListCopy(x.text);
+  return '<article class="note-card compact-note' + (x.pinned ? ' pinned' : '') + '">' +
+    '<button type="button" class="note-open" onclick="openNote(\'' + x.id + '\')" aria-label="'+esc(copy.title)+'">' +
+      '<span class="note-list-content"><span class="note-card-title note-list-title">' + esc(copy.title) + '</span>' +
+      '<span class="note-list-meta"><span class="note-list-date">' + humanDate(x.date) + '</span>' +
+      (copy.preview?'<span class="note-list-preview">'+esc(copy.preview)+'</span>':'') +
+      '</span></span></button></article>';
 }
 function openNote(id){ editNoteId = id; openSheet('noteView'); }
 function taskCard(x){
