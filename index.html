@@ -598,7 +598,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.6.3';
+const APP_VERSION = '5.6.4';
 const APP_UPDATED = '7 сентября 2026';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -904,7 +904,7 @@ async function initCloud(){
   cloudClient.auth.onAuthStateChange((event,session)=>{
     if(event==='PASSWORD_RECOVERY')setTimeout(()=>openSheet('cloudPassword'),0);
     if(session&&(!cloudUser||cloudUser.id!==session.user.id))setTimeout(()=>connectCloudUser(session.user),0);
-    if(!session){cloudEpoch++;cloudReady=false;clearTimeout(cloudTimer);cloudUser=null;cloudBase=null;cloudConflict=null;setCloudState('local');renderAll();}
+    if(!session){adminData=null;adminInvitation=null;cloudEpoch++;cloudReady=false;clearTimeout(cloudTimer);cloudUser=null;cloudBase=null;cloudConflict=null;setCloudState('local');renderAll();}
   });
   const result=await cloudClient.auth.getSession();
   if(result.data&&result.data.session&&!cloudUser)await connectCloudUser(result.data.session.user);
@@ -1022,7 +1022,7 @@ async function copyFeed(){
 /* Кабинет виден только администратору. Числа считает сервер и отдаёт только их —
    содержимое чужих записей сюда не приходит. */
 const ADMIN_EMAIL = 'inna_odincova@mail.ru';
-let adminData = null, adminBusy = false;
+let adminData = null, adminBusy = false, adminInviteBusy = false, adminInvitation = null;
 function isAdmin(){
   return !!(cloudUser && String(cloudUser.email || '').toLowerCase() === ADMIN_EMAIL);
 }
@@ -1041,6 +1041,28 @@ async function loadAdmin(){
   } catch(e){ toast('Нет связи с облаком'); }
   finally { adminBusy = false; renderMore(); }
 }
+async function createInvitation(){
+  if(!isAdmin()||adminInviteBusy)return;
+  const email=val('invite-email').trim().toLowerCase();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Введите адрес почты человека');return;}
+  adminInviteBusy=true;adminInvitation=null;
+  const button=document.getElementById('invite-create');if(button){button.disabled=true;button.textContent='Создаю…';}
+  try{
+    const ses=(await cloudClient.auth.getSession()).data.session;
+    if(!ses)throw new Error('Войдите в аккаунт администратора');
+    const res=await fetch(SUPABASE_URL+'/functions/v1/kabinet',{method:'POST',headers:{Authorization:'Bearer '+ses.access_token,'Content-Type':'application/json'},body:JSON.stringify({action:'invite',email})});
+    const body=await res.json();if(!res.ok)throw new Error(body.error||'Не удалось создать доступ');
+    if(!isAdmin()||cloudUser.id!==ses.user.id)return;
+    adminInvitation=body;openSheet('adminInviteResult');adminData=null;await loadAdmin();
+  }catch(e){toast(e.message||'Нет связи с облаком');}
+  finally{adminInviteBusy=false;if(button){button.disabled=false;button.textContent='Создать ссылку';}}
+}
+async function copyInvitation(){
+  if(!isAdmin()||!adminInvitation)return;
+  const el=document.getElementById('invite-message');
+  try{await navigator.clipboard.writeText(el.value);toast('Приглашение скопировано. Отправьте его этому человеку в личном сообщении.');}
+  catch{el.focus();el.select();toast('Выделенный текст можно скопировать вручную');}
+}
 function adminAgo(iso){
   if (!iso) return '—';
   const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
@@ -1051,6 +1073,7 @@ function adminAgo(iso){
 }
 function adminCard(){
   if (!isAdmin()) return '';
+  const invitationForm='<p>Укажите почту человека. Полученную персональную ссылку отправьте ему в личном сообщении.</p><div class="fld"><label>Почта нового пользователя</label><input id="invite-email" type="email" autocomplete="off"></div><button id="invite-create" class="btn" onclick="createInvitation()">Создать ссылку</button><p class="mut">Повторное создание для человека, который ещё не вошёл, заменяет прежнюю ссылку.</p>';
   const body = adminBusy ? '<div class="mut">Считаю…</div>'
     : !adminData ? '<button class="btn ghost" onclick="loadAdmin()">Показать</button>'
     : '<div class="row" style="margin-bottom:12px">' +
@@ -1059,10 +1082,10 @@ function adminCard(){
         '<span class="mut">' + adminData.voshli + ' вошли · ' + adminData.ne_voshli + ' ещё нет</span></div>' +
       adminData.lyudi.map(p =>
         '<div class="admin-row">' +
-          '<div class="admin-mail">' + esc(p.pochta) + (p.kalendar ? ' <em>календарь</em>' : '') + '</div>' +
+          '<div class="admin-mail">' + esc(p.pochta) + (p.kalendar ? ' <em>ссылка календаря создана</em>' : '') + '</div>' +
           '<div class="mut" style="font-size:12px">' +
-            (p.zahodil ? 'заходил ' + adminAgo(p.zahodil) : 'ещё не входил') +
-            (p.sinhronizaciya ? ' · сохранял ' + adminAgo(p.sinhronizaciya) : '') + '</div>' +
+            (p.zahodil ? 'Вошёл · последний вход ' + adminAgo(p.zahodil) : 'Доступ создан · ещё не вошёл') +
+            (p.sinhronizaciya ? ' · есть облачное сохранение: ' + adminAgo(p.sinhronizaciya) : ' · облачных сохранений пока нет') + '</div>' +
           (p.sinhronizaciya
             ? '<div class="admin-nums">' +
                 '<span>' + p.sobytiya + ' соб.</span><span>' + p.dela + ' дел</span>' +
@@ -1071,8 +1094,8 @@ function adminCard(){
             : '') +
         '</div>').join('') +
       '<button class="btn ghost" style="margin-top:12px" onclick="adminData=null;loadAdmin()">Обновить</button>' +
-      '<div class="mut" style="font-size:11px;margin-top:10px">Только количества. Содержимое чужих записей недоступно никому, включая администратора.</div>';
-  return fold('more-admin', 'Кабинет', adminData ? adminData.vsego + ' ' + plural(adminData.vsego,'человек','человека','человек') : 'кто пользуется', body);
+      '<div class="mut" style="font-size:11px;margin-top:10px">Кабинет показывает количества и даты, без текстов записей. Общее число включает ваш аккаунт. Созданная ссылка не подтверждает отправку приглашения или работу уведомлений. Оплаты и сроки подписки здесь не учитываются.</div>';
+  return fold('more-admin', 'Кабинет', adminData ? adminData.vsego + ' ' + plural(adminData.vsego,'человек','человека','человек') : 'кто пользуется', invitationForm+body);
 }
 async function cloudSignOut(){
   if(!window.confirm('Выйти из облачного аккаунта? Данные на этом телефоне останутся.'))return;
@@ -2960,6 +2983,8 @@ function finishWelcome(){
 }
 
 const SHEETS = {
+  adminInviteResult: () => '<h3>Доступ создан</h3><p>Отправьте этот текст только человеку с указанной почтой. Ссылка персональная и одноразовая. Если она истечёт до первого входа, создайте новую в кабинете.</p><div class="fld"><textarea id="invite-message" rows="7" readonly>'+esc('Ваш доступ к «Точке дня» для '+(adminInvitation?.email||'')+'. Откройте ссылку и задайте свой пароль для приложения: '+(adminInvitation?.url||''))+'</textarea></div><button class="btn" onclick="copyInvitation()">Скопировать приглашение</button><p>После отправки откройте кабинет и нажмите «Обновить»: появится статус входа и облачного сохранения.</p>',
+
   cloudPassword: () => '<h3>Новый пароль</h3><div class="fld"><label>Не менее 8 символов</label><input id="new-password" type="password" autocomplete="new-password"></div><div class="fld"><label>Повторите пароль</label><input id="repeat-password" type="password" autocomplete="new-password"></div><button class="btn" onclick="cloudSetPassword()">Сохранить пароль</button>',
   cloudConflict: () => '<h3>Запись изменена в двух местах</h3><p>Независимые изменения будут объединены. Для полей, изменённых одновременно, выберите версию. Обе исходные базы сохранятся на этом устройстве.</p><button class="btn" onclick="resolveCloudConflict(\'local\')">Оставить мои изменения</button><button class="btn ghost" onclick="resolveCloudConflict(\'remote\')">Оставить изменения из облака</button>',
   cloudAuth: () => '<h3>Облачное сохранение</h3>'+
