@@ -616,8 +616,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.8.3';
-const APP_UPDATED = new Date('2026-09-07T21:21:53.497Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
+const APP_VERSION = '5.8.4';
+const APP_UPDATED = new Date('2026-09-08T05:55:02.086Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -707,6 +707,7 @@ function save(){
 
 /* ---------- автоматическое облачное сохранение ---------- */
 let cloudClient=null,cloudUser=null,cloudTimer=null,cloudState='local',cloudError='',cloudRetry=0;
+let cloudSavedAt=null;
 let cloudReady=false, cloudEpoch=0, cloudBusy=false, cloudAgain=false, cloudBase=null, cloudConflict=null;
 const cloneState = x => JSON.parse(JSON.stringify(x));
 function stable(x){
@@ -830,7 +831,14 @@ function cloudLabel(){
   if(cloudState==='error')return '! облако недоступно · сохранено на устройстве';
   return '✓ сохранено';
 }
-function setCloudState(state,error){cloudState=state;cloudError=error||'';const el=document.getElementById('saved');if(el)el.textContent=cloudLabel();}
+function cloudSaveDetails(){
+  const last=cloudSavedAt ? 'Последнее сохранение в облаке: '+backupDateTime(cloudSavedAt)+' (время устройства).' : 'Время последнего сохранения в облаке пока не получено.';
+  if(cloudState==='syncing')return 'Сохраняю изменения… '+last;
+  if(cloudState==='offline')return 'Нет интернета. Новые изменения пока не отправлены в облако. '+last;
+  if(cloudState==='error')return 'Не удалось завершить сохранение в облаке. '+last;
+  return last;
+}
+function setCloudState(state,error){cloudState=state;cloudError=error||'';const el=document.getElementById('saved');if(el)el.textContent=cloudLabel();const detail=document.getElementById('cloud-save-details');if(detail)detail.textContent=cloudSaveDetails();}
 function scheduleCloudSync(){
   if(!cloudUser)return;
   cloudRetry=0;
@@ -869,6 +877,7 @@ async function pushCloud(){
       if(!current())return;
       if(result.error){if(result.error.code==='23505')continue;throw result.error;}
       if(!result.data||!result.data.length)continue;
+      cloudSavedAt=result.data[0].updated_at||null;
       // Объединяем новые локальные правки с подтверждённым снимком,
       // иначе отсутствие только что полученной записи выглядело бы удалением.
       let integrated;
@@ -895,12 +904,13 @@ async function pushCloud(){
 async function connectCloudUser(user){
   if(loadBlocked){setCloudState('error','Проверьте локальные данные перед подключением облака');return;}
   const epoch=++cloudEpoch;
-  cloudReady=false;cloudUser=user;cloudBase=null;cloudConflict=null;clearTimeout(cloudTimer);setCloudState('syncing');
+  cloudReady=false;cloudSavedAt=null;cloudUser=user;cloudBase=null;cloudConflict=null;clearTimeout(cloudTimer);setCloudState('syncing');
   try{
     const result=await cloudClient.from('user_app_data').select('payload,updated_at').eq('user_id',user.id).maybeSingle();
     if(epoch!==cloudEpoch)return;
     if(result.error)throw result.error;
     const remote=result.data?normalize(result.data.payload):blank();
+    cloudSavedAt=result.data?.updated_at||null;
     remote.settings.cloudOwner=user.id;
     const foreign=S.settings.cloudOwner&&S.settings.cloudOwner!==user.id;
     if(foreign){
@@ -922,7 +932,7 @@ async function initCloud(){
   cloudClient.auth.onAuthStateChange((event,session)=>{
     if(event==='PASSWORD_RECOVERY')setTimeout(()=>openSheet('cloudPassword'),0);
     if(session&&(!cloudUser||cloudUser.id!==session.user.id))setTimeout(()=>connectCloudUser(session.user),0);
-    if(!session){adminData=null;adminInvitation=null;cloudEpoch++;cloudReady=false;clearTimeout(cloudTimer);cloudUser=null;cloudBase=null;cloudConflict=null;setCloudState('local');renderAll();}
+    if(!session){adminData=null;adminInvitation=null;cloudEpoch++;cloudReady=false;clearTimeout(cloudTimer);cloudUser=null;cloudSavedAt=null;cloudBase=null;cloudConflict=null;setCloudState('local');renderAll();}
   });
   const result=await cloudClient.auth.getSession();
   if(result.data&&result.data.session&&!cloudUser)await connectCloudUser(result.data.session.user);
@@ -1186,8 +1196,8 @@ function adminCard(){
         '<div class="admin-row">' +
           '<div class="admin-mail">' + esc(p.pochta) + '</div>' +
           '<div class="mut" style="font-size:12px">' +
-            (p.zahodil ? 'Вошёл · последний вход ' + adminAgo(p.zahodil) : 'Доступ создан · ещё не вошёл') +
-            (p.sinhronizaciya ? ' · есть облачное сохранение: ' + adminAgo(p.sinhronizaciya) : ' · облачных сохранений пока нет') + '</div>' +
+            (p.zahodil ? 'Вошёл · последний вход ' + backupDateTime(p.zahodil) : 'Доступ создан · ещё не вошёл') +
+            (p.sinhronizaciya ? ' · есть облачное сохранение: ' + backupDateTime(p.sinhronizaciya) : ' · облачных сохранений пока нет') + '</div>' +
           (p.sinhronizaciya
             ? '<div class="admin-nums">' +
                 '<span>' + p.sobytiya + ' соб.</span><span>' + p.dela + ' дел</span>' +
@@ -1203,7 +1213,7 @@ async function cloudSignOut(){
   if(!window.confirm('Выйти из облачного аккаунта? Данные на этом телефоне останутся.'))return;
   try{await disablePush();}catch(e){toast('Не удалось отключить уведомления перед выходом. '+e.message);return;}
   cloudReady=false;cloudEpoch++;clearTimeout(cloudTimer);
-  const result=await cloudClient.auth.signOut();if(result.error){setCloudState('error',result.error.message);toast('Не удалось выйти. Повторите при подключении к сети.');return;}cloudUser=null;setCloudState('local');renderAll();toast('Вы вышли. Автосохранение на телефоне продолжает работать');
+  const result=await cloudClient.auth.signOut();if(result.error){setCloudState('error',result.error.message);toast('Не удалось выйти. Повторите при подключении к сети.');return;}cloudUser=null;cloudSavedAt=null;setCloudState('local');renderAll();toast('Вы вышли. Автосохранение на телефоне продолжает работать');
 }
 window.addEventListener('online',()=>scheduleCloudSync());
 window.addEventListener('offline',()=>{if(cloudUser)setCloudState('offline')});
@@ -2852,7 +2862,7 @@ function renderMore(){
   const backupWarning = backupDue()
     ? '<button type="button" class="tip" style="margin-bottom:10px" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</button>' : '';
   const cloudCard = cloudUser
-    ? fold('more-cloud', 'Облачное сохранение', '✓ Подключено', '<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически на телефоне и в облаке.</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openPushSheet()">Напоминания</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
+    ? fold('more-cloud', 'Облачное сохранение', '✓ Подключено', '<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически.</div><div id="cloud-save-details" class="mut" style="margin-top:8px" aria-live="polite">'+esc(cloudSaveDetails())+'</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openPushSheet()">Напоминания</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
     : card(lab('Облачное сохранение')+'<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
   document.getElementById('s-more').innerHTML =
     (loadBlocked ? card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены без изменений. Скачайте их для восстановления или загрузите исправную резервную копию ниже.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>') : '') + (cloudConflict ? card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>') : '') + cloudCard + (!cloudUser ? card(lab('Напоминания')+'<button class="btn" onclick="openPushSheet()">Настроить напоминания</button>') : '') + fold('more-set', 'Настройки приложения', 'оформление и разделы',
@@ -2870,9 +2880,9 @@ function renderMore(){
       '<button class="btn ghost" onclick="openSheet(\'help\')">Как пользоваться приложением</button>') +
     /* валюта выбирается там, где ею пользуются — на экране «Финансы» */
     adminCard() +
-    fold('more-data', 'Данные приложения', backupDue() ? 'пора сделать копию' : 'копия и восстановление',
-      '<div style="margin-bottom:8px;font-size:13px;color:var(--ok)">✓ Все изменения сохраняются автоматически</div>' + backupWarning +
-      '<div class="mut" style="margin-bottom:10px">' + (cloudUser ? 'Записи хранятся на телефоне и в вашем облаке. ' : 'Все записи хранятся только в этом браузере и никуда не отправляются. ') +
+    fold('more-data', 'Резервная копия', backupDue() ? 'пора сделать копию' : 'копия и восстановление',
+      '<p>Сохраните отдельный файл с вашими записями. Из него можно восстановить данные через «Загрузить копию».</p>' + backupWarning +
+      '<div class="mut" style="margin-bottom:10px">' + 
         (S.backupAt ? 'Последняя копия — ' + backupDateTime(S.backupAt) + ' (время устройства).' : 'Копию ещё не делали.') + '</div>' +
       '<button class="btn" onclick="openSheet(\'backup\')">Резервная копия</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="document.getElementById(\'restore\').click()">Загрузить копию</button>' +
