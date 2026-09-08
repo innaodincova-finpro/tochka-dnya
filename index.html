@@ -616,8 +616,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.8.6';
-const APP_UPDATED = new Date('2026-09-08T06:53:38.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
+const APP_VERSION = '5.8.7';
+const APP_UPDATED = new Date('2026-09-08T07:18:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -1101,7 +1101,7 @@ async function enablePush(){
 }
 async function testPush(){
  if(pushBusy)return;pushBusy=true;
- try{const result=await pushApi('test');toast('Проверка запланирована. Закройте приложение: уведомление ожидается через 1–2 минуты.');const el=document.getElementById('push-test-result');if(el)el.textContent='Закройте «Точку дня». Проверка запланирована на '+new Date(result.due).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+'. Ожидайте уведомление в течение двух минут.';}
+ try{await pushApi('test');toast('Пробное уведомление отправлено. Оно появится на экране в течение двух минут.');const el=document.getElementById('push-test-result');if(el)el.textContent='Пробное уведомление отправлено. Закройте приложение и ожидайте его на экране в течение двух минут.';}
  catch(e){toast(e.message);}finally{pushBusy=false;}
 }
 async function disablePush(){
@@ -1111,17 +1111,23 @@ async function disablePush(){
 }
 async function turnOffPush(){try{await disablePush();openSheet('push');toast('Уведомления на этом устройстве отключены');}catch(e){toast(e.message);}}
 function pushSheet(){
- const intro='<h3>Уведомления «Точки дня»</h3><p>О встречах с указанным временем напомним за час до начала, даже когда приложение закрыто. Встреча должна быть сохранена в облаке заранее.</p>';
- if(!cloudUser)return intro+'<p>Сначала войдите в облачное сохранение.</p><button class="btn" onclick="openSheet(\'cloudAuth\')">Войти</button>';
+ const title='<h3>Напоминания о встречах</h3>';
+ if(!cloudUser)return title+'<p>Чтобы получать напоминания, сначала войдите в аккаунт «Точки дня».</p><button class="btn" onclick="openSheet(\'cloudAuth\')">Войти в аккаунт</button>';
  const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
- if(ios&&!(navigator.standalone||matchMedia('(display-mode: standalone)').matches))return intro+'<p>На iPhone откройте «Точку дня» значком с главного экрана. Если значка нет: Safari → Поделиться → На экран Домой. Затем здесь появится кнопка включения.</p>';
- if(!pushAvailable())return intro+'<p>Этот браузер не поддерживает уведомления. На iPhone требуется iOS 16.4 или новее и запуск значком с главного экрана.</p>';
+ if(ios&&!(navigator.standalone||matchMedia('(display-mode: standalone)').matches))return title+'<p>Чтобы включить напоминания на iPhone, сначала добавьте «Точку дня» на главный экран: откройте приложение в Safari → нажмите «Поделиться» → «На экран Домой». Затем откройте его через появившийся значок.</p>';
+ if(!pushAvailable())return title+'<p>На этом устройстве уведомления недоступны. На iPhone требуется iOS 16.4 или новее и запуск «Точки дня» через значок на главном экране.</p>';
  const enabled=pushStatus?.enabled&&Notification.permission==='granted';
- return intro+'<p><b>'+ (enabled?'Подключено на этом устройстве':'На этом устройстве не подключено')+'</b></p>'+
-  '<p class="mut">Часовой пояс: '+esc(Intl.DateTimeFormat().resolvedOptions().timeZone)+'. События без времени не отправляются этим способом.</p>'+
-  (enabled?'<button class="btn" onclick="testPush()">Проверить уведомление</button><p id="push-test-result">Проверочное уведомление придёт через 1–2 минуты. После нажатия закройте приложение.</p><button class="btn ghost" onclick="openPushSheet()">Проверить состояние</button><button class="btn ghost" onclick="turnOffPush()">Отключить на этом устройстве</button>':'<button class="btn" onclick="enablePush()" '+(!pushPublicKey?'disabled':'')+'>Включить уведомления</button>')+
-  (pushStatus?.error?'<p>'+esc(pushStatus.error)+'</p>':'')+
-  (pushStatus?.testSentAt?'<p>Сервер передал проверку службе доставки. Подтверждение работы — уведомление на вашем экране.</p>':'');
+ if(!enabled)return title+'<p><b>Уведомления выключены</b></p><p>Включите их, чтобы получать на экран этого устройства напоминания за час до встречи.</p><button class="btn" onclick="enablePush()" '+(!pushPublicKey?'disabled':'')+'>Включить уведомления</button>'+(pushStatus?.error?'<p>'+esc(pushStatus.error)+'</p>':'');
+ return title+
+  '<p><b>Уведомления включены</b></p>'+
+  '<p><b>Куда придут:</b> на экран этого устройства.</p>'+
+  '<p><b>Когда придут:</b> за 1 час до встречи.</p>'+
+  '<p><b>Что требуется:</b> у встречи должны быть указаны дата и время, а сама встреча должна быть сохранена заранее.</p>'+
+  '<p class="mut">Например: встреча назначена на 16:30 — уведомление придёт в 15:30. Приложение в это время может быть закрыто.</p>'+
+  '<button class="btn" onclick="testPush()">Отправить пробное уведомление</button>'+
+  '<p id="push-test-result" class="mut">После нажатия закройте приложение. Пробное уведомление появится на экране в течение двух минут.</p>'+
+  '<button class="btn ghost" onclick="turnOffPush()">Отключить уведомления</button>'+
+  (pushStatus?.error?'<p>'+esc(pushStatus.error)+'</p>':'');
 }
 
 /* Кабинет виден только администратору. Числа считает сервер и отдаёт только их —
