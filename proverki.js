@@ -1322,7 +1322,7 @@ async function run() {
 
   // ---- кабинет виден только администратору ----
   w.eval("S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; foldOpen = {}; cloudUser = null; renderAll(); goScreen('s-more');");
-  const moreHas = () => w.document.getElementById('s-more').textContent.includes('Кабинет');
+  const moreHas = () => w.document.getElementById('s-more').textContent.includes('Реестр пользователей');
 
   assert(!moreHas(), 'без входа кабинета нет');
   w.eval("cloudUser = {id:'u', email:'anastasia@mail.ru'}; renderMore();");
@@ -1337,12 +1337,8 @@ async function run() {
        sobytiya:0, dela:0, spiski:0, rashody:0, kalendar:false}]};
     foldOpen['more-admin'] = true; renderMore();`);
   const cab = w.document.getElementById('s-more').textContent.replace(/\s+/g, ' ');
-  assert(cab.includes('a@b.ru') && cab.includes('8 соб.') && cab.includes('18 трат'),
-    'по каждому человеку видны количества записей');
-  assert(cab.includes('ещё не вошёл'),
-    'видно, кто приглашён, но не дошёл');
-  assert(cab.includes('без текстов записей'),
-    'сказано прямо, что содержимое не показывается');
+  assert(!cab.includes('a@b.ru') && !cab.includes('8 соб.'), 'список пользователей вынесен из приложения');
+  assert(w.document.querySelector('#s-more a[href="reestr.html"]'), 'администратору доступен отдельный реестр');
 
   // сервер не читает тексты — это устройство, а не обещание
   const kab = fs.readFileSync('supabase/functions/kabinet/index.ts', 'utf8');
