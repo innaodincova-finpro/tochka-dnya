@@ -1,0 +1,26 @@
+name: Проверка реестра в браузере
+on:
+  pull_request:
+    paths:
+      - 'reestr.html'
+      - 'registry*.js'
+      - 'registry*.cjs'
+      - '.github/workflows/registry-browser.yml'
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm install --no-save --package-lock=false playwright@1.55.0
+      - run: npx playwright install --with-deps chromium
+      - run: node registry-browser.cjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: registry-previews
+          path: preview-*.png
