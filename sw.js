@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.8.7';
+const CACHE = 'tochka-dnya-v5.8.8';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
@@ -46,7 +46,7 @@ self.addEventListener('fetch', event => {
 
   if (url.origin !== self.location.origin) return;
 
-  if (url.pathname.endsWith('/activate.html')) return;
+  if (url.pathname.endsWith('/activate.html') || url.pathname.endsWith('/reestr.html') || url.pathname.endsWith('/registry.js')) return;
 
   if (request.mode === 'navigate') {
     event.respondWith(
