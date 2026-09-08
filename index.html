@@ -616,7 +616,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.8.7';
+const APP_VERSION = '5.8.8';
 const APP_UPDATED = new Date('2026-09-08T07:18:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -1201,30 +1201,8 @@ function adminAgo(iso){
   return humanDate(iso.slice(0,10));
 }
 function adminCard(){
-  if (!isAdmin()) return '';
-  const invitationForm='<p>Укажите почту человека. Полученную персональную ссылку отправьте ему в личном сообщении.</p><div class="fld"><label>Почта нового пользователя</label><input id="invite-email" type="email" autocomplete="off"></div><button id="invite-create" class="btn" onclick="createInvitation()">Создать ссылку</button><p class="mut">Повторное создание для человека, который ещё не вошёл, заменяет прежнюю ссылку.</p>';
-  const body = adminBusy ? '<div class="mut">Считаю…</div>'
-    : !adminData ? '<button class="btn ghost" onclick="loadAdmin()">Показать</button>'
-    : '<div class="row" style="margin-bottom:12px">' +
-        '<span><b style="font-size:22px">' + adminData.vsego + '</b> ' +
-          plural(adminData.vsego,'человек','человека','человек') + '</span>' +
-        '<span class="mut">' + adminData.voshli + ' вошли · ' + adminData.ne_voshli + ' ещё нет</span></div>' +
-      adminData.lyudi.map(p =>
-        '<div class="admin-row">' +
-          '<div class="admin-mail">' + esc(p.pochta) + '</div>' +
-          '<div class="mut" style="font-size:12px">' +
-            (p.zahodil ? 'Вошёл · последний вход ' + backupDateTime(p.zahodil) : 'Доступ создан · ещё не вошёл') +
-            (p.sinhronizaciya ? ' · есть облачное сохранение: ' + backupDateTime(p.sinhronizaciya) : ' · облачных сохранений пока нет') + '</div>' +
-          (p.sinhronizaciya
-            ? '<div class="admin-nums">' +
-                '<span>' + p.sobytiya + ' соб.</span><span>' + p.dela + ' дел</span>' +
-                '<span>' + p.spiski + ' спис.</span><span>' + p.rashody + ' трат</span>' +
-              '</div>'
-            : '') +
-        '</div>').join('') +
-      '<button class="btn ghost" style="margin-top:12px" onclick="adminData=null;loadAdmin()">Обновить</button>' +
-      '<div class="mut" style="font-size:11px;margin-top:10px">Кабинет показывает количества и даты, без текстов записей. Общее число включает ваш аккаунт. Созданная ссылка не подтверждает отправку приглашения или работу уведомлений. Оплаты и сроки подписки здесь не учитываются.</div>';
-  return fold('more-admin', 'Кабинет', adminData ? adminData.vsego + ' ' + plural(adminData.vsego,'человек','человека','человек') : 'кто пользуется', invitationForm+body);
+  if(!isAdmin())return '';
+  return '<div class="card"><a class="btn ghost" href="reestr.html">Реестр пользователей →</a><p class="mut">Приглашения, поиск и сведения о входе пользователей.</p></div>';
 }
 async function cloudSignOut(){
   if(!window.confirm('Выйти из аккаунта «Точки дня» на этом устройстве?\n\nПриложение и записи на телефоне останутся. Облачное сохранение остановится. После повторного входа напоминания нужно будет включить заново.'))return;
@@ -3889,3 +3867,4 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
 </script>
 </body>
 </html>
+
