@@ -616,8 +616,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.8.4';
-const APP_UPDATED = new Date('2026-09-08T05:55:02.086Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
+const APP_VERSION = '5.8.5';
+const APP_UPDATED = new Date('2026-09-08T06:13:45.570Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -1151,7 +1151,7 @@ async function createInvitation(){
   }catch(e){toast(e.message||'Нет связи с облаком');}
   finally{adminInviteBusy=false;if(button){button.disabled=false;button.textContent='Создать ссылку';}}
 }
-const NEW_USER_GUIDE = "Здравствуйте! Приглашаю вас в мою «Точку дня» — приложение для встреч, дел, заметок и учёта расходов.\n\nЯ подготовила несколько простых шагов, чтобы вам было легче начать.\n\n1. Зайдите по моей ссылке\nОткройте ссылку из этого сообщения. Придумайте пароль не короче 8 символов, введите его дважды и нажмите «Сохранить пароль и открыть приложение».\nЭто ваш новый пароль для «Точки дня». Пароль от почты вводить не нужно.\nЕсли ссылка не открывается или срок её действия закончился — напишите мне, я пришлю новую.\n\n2. Добавьте «Точку дня» на экран iPhone\nОткройте в Safari этот адрес:\nhttps://innaodincova-finpro.github.io/tochka-dnya/\nНажмите «Поделиться» → «На экран Домой» → «Добавить». Если увидите «Открыть как веб-приложение», включите этот пункт.\nНа экране телефона появится значок «Точки дня». Дальше открывайте приложение через него.\nЕсли оно попросит войти, откройте «Ещё» → «Облачное сохранение» и введите почту из приглашения и пароль, который только что придумали.\nНа компьютере можно пользоваться тем же адресом в браузере.\n\n3. Включите напоминания о встречах\nВ приложении откройте «Ещё» → «Облачное сохранение» → «Напоминания». Нажмите «Включить уведомления», затем «Разрешить».\nПосле этого нажмите «Проверить уведомление» и закройте приложение. Через 1–2 минуты должно прийти сообщение. Если не пришло — напишите мне, помогу разобраться.\nНа iPhone эта возможность работает начиная с iOS 16.4. Календарь Apple подключать не нужно.\n\n4. Запишите свою первую встречу\nВ разделе «План» нажмите «Добавить» и укажите название, дату и время встречи. Сохраните её и дождитесь надписи «сохранено в облаке».\nДобавляйте встречу заранее — больше чем за час до начала. Например, о встрече в 16:30 приложение напомнит в 15:30. Его можно закрыть, но телефон должен быть подключён к интернету.\nЕсли время встречи не указано, напоминания за час не будет.\n\n5. Осваивайтесь в своём темпе\nВ «Сегодня» можно посмотреть свой день, в «Плане» — встречи, в «Заметках» — записывать мысли, дела и списки, в «Финансах» — доходы и расходы.\nЧтобы прочитать заметку целиком, нажмите на неё. Расход можно внести за прошлый день — просто выберите нужную дату.\nЗаписи сохраняются автоматически. После важных изменений дождитесь отметки «сохранено в облаке».\n\nСохраните это сообщение, чтобы при необходимости вернуться к шагам. Ссылка для первого входа предназначена только вам — не пересылайте её другим людям.\n\nЕсли возникнут вопросы, напишите мне, что не получилось. Можно приложить снимок экрана, только без пароля и личной ссылки.\n\nИнна";
+const NEW_USER_GUIDE = "Здравствуйте! Приглашаю вас в мою «Точку дня» — приложение для встреч, дел, заметок и учёта расходов.\n\nЯ подготовила несколько простых шагов, чтобы вам было легче начать.\n\n1. Зайдите по моей ссылке\nОткройте ссылку из этого сообщения. Придумайте пароль не короче 8 символов, введите его дважды и нажмите «Сохранить пароль и открыть приложение».\nЭто ваш новый пароль для «Точки дня». Пароль от почты вводить не нужно.\nЕсли ссылка не открывается или срок её действия закончился — напишите мне, я пришлю новую.\n\n2. Добавьте «Точку дня» на экран iPhone\nОткройте в Safari этот адрес:\nhttps://innaodincova-finpro.github.io/tochka-dnya/\nНажмите «Поделиться» → «На экран Домой» → «Добавить». Если увидите «Открыть как веб-приложение», включите этот пункт.\nНа экране телефона появится значок «Точки дня». Дальше открывайте приложение через него.\nЕсли оно попросит войти, откройте «Ещё» → «Мои данные» и введите почту из приглашения и пароль, который только что придумали.\nНа компьютере можно пользоваться тем же адресом в браузере.\n\n3. Включите напоминания о встречах\nВ приложении откройте «Ещё» → «Напоминания». Нажмите «Включить уведомления», затем «Разрешить».\nПосле этого нажмите «Проверить уведомление» и закройте приложение. Через 1–2 минуты должно прийти сообщение. Если не пришло — напишите мне, помогу разобраться.\nНа iPhone эта возможность работает начиная с iOS 16.4. Календарь Apple подключать не нужно.\n\n4. Запишите свою первую встречу\nВ разделе «План» нажмите «Добавить» и укажите название, дату и время встречи. Сохраните её и дождитесь надписи «сохранено в облаке».\nДобавляйте встречу заранее — больше чем за час до начала. Например, о встрече в 16:30 приложение напомнит в 15:30. Его можно закрыть, но телефон должен быть подключён к интернету.\nЕсли время встречи не указано, напоминания за час не будет.\n\n5. Осваивайтесь в своём темпе\nВ «Сегодня» можно посмотреть свой день, в «Плане» — встречи, в «Заметках» — записывать мысли, дела и списки, в «Финансах» — доходы и расходы.\nЧтобы прочитать заметку целиком, нажмите на неё. Расход можно внести за прошлый день — просто выберите нужную дату.\nЗаписи сохраняются автоматически. После важных изменений дождитесь отметки «сохранено в облаке».\n\nСохраните это сообщение, чтобы при необходимости вернуться к шагам. Ссылка для первого входа предназначена только вам — не пересылайте её другим людям.\n\nЕсли возникнут вопросы, напишите мне, что не получилось. Можно приложить снимок экрана, только без пароля и личной ссылки.\n\nИнна";
 function invitationMessage(invitation){
   return 'Я создала для вас доступ к «Точке дня».\nВаша почта для входа: '+(invitation?.email||'')+'\nВаша личная ссылка для первого входа:\n'+(invitation?.url||'')+'\n\n'+NEW_USER_GUIDE;
 }
@@ -2859,13 +2859,24 @@ function applyTabs(){
   if (screenOff(curScreen)) goScreen('s-today');
 }
 function renderMore(){
-  const backupWarning = backupDue()
-    ? '<button type="button" class="tip" style="margin-bottom:10px" onclick="openSheet(\'backup\')">Прошла неделя без резервной копии. Сохраните её сейчас →</button>' : '';
-  const cloudCard = cloudUser
-    ? fold('more-cloud', 'Облачное сохранение', '✓ Подключено', '<div style="font-size:13px;color:var(--ok);margin-bottom:5px">✓ Подключено</div><div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически.</div><div id="cloud-save-details" class="mut" style="margin-top:8px" aria-live="polite">'+esc(cloudSaveDetails())+'</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn" style="margin-top:8px" onclick="openPushSheet()">Напоминания</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>')
-    : card(lab('Облачное сохранение')+'<button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>');
+  const cloudBody = cloudUser
+    ? '<div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически.</div><div id="cloud-save-details" class="mut" style="margin-top:8px" aria-live="polite">'+esc(cloudSaveDetails())+'</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>'
+    : '<p>Войдите в аккаунт, чтобы сохранять записи в облаке и открывать их на других устройствах.</p><button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>';
+  const backupBody = '<p>Отдельный файл с вашими записями для восстановления.</p>'+
+    (backupDue()?'<p class="mut">Прошла неделя без резервной копии.</p>':'')+
+    '<div class="mut" style="margin-bottom:10px">'+(S.backupAt?'Последняя копия — '+backupDateTime(S.backupAt)+' (время устройства).':'Копию ещё не делали.')+'</div>'+
+    '<button class="btn" onclick="openSheet(\'backup\')">Резервная копия</button>'+
+    '<button class="btn ghost" style="margin-top:8px" onclick="document.getElementById(\'restore\').click()">Загрузить копию</button>'+
+    '<input type="file" id="restore" accept="application/json,.json" hidden onchange="restoreFile(this)">';
   document.getElementById('s-more').innerHTML =
-    (loadBlocked ? card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены без изменений. Скачайте их для восстановления или загрузите исправную резервную копию ниже.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>') : '') + (cloudConflict ? card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>') : '') + cloudCard + (!cloudUser ? card(lab('Напоминания')+'<button class="btn" onclick="openPushSheet()">Настроить напоминания</button>') : '') + fold('more-set', 'Настройки приложения', 'оформление и разделы',
+    (loadBlocked?card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены. Скачайте их для восстановления.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>'):'')+
+    (cloudConflict?card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>'):'')+
+    fold('more-cloud','Мои данные',cloudUser?'облако подключено':'сохранение и копии',
+      '<h3 style="font-size:16px;margin:0 0 10px">Облачное сохранение</h3>'+cloudBody+
+      '<h3 style="font-size:16px;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line)">Резервная копия</h3>'+backupBody)+
+    fold('more-reminders','Напоминания','о встречах за час',
+      '<p>Настройте уведомления на этом устройстве и проверьте их получение.</p><button class="btn" onclick="openPushSheet()">Настроить напоминания</button>')+
+    fold('more-set', 'Настройки приложения', 'оформление и разделы',
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +
       '<div class="fld"><label>Оформление</label><select onchange="setColorTheme(this.value)">' +
         '<option value="light"' + ((S.settings.theme || 'light') === 'light' ? ' selected' : '') + '>Светлая тема</option>' +
@@ -2877,21 +2888,14 @@ function renderMore(){
         HIDEABLE.map(x => '<label class="askring" style="margin:0 0 7px">' +
           '<input type="checkbox"' + (screenOff(x[0]) ? '' : ' checked') +
           ' onchange="toggleScreen(\'' + x[0] + '\')"><span>' + x[2] + '</span></label>').join('') + '</div>' +
-      '<button class="btn ghost" onclick="openSheet(\'help\')">Как пользоваться приложением</button>') +
-    /* валюта выбирается там, где ею пользуются — на экране «Финансы» */
-    adminCard() +
-    fold('more-data', 'Резервная копия', backupDue() ? 'пора сделать копию' : 'копия и восстановление',
-      '<p>Сохраните отдельный файл с вашими записями. Из него можно восстановить данные через «Загрузить копию».</p>' + backupWarning +
-      '<div class="mut" style="margin-bottom:10px">' + 
-        (S.backupAt ? 'Последняя копия — ' + backupDateTime(S.backupAt) + ' (время устройства).' : 'Копию ещё не делали.') + '</div>' +
-      '<button class="btn" onclick="openSheet(\'backup\')">Резервная копия</button>' +
-      '<button class="btn ghost" style="margin-top:8px" onclick="document.getElementById(\'restore\').click()">Загрузить копию</button>' +
-      '<input type="file" id="restore" accept="application/json,.json" hidden onchange="restoreFile(this)">' +
-      '<div class="item" style="margin-top:10px"><div class="ic">📱</div><div class="txt"><b>Добавить на экран телефона</b><small>Меню браузера → «На экран „Домой“»</small></div></div>' +
+      '') +
 
-      '<div class="mut" style="margin-top:6px">Версия ' + APP_VERSION + ' · обновлено ' + APP_UPDATED + '.</div>' +
-      '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;line-height:1.55;color:var(--mut)">' +
-        'Автор идеи и концепции приложения — Одинцова И. В. © 2026. Все права защищены.</div>');
+    adminCard()+
+    fold('more-help','Помощь и о приложении','инструкция и версия',
+      '<button class="btn ghost" onclick="openSheet(\'help\')">Как пользоваться приложением</button>'+
+      '<div class="item" style="margin-top:10px"><div class="ic">📱</div><div class="txt"><b>Добавить на экран телефона</b><small>Откройте приложение в Safari → «Поделиться» → «На экран Домой».</small></div></div>'+
+      '<div class="mut" style="margin-top:12px">Версия '+APP_VERSION+' · обновлено '+APP_UPDATED+'.</div>'+
+      '<p class="mut" style="font-size:11px">Автор идеи и концепции приложения — Одинцова И. В. © 2026. Все права защищены.</p>');
 }
 function backupDue(){
   const records = S.exp.length + S.inc.length + S.ev.length + S.notes.length + Object.keys(S.day || {}).length;
@@ -3176,13 +3180,7 @@ const SHEETS = {
 
     '<button class="btn" style="margin-top:12px" onclick="finishWelcome()">Начать</button>',
 
-  help: () => '<h3>Как пользоваться</h3>' +
-    '<div class="item"><div class="ic">✓</div><div class="txt"><b>Дело с датой</b><small>Добавьте в «План». Укажите любую дату и точное время. Нажмите на запись, чтобы изменить, перенести или удалить.</small></div></div>' +
-    '<div class="item"><div class="ic">✎</div><div class="txt"><b>Без конкретного срока</b><small>Во вкладке «Заметки» выберите «Дело» для задачи с галочкой или «Заметка» для обычной информации.</small></div></div>' +
-    '<div class="item"><div class="ic">✓</div><div class="txt"><b>Галочка</b><small>Означает только выполнение. Дата выполнения сохраняется, а итог виден за неделю.</small></div></div>' +
-    '<div class="item"><div class="ic">₽</div><div class="txt"><b>Расход</b><small>Введите название, сумму, категорию и дату. Запись можно изменить или удалить.</small></div></div>' +
-    '<div class="item"><div class="ic">↥</div><div class="txt"><b>Сохранность данных</b><small>Периодически создавайте резервную копию в разделе «Ещё».</small></div></div>' +
-    '<button class="btn" style="margin-top:12px" onclick="closeSheet()">Понятно</button>',
+  help: () => '<h3>Как пользоваться</h3><div style="white-space:pre-wrap">'+esc(NEW_USER_GUIDE)+'</div><button class="btn" style="margin-top:12px" onclick="closeSheet()">Понятно</button>',
 
   quick: () => '<h3>Что добавить?</h3>' +
 
