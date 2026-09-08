@@ -1,6 +1,6 @@
 {
   "name": "tochka-dnya",
-  "version": "5.8.8",
+  "version": "5.8.10",
   "private": true,
   "scripts": {
     "test": "node compact-notes-regression.cjs && node swipe-regression.cjs && node note-reader-regression.cjs && node parse-preview-regression.cjs && node proverki.js && node regression.js && node sdk-regression.cjs && node sql-regression.cjs && node ssylki.js && node invitation-regression.cjs && node push-regression.cjs && node push-handler-regression.cjs && node registry-regression.cjs"
