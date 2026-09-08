@@ -1,0 +1,37 @@
+{
+  "name": "Реестр пользователей — Точка дня",
+  "short_name": "Реестр",
+  "description": "Управление приглашёнными пользователями приложения «Точка дня»",
+  "id": "./reestr.html",
+  "start_url": "./reestr.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F7F3FA",
+  "theme_color": "#7853A6",
+  "lang": "ru",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "registry-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "registry-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "registry-icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.8.8';
+const CACHE = 'tochka-dnya-v5.8.9';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
@@ -8,7 +8,13 @@ const APP_SHELL = [
   './supabase.js',
   './icon-180-v3.png',
   './icon-192-v3.png',
-  './icon-512-v3.png'
+  './icon-512-v3.png',
+  './reestr.html',
+  './registry.js',
+  './registry.webmanifest',
+  './registry-icon-180.png',
+  './registry-icon-192.png',
+  './registry-icon-512.png'
 ];
 
 self.addEventListener('install', event => {
@@ -46,18 +52,20 @@ self.addEventListener('fetch', event => {
 
   if (url.origin !== self.location.origin) return;
 
-  if (url.pathname.endsWith('/activate.html') || url.pathname.endsWith('/reestr.html') || url.pathname.endsWith('/registry.js')) return;
+  if (url.pathname.endsWith('/activate.html')) return;
 
   if (request.mode === 'navigate') {
+    const isRegistry = url.pathname.endsWith('/reestr.html');
+    const fallback = isRegistry ? './reestr.html' : './index.html';
     event.respondWith(
       fetch(request)
         .then(response => {
           if (!response.ok) return response;
           const copy = response.clone();
-          caches.open(CACHE).then(cache => cache.put('./index.html', copy));
+          caches.open(CACHE).then(cache => cache.put(fallback, copy));
           return response;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(() => caches.match(fallback))
     );
     return;
   }

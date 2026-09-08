@@ -1,0 +1,40 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0.08" y1="1" x2="0.92" y2="0">
+      <stop offset="0" stop-color="#5B3F8C"/>
+      <stop offset="0.34" stop-color="#7C58AA"/>
+      <stop offset="0.68" stop-color="#AE74B4"/>
+      <stop offset="1" stop-color="#E08CA4"/>
+    </linearGradient>
+    <radialGradient id="bloom" cx="0.84" cy="0.06" r="0.78">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="0.45" stop-color="#FFFFFF" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="depth" cx="0.16" cy="1.02" r="0.85">
+      <stop offset="0" stop-color="#2E1B4A" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#2E1B4A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFF3DC"/>
+      <stop offset="0.45" stop-color="#FBD9A6"/>
+      <stop offset="1" stop-color="#D99356"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#301B48" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <rect width="512" height="512" fill="url(#depth)"/>
+  <rect width="512" height="512" fill="url(#bloom)"/>
+  <path d="M0 0H512V150C360 262 168 214 0 300Z" fill="#FFFFFF" opacity="0.13"/>
+  <g filter="url(#shadow)">
+    <rect x="104" y="101" width="304" height="310" rx="58" fill="#FFFFFF" fill-opacity="0.14" stroke="url(#metal)" stroke-width="13"/>
+    <circle cx="173" cy="195" r="28" fill="url(#metal)"/>
+    <path d="M128 274c4-40 23-61 45-61s41 21 45 61" fill="url(#metal)"/>
+    <path d="M252 185h102M252 222h74" stroke="url(#metal)" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="173" cy="326" r="22" fill="url(#metal)"/>
+    <path d="M139 386c3-31 17-47 34-47s31 16 34 47" fill="url(#metal)"/>
+    <path d="M252 317h102M252 354h74" stroke="url(#metal)" stroke-width="16" stroke-linecap="round"/>
+  </g>
+</svg>
