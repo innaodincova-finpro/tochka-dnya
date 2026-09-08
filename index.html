@@ -616,8 +616,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.8.5';
-const APP_UPDATED = new Date('2026-09-08T06:13:45.570Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
+const APP_VERSION = '5.8.6';
+const APP_UPDATED = new Date('2026-09-08T06:53:38.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -1062,7 +1062,19 @@ async function openPushSheet(){
  if(!cloudUser||!pushAvailable())return;
  try{
   const key=await pushApi('key');pushPublicKey=key.publicKey;
-  if(pushId())pushStatus=await pushApi('status');
+  if(pushId()){
+   pushStatus=await pushApi('status');
+   const timezone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+   if(pushStatus?.enabled&&pushStatus.timezone!==timezone){
+    const reg=await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.getSubscription();
+    if(sub){
+     const data=await pushApi('subscribe',{subscription:sub.toJSON(),timezone});
+     localStorage.setItem(pushLocalKey(),data.id);
+     pushStatus=await pushApi('status');
+    }
+   }
+  }
   if(sheetState.kind==='push')openSheet('push');
  }catch(e){toast(e.message);if(sheetState.kind==='push')openSheet('push');}
 }
@@ -1109,8 +1121,7 @@ function pushSheet(){
   '<p class="mut">Часовой пояс: '+esc(Intl.DateTimeFormat().resolvedOptions().timeZone)+'. События без времени не отправляются этим способом.</p>'+
   (enabled?'<button class="btn" onclick="testPush()">Проверить уведомление</button><p id="push-test-result">Проверочное уведомление придёт через 1–2 минуты. После нажатия закройте приложение.</p><button class="btn ghost" onclick="openPushSheet()">Проверить состояние</button><button class="btn ghost" onclick="turnOffPush()">Отключить на этом устройстве</button>':'<button class="btn" onclick="enablePush()" '+(!pushPublicKey?'disabled':'')+'>Включить уведомления</button>')+
   (pushStatus?.error?'<p>'+esc(pushStatus.error)+'</p>':'')+
-  (pushStatus?.testSentAt?'<p>Сервер передал проверку службе доставки. Подтверждение работы — уведомление на вашем экране.</p>':'')+
-  '<details><summary>Календарь Apple</summary><p>Для этих уведомлений подписка на календарь не требуется. Если она уже есть, после успешной проверки можно отключить в ней напоминания, чтобы избежать повторов.</p><button class="btn ghost" onclick="openSheet(\'feed\')">Настройки подписки</button></details>';
+  (pushStatus?.testSentAt?'<p>Сервер передал проверку службе доставки. Подтверждение работы — уведомление на вашем экране.</p>':'');
 }
 
 /* Кабинет виден только администратору. Числа считает сервер и отдаёт только их —
@@ -1210,10 +1221,10 @@ function adminCard(){
   return fold('more-admin', 'Кабинет', adminData ? adminData.vsego + ' ' + plural(adminData.vsego,'человек','человека','человек') : 'кто пользуется', invitationForm+body);
 }
 async function cloudSignOut(){
-  if(!window.confirm('Выйти из облачного аккаунта? Данные на этом телефоне останутся.'))return;
+  if(!window.confirm('Выйти из аккаунта «Точки дня» на этом устройстве?\n\nПриложение и записи на телефоне останутся. Облачное сохранение остановится. После повторного входа напоминания нужно будет включить заново.'))return;
   try{await disablePush();}catch(e){toast('Не удалось отключить уведомления перед выходом. '+e.message);return;}
   cloudReady=false;cloudEpoch++;clearTimeout(cloudTimer);
-  const result=await cloudClient.auth.signOut();if(result.error){setCloudState('error',result.error.message);toast('Не удалось выйти. Повторите при подключении к сети.');return;}cloudUser=null;cloudSavedAt=null;setCloudState('local');renderAll();toast('Вы вышли. Автосохранение на телефоне продолжает работать');
+  const result=await cloudClient.auth.signOut({scope:'local'});if(result.error){setCloudState('error',result.error.message);toast('Не удалось выйти. Повторите при подключении к сети.');return;}cloudUser=null;cloudSavedAt=null;setCloudState('local');renderAll();toast('Вы вышли на этом устройстве. Записи на телефоне сохранены');
 }
 window.addEventListener('online',()=>scheduleCloudSync());
 window.addEventListener('offline',()=>{if(cloudUser)setCloudState('offline')});
@@ -2860,7 +2871,7 @@ function applyTabs(){
 }
 function renderMore(){
   const cloudBody = cloudUser
-    ? '<div class="mut">'+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически.</div><div id="cloud-save-details" class="mut" style="margin-top:8px" aria-live="polite">'+esc(cloudSaveDetails())+'</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта</button>'
+    ? '<div class="mut">Аккаунт «Точки дня»: '+esc(cloudUser.email||'Аккаунт пользователя')+'<br>Изменения сохраняются автоматически.</div><div id="cloud-save-details" class="mut" style="margin-top:8px" aria-live="polite">'+esc(cloudSaveDetails())+'</div><button class="btn ghost" style="margin-top:10px" onclick="pushCloud()">Синхронизировать сейчас</button><div class="mut" style="margin-top:14px">Выход действует только на этом устройстве. Приложение и записи на телефоне останутся, но облачное сохранение остановится. После повторного входа напоминания нужно включить заново.</div><button class="btn ghost" style="margin-top:8px" onclick="cloudSignOut()">Выйти из аккаунта «Точки дня»</button>'
     : '<p>Войдите в аккаунт, чтобы сохранять записи в облаке и открывать их на других устройствах.</p><button class="btn" onclick="openSheet(\'cloudAuth\')">Подключить сохранение</button>';
   const backupBody = '<p>Отдельный файл с вашими записями для восстановления.</p>'+
     (backupDue()?'<p class="mut">Прошла неделя без резервной копии.</p>':'')+
