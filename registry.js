@@ -8,7 +8,7 @@ function invitationMessage(invitation){
 
 const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
-let people=[],page=1,epoch=0,busy=false,inviting=false;
+let people=[],page=1,epoch=0,busy=false,inviting=false,refreshAgain=false;
 const size=20;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=s=>s&&!isNaN(Date.parse(s))?new Date(s).toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Пока нет';
@@ -25,7 +25,7 @@ async function refresh(){
  if(busy)return;busy=true;$('refresh').disabled=true;$('notice').textContent='Обновляем список…';const run=epoch;
  try{const data=await request();if(run!==epoch)return;people=Array.isArray(data.lyudi)?data.lyudi:[];$('workspace').hidden=false;$('invite').hidden=false;$('login').hidden=true;render();$('notice').textContent='Обновлено '+date(new Date().toISOString());}
  catch(e){$('notice').textContent=e.message;}
- finally{busy=false;$('refresh').disabled=false;if(run!==epoch)setTimeout(refresh,0);}
+ finally{busy=false;$('refresh').disabled=false;if(refreshAgain){refreshAgain=false;setTimeout(refresh,0);}}
 }
 function render(){
  const guests=people.filter(p=>String(p.pochta).toLowerCase()!==ADMIN_EMAIL);
@@ -45,5 +45,5 @@ $('invite-form').onsubmit=async e=>{e.preventDefault();if(inviting)return;inviti
 $('share').onclick=async()=>{try{if(!navigator.share){$('share-status').textContent='Нажмите «Скопировать», затем вставьте приглашение в мессенджер.';return;}await navigator.share({title:'Приглашение в «Точку дня»',text:$('message').value});}catch(e){if(e.name!=='AbortError')$('share-status').textContent='Отправка не открылась. Используйте «Скопировать».';}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('message').value);$('share-status').textContent='Скопировано. Вставьте приглашение в личное сообщение.';}catch{$('message').focus();$('message').select();$('share-status').textContent='Скопируйте выделенный текст.';}};
 $('login').onsubmit=async e=>{e.preventDefault();$('sign-in').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('login-email').value.trim(),password:$('password').value});if(error)throw error;$('password').value='';await refresh();}catch{$('notice').textContent='Не удалось войти. Проверьте почту и пароль «Точки дня».';}finally{$('sign-in').disabled=false;}};
-client.auth.onAuthStateChange((event,session)=>{if(!session){clearPrivate();$('login').hidden=false;$('notice').textContent='Войдите в аккаунт владельца «Точки дня».';}else if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){clearPrivate();setTimeout(refresh,0);}});
+client.auth.onAuthStateChange((event,session)=>{if(!session){clearPrivate();$('login').hidden=false;$('notice').textContent='Войдите в аккаунт владельца «Точки дня».';}else if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){clearPrivate();setTimeout(()=>{if(busy)refreshAgain=true;else refresh();},0);}});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
