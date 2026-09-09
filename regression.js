@@ -11,7 +11,7 @@ async function main(){
   if(mode==='insert'&&db)return {error:{code:'23505'}};
   if(mode==='update'&&filters.updated_at!==db.updated_at)return {data:[]};
   writes++;db={payload:cloneState(row.payload),updated_at:row.updated_at};return {data:[{updated_at:row.updated_at}]};}};};
- cloudClient={from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>readFail?{error:new Error('сбой чтения')}:{data:cloneState(db)}})}),update:r=>persist(r,'update'),insert:r=>persist(r,'insert')})};`);
+ cloudClient={rpc:async()=>({data:true}),from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>readFail?{error:new Error('сбой чтения')}:{data:cloneState(db)}})}),update:r=>persist(r,'update'),insert:r=>persist(r,'insert')})};`);
  run(`db.payload.notes.push({id:'remote',text:'Облако',date:today()});S.notes.push({id:'local',text:'Телефон',date:today()});`);
  await run('pushCloud()');
  ok(run("db.payload.notes.length===2&&S.notes.length===2&&cloudState==='synced'"),'новые записи двух устройств сохраняются вместе');
@@ -58,3 +58,4 @@ async function main(){
  console.log('Регрессии: '+checks+' проверок пройдено.');
 }
 main().then(()=>dom.window.close()).catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});
+

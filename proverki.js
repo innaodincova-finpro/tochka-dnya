@@ -163,7 +163,7 @@ async function run() {
   w.eval(`
     globalThis.__sent = null; globalThis.__reset = null;
     const write = row => ({eq(){return this;},select(){globalThis.__sent=row;return Promise.resolve({data:[{updated_at:new Date().toISOString()}],error:globalThis.__failPush?{message:'нет сети'}:null});}});
-    cloudClient = {
+    cloudClient = { rpc:async()=>({data:true}),
       auth: { resetPasswordForEmail: (email) => { globalThis.__reset = email; return Promise.resolve({ error: null }); } },
       from: () => ({
         update: write, insert: write,
@@ -1363,3 +1363,4 @@ run().catch(error => {
   console.error(error.stack || error);
   process.exit(1);
 });
+
