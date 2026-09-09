@@ -8,7 +8,7 @@ function invitationMessage(invitation){
 
 const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
-let people=[],page=1,epoch=0,busy=false,inviting=false,refreshAgain=false;
+let people=[],page=1,epoch=0,busy=false,inviting=false,refreshAgain=false,selectedPerson=null,deleting=false;
 const size=20;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=s=>s&&!isNaN(Date.parse(s))?new Date(s).toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}):'Пока нет';
@@ -38,7 +38,7 @@ function render(){
 }
 $('search').addEventListener('input',()=>{page=1;render()});$('filter').addEventListener('change',()=>{page=1;render()});
 $('prev').onclick=()=>{page--;render()};$('next').onclick=()=>{page++;render();$('list-start').scrollIntoView({block:'start'})};$('refresh').onclick=refresh;
-$('rows').onclick=e=>{const row=e.target.closest('[data-index]');if(!row)return;const p=people[Number(row.dataset.index)];if(!p)return;$('person-title').textContent=p.pochta;$('details').innerHTML='<dl><dt>Последний вход</dt><dd>'+esc(date(p.zahodil))+'</dd><dt>Последнее облачное сохранение</dt><dd>'+esc(date(p.sinhronizaciya))+'</dd></dl><p>Встречи: '+esc(p.sobytiya||0)+' · Дела: '+esc(p.dela||0)+' · Списки: '+esc(p.spiski||0)+' · Расходы: '+esc(p.rashody||0)+'</p><p class="muted">Время указано по вашему устройству. Тексты личных записей здесь не отображаются. Факт входа не подтверждает получение уведомлений.</p>';$('person-dialog').showModal();};
+$('rows').onclick=e=>{const row=e.target.closest('[data-index]');if(!row)return;const p=people[Number(row.dataset.index)];if(!p)return;selectedPerson=p;$('person-title').textContent=p.pochta;$('details').innerHTML='<dl><dt>Первое приглашение</dt><dd>'+esc(date(p.priglashen))+'</dd><dt>Последняя выдача приглашения</dt><dd>'+esc(date(p.poslednee_priglashenie))+'</dd><dt>Последний вход</dt><dd>'+esc(date(p.zahodil))+'</dd><dt>Последнее облачное сохранение</dt><dd>'+esc(date(p.sinhronizaciya))+'</dd></dl><p>Встречи: '+esc(p.sobytiya||0)+' · Дела: '+esc(p.dela||0)+' · Списки: '+esc(p.spiski||0)+' · Расходы: '+esc(p.rashody||0)+'</p><p class="muted">Время указано по вашему устройству. Тексты личных записей здесь не отображаются. Факт входа не подтверждает получение уведомлений.</p>';$('person-actions').hidden=!p.mozhno_udalit;$('person-error').textContent='';$('person-dialog').showModal();};
 $('invite').onclick=()=>{$('invite-error').textContent='';$('invite-dialog').showModal();};
 $('invite-form').onsubmit=async e=>{e.preventDefault();if(inviting)return;inviting=true;$('create').disabled=true;const run=epoch;
  try{const data=await request({action:'invite',email:$('email').value.trim().toLowerCase()});if(run!==epoch)return;$('message').value=invitationMessage(data);$('invite-dialog').close();$('result-dialog').showModal();$('email').value='';await refresh();}catch(e){$('invite-error').textContent=e.message;}finally{inviting=false;$('create').disabled=false;}};
@@ -47,3 +47,16 @@ $('copy').onclick=async()=>{try{await navigator.clipboard.writeText($('message')
 $('login').onsubmit=async e=>{e.preventDefault();$('sign-in').disabled=true;try{const {error}=await client.auth.signInWithPassword({email:$('login-email').value.trim(),password:$('password').value});if(error)throw error;$('password').value='';await refresh();}catch{$('notice').textContent='Не удалось войти. Проверьте почту и пароль «Точки дня».';}finally{$('sign-in').disabled=false;}};
 client.auth.onAuthStateChange((event,session)=>{if(!session){clearPrivate();$('login').hidden=false;$('notice').textContent='Войдите в аккаунт владельца «Точки дня».';}else if(event==='SIGNED_IN'||event==='INITIAL_SESSION'){clearPrivate();setTimeout(()=>{if(busy)refreshAgain=true;else refresh();},0);}});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
+
+$('reinvite').onclick=()=>{if(!selectedPerson||deleting)return;$('email').value=selectedPerson.pochta;$('person-dialog').close();$('invite-error').textContent='';$('invite-dialog').showModal();};
+$('remove-pending').onclick=async()=>{
+ const p=selectedPerson;if(!p||deleting||!p.mozhno_udalit)return;
+ if(!confirm('Отозвать приглашение и удалить '+p.pochta+'? Старая ссылка перестанет работать. Позже можно будет пригласить человека заново.'))return;
+ deleting=true;const run=epoch;$('remove-pending').disabled=true;$('reinvite').disabled=true;$('person-error').textContent='';
+ try{
+   await request({action:'delete_pending',email:p.pochta,user_id:p.id,confirm_email:p.pochta});
+   if(run!==epoch)return;$('person-dialog').close();
+   people=people.filter(x=>x.id!==p.id);render();await refresh();
+ }catch(e){if(run===epoch)$('person-error').textContent=e.message;}
+ finally{deleting=false;$('remove-pending').disabled=false;$('reinvite').disabled=false;}
+};

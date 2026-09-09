@@ -86,9 +86,25 @@ Deno.serve(async (req: Request) => {
     try { const raw=await req.text(); if(raw.length>2048)return json({error:'Запрос слишком большой'},413); input=JSON.parse(raw); }
     catch {return json({error:'Проверьте адрес почты'},400);}
     const target=String(input.email||'').trim().toLowerCase();
-    if (input.action!=='invite' || target.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))
+    if (!['invite','delete_pending'].includes(input.action) || target.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))
       return json({error:'Введите корректный адрес почты'},400);
     const existing=users.find(u=>String(u.email||'').toLowerCase()===target);
+
+    if (input.action === 'delete_pending') {
+      if (target === ADMIN || !existing || input.user_id !== existing.id || input.confirm_email !== target)
+        return json({error:'Пользователь изменился. Обновите список и подтвердите удаление заново.'},409);
+      const result=await fetch(SUPABASE_URL+'/rest/v1/rpc/delete_pending_invitation',{
+        method:'POST',
+        headers:{apikey:SERVICE_KEY,Authorization:req.headers.get('authorization')!,'Content-Type':'application/json'},
+        body:JSON.stringify({p_user_id:existing.id,p_email:target})
+      });
+      if(!result.ok) {
+        const error=await result.json().catch(()=>({}));
+        return json({error:error.code==='P0001'?'Человек уже активировал доступ, имеет записи или был удалён. Обновите список.':'Не удалось удалить приглашение. Повторите позже.'},error.code==='P0001'?409:502);
+      }
+      return json({deleted:true,email:target});
+    }
+
     if (existing && (existing.email_confirmed_at || existing.last_sign_in_at))
       return json({error:'У этого человека уже есть доступ. Он может войти по почте и паролю или нажать «Забыли пароль».'},409);
     const res=await fetch(SUPABASE_URL+'/auth/v1/admin/generate_link',{
@@ -109,6 +125,9 @@ Deno.serve(async (req: Request) => {
   const list = users.map((u: any) => {
     const row = byId[u.id];
     return {
+      id: u.id,
+      mozhno_udalit: !!u.invited_at && !u.email_confirmed_at && !u.confirmed_at && !u.last_sign_in_at && !row && String(u.email||'').toLowerCase()!==ADMIN,
+      poslednee_priglashenie: u.invited_at || null,
       pochta: u.email,
       priglashen: u.created_at || null,
       podtverdil: u.email_confirmed_at || u.confirmed_at || null,
