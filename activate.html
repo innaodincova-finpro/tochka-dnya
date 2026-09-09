@@ -19,9 +19,19 @@ document.getElementById('activate').addEventListener('submit',async event=>{
  try{
   if(!accepted){
    const {data,error}=await client.auth.getSession();if(error)throw error;
-   if(data.session){status.textContent='На этом устройстве уже выполнен вход. Откройте приложение. Для подключения другого человека используйте его устройство.';return;}
+   if(data.session){
+    const same=String(data.session.user?.email||'').toLowerCase()===String(invitationEmail).toLowerCase();
+    status.textContent=same?'На эту почту уже выполнен вход. Откройте приложение. Если пароль ещё не задан, используйте «Забыли пароль?» в приложении.':'На этом устройстве открыт другой аккаунт. Это не проверка приглашения. Получателю нужно открыть полную ссылку на своём устройстве или в отдельном профиле браузера.';
+    return;
+   }
    const result=await client.auth.verifyOtp({token_hash:invitationToken,type:'invite'});
-   if(result.error){status.textContent='Ссылка истекла или уже использована. Если вы уже задавали пароль — откройте приложение и войдите. Иначе попросите Инну создать новую ссылку.';return;}
+   if(result.error){
+    const code=result.error.code||'',message=String(result.error.message||'').toLowerCase();
+    if(code==='otp_expired'||message==='expired')status.textContent='Ссылка истекла, заменена новой или уже использована. Если вы уже задавали пароль — откройте приложение и войдите. Иначе попросите Инну создать новую ссылку.';
+    else if(result.error.status===429||code==='over_request_rate_limit')status.textContent='Слишком много попыток. Подождите немного и повторите с этой же ссылкой.';
+    else status.textContent='Не удалось проверить приглашение. Проверьте интернет и повторите с этой же ссылкой. Если ошибка повторяется, сообщите Инне. Срок ссылки по этой ошибке определить нельзя.';
+    return;
+   }
    accepted=true;history.replaceState(null,'',location.pathname);
   }
   const result=await client.auth.updateUser({password});if(result.error)throw result.error;
