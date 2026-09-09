@@ -1214,7 +1214,7 @@ function adminAgo(iso){
 }
 function adminCard(){
   if(!isAdmin())return '';
-  return '<div class="card"><a class="btn ghost" href="reestr.html">Реестр пользователей →</a><p class="mut">Приглашения, поиск и сведения о входе пользователей.</p></div>';
+  return '<div class="card"><a class="btn ghost" href="/reestr-tochki/">Реестр пользователей →</a><p class="mut">Приглашения, поиск и сведения о входе пользователей.</p></div>';
 }
 async function cloudSignOut(){
   if(!window.confirm('Выйти из аккаунта «Точки дня» на этом устройстве?\n\nПриложение и записи на телефоне останутся. Облачное сохранение остановится. После повторного входа напоминания нужно будет включить заново.'))return;
