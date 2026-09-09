@@ -5,7 +5,8 @@ const code=stripTypeScriptTypes(fs.readFileSync('supabase/functions/kabinet/inde
 vm.runInNewContext(code,{Deno:{env:{get:n=>({SUPABASE_URL:'https://test.invalid',SUPABASE_SERVICE_ROLE_KEY:'secret',ADMIN_EMAIL:'admin@example.com'})[n]},serve:f=>handler=f},Response,Request,fetch:async(url,opts)=>{
  if(url.endsWith('/auth/v1/user'))return Response.json({email:role==='admin'?'admin@example.com':'other@example.com'});
  if(url.includes('/admin/users?')){const page=Number(new URL(url).searchParams.get('page'));return Response.json({users:users.slice((page-1)*200,page*200)});}
- if(url.endsWith('/admin/generate_link')){generated++;assert.equal(JSON.parse(opts.body).type,'invite');return Response.json({hashed_token:'test-token',verification_type:'invite'});}
+ if(url.endsWith('/admin/generate_link')){generated++;assert.equal(JSON.parse(opts.body).type,'invite');return Response.json({id:'new-user',hashed_token:'test-token',verification_type:'invite'});}
+ if(url.includes('/tochka_members?')&&!dataFailure)return Response.json(users.map(u=>({user_id:u.id})));
  if(url.includes('/rest/v1/'))return dataFailure?new Response('',{status:503}):Response.json([]);
  throw new Error('Unexpected request');
 }});
@@ -14,7 +15,7 @@ const request=(body,auth=true)=>new Request('https://test.invalid/kabinet',{meth
  assert.equal((await handler(request(null,false))).status,401);
  role='user';assert.equal((await handler(request({action:'invite',email:'new@example.com'}))).status,403);assert.equal(generated,0);role='admin';
  assert.equal((await handler(request({action:'invite',email:'bad'}))).status,400);
- users=[{email:'used@example.com',email_confirmed_at:'today'}];assert.equal((await handler(request({action:'invite',email:'used@example.com'}))).status,409);assert.equal(generated,0);
+ users=[{id:'used',email:'used@example.com',email_confirmed_at:'today'}];assert.equal((await handler(request({action:'invite',email:'used@example.com'}))).status,200);assert.equal(generated,0);
  const res=await handler(request({action:'invite',email:' New@Example.com '}));const body=await res.json();assert.equal(res.status,200);assert.equal(body.email,'new@example.com');assert.equal(new URL(body.url).pathname,'/tochka-dnya/activate.html');assert.equal(new URL(body.url).search,'');assert.equal(res.headers.get('cache-control'),'no-store');assert(!JSON.stringify(body).includes('secret'));
  users=Array.from({length:201},(_,i)=>({id:String(i),email:i+'@example.com'}));assert.equal((await(await handler(request())).json()).vsego,201);
  dataFailure=true;assert.equal((await handler(request())).status,502);
@@ -28,3 +29,4 @@ const request=(body,auth=true)=>new Request('https://test.invalid/kabinet',{meth
  fail=false;await submit();assert.equal(verify,2);assert.equal(update,1);assert.equal(w.location.hash,'');await submit();assert.equal(verify,2,'Password retry must not consume token again');assert.equal(update,2);w.close();
  console.log('PASS invitations: authorization, validation, existing-account protection, 201 users, errors, secret fragment, activation and retry.');
 })().catch(e=>{console.error(e);process.exitCode=1});
+

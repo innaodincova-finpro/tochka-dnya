@@ -86,33 +86,36 @@ Deno.serve(async (req: Request) => {
     try { const raw=await req.text(); if(raw.length>2048)return json({error:'Запрос слишком большой'},413); input=JSON.parse(raw); }
     catch {return json({error:'Проверьте адрес почты'},400);}
     const target=String(input.email||'').trim().toLowerCase();
-    if (!['invite','delete_pending'].includes(input.action) || target.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))
+    if (!['invite','remove_access'].includes(input.action) || target.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))
       return json({error:'Введите корректный адрес почты'},400);
     const existing=users.find(u=>String(u.email||'').toLowerCase()===target);
 
-    if (input.action === 'delete_pending') {
-      if (target === ADMIN || !existing || input.user_id !== existing.id || input.confirm_email !== target)
-        return json({error:'Пользователь изменился. Обновите список и подтвердите удаление заново.'},409);
-      const result=await fetch(SUPABASE_URL+'/rest/v1/rpc/delete_pending_invitation',{
-        method:'POST',
-        headers:{apikey:SERVICE_KEY,Authorization:req.headers.get('authorization')!,'Content-Type':'application/json'},
-        body:JSON.stringify({p_user_id:existing.id,p_email:target})
+    async function manage(id:string, action:string){
+      const result=await fetch(SUPABASE_URL+'/rest/v1/rpc/tochka_manage_access',{
+        method:'POST',headers:{apikey:SERVICE_KEY,Authorization:req.headers.get('authorization')!,'Content-Type':'application/json'},
+        body:JSON.stringify({p_user_id:id,p_email:target,p_action:action})
       });
-      if(!result.ok) {
-        const error=await result.json().catch(()=>({}));
-        return json({error:error.code==='P0001'?'Человек уже активировал доступ, имеет записи или был удалён. Обновите список.':'Не удалось удалить приглашение. Повторите позже.'},error.code==='P0001'?409:502);
-      }
+      return result.ok;
+    }
+    if(input.action==='remove_access'){
+      if(target===ADMIN || !existing || input.user_id!==existing.id || input.confirm_email!==target)
+        return json({error:'Пользователь изменился. Обновите список.'},409);
+      if(!await manage(existing.id,'remove'))return json({error:'Не удалось удалить доступ. Обновите список и повторите.'},409);
       return json({deleted:true,email:target});
     }
-
-    if (existing && (existing.email_confirmed_at || existing.last_sign_in_at))
-      return json({error:'У этого человека уже есть доступ. Он может войти по почте и паролю или нажать «Забыли пароль».'},409);
+    if(target===ADMIN)return json({error:'У владельца уже есть доступ.'},409);
+    if(existing && (existing.email_confirmed_at || existing.last_sign_in_at)){
+      if(!await manage(existing.id,'grant'))return json({error:'Не удалось предоставить доступ. Повторите позже.'},502);
+      return json({email:target,existing:true,url:'https://innaodincova-finpro.github.io/tochka-dnya/index.html'});
+    }
     const res=await fetch(SUPABASE_URL+'/auth/v1/admin/generate_link',{
       method:'POST',headers:{...head,'Content-Type':'application/json'},body:JSON.stringify({type:'invite',email:target})
     });
     if(!res.ok)return json({error:'Не удалось создать приглашение. Повторите позже.'},502);
     const link=await res.json();
     if(!link.hashed_token || link.verification_type!=='invite')return json({error:'Сервис не вернул приглашение'},502);
+    const invited=link.user?.id || link.id || existing?.id;
+    if(!invited || !await manage(invited,'grant'))return json({error:'Приглашение не завершено. Повторите выдачу ссылки.'},502);
     return json({email:target,url:'https://innaodincova-finpro.github.io/tochka-dnya/activate.html#token='+encodeURIComponent(link.hashed_token)+'&email='+encodeURIComponent(target)});
   }
 
@@ -122,16 +125,22 @@ Deno.serve(async (req: Request) => {
   const byId: Record<string, any> = {};
   (Array.isArray(rows) ? rows : []).forEach((r: any) => { byId[r.user_id] = r; });
 
-  const list = users.map((u: any) => {
+  const mRes=await fetch(SUPABASE_URL+'/rest/v1/tochka_members?revoked_at=is.null&select=user_id,invited_at,last_seen_at',{headers:head});
+  if(!mRes.ok)return json({error:'Список доступа недоступен. Повторите позже.'},502);
+  const members=await mRes.json();
+  if(!Array.isArray(members))return json({error:'Некорректный список доступа'},502);
+  const membership=new Map(members.map((m:any)=>[m.user_id,m]));
+  const list = users.filter((u:any)=>membership.has(u.id)).map((u: any) => {
+    const member:any=membership.get(u.id);
     const row = byId[u.id];
     return {
       id: u.id,
-      mozhno_udalit: !!u.invited_at && !u.email_confirmed_at && !u.confirmed_at && !u.last_sign_in_at && !row && String(u.email||'').toLowerCase()!==ADMIN,
-      poslednee_priglashenie: u.invited_at || null,
+      mozhno_udalit: String(u.email||'').toLowerCase()!==ADMIN,
+      poslednee_priglashenie: member.invited_at || null,
       pochta: u.email,
-      priglashen: u.created_at || null,
+      priglashen: member.invited_at || null,
       podtverdil: u.email_confirmed_at || u.confirmed_at || null,
-      zahodil: u.last_sign_in_at || null,
+      zahodil: member.last_seen_at || null,
       sinhronizaciya: row?.updated_at || null,
       ...(row ? digest(row.payload || {}) : {
         sobytiya: 0, zapisi: 0, dela: 0, spiski: 0, rashody: 0, dohody: 0,
@@ -150,3 +159,4 @@ Deno.serve(async (req: Request) => {
     lyudi: list,
   });
 });
+

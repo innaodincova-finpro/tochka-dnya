@@ -622,7 +622,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.8.10';
+const APP_VERSION = '5.8.11';
 const APP_UPDATED = new Date('2026-09-08T13:40:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -912,6 +912,9 @@ async function connectCloudUser(user){
   const epoch=++cloudEpoch;
   cloudReady=false;cloudSavedAt=null;cloudUser=user;cloudBase=null;cloudConflict=null;clearTimeout(cloudTimer);setCloudState('syncing');
   try{
+    const access=await cloudClient.rpc('tochka_visit');
+    if(epoch!==cloudEpoch)return;
+    if(access.error)throw access.error;
     const result=await cloudClient.from('user_app_data').select('payload,updated_at').eq('user_id',user.id).maybeSingle();
     if(epoch!==cloudEpoch)return;
     if(result.error)throw result.error;
@@ -956,6 +959,8 @@ async function cloudSetPassword(){
    ошибка должна говорить, что произошло и что делать дальше. */
 function cloudErrorText(e){
   const m = String((e && e.message) || '').toLowerCase();
+  if (m.includes('доступ к облаку') || m.includes('row-level security'))
+    return 'Облачный доступ к «Точке дня» закрыт. Обратитесь к Инне. Записи на устройстве сохранены';
   if (m.includes('обновите точку дня'))
     return 'Обновите страницу приложения и повторите сохранение';
   if (m.includes('only request this after'))
@@ -985,7 +990,7 @@ async function cloudLogin(){
   setCloudState('syncing');
   const result=await cloudClient.auth.signInWithPassword({email,password});
   if(result.error){setCloudState('error',result.error.message);toast(cloudErrorText(result.error));return;}
-  closeSheet();toast('Вход выполнен. Данные сохраняются в облаке');
+  closeSheet();toast('Почта и пароль проверены. Подключаем облако');
 }
 /* без этого забытый пароль означал безвозвратно потерянный доступ
    к облачным записям: другого способа войти не было */
@@ -1176,6 +1181,7 @@ async function createInvitation(){
 }
 const NEW_USER_GUIDE = "Здравствуйте! Приглашаю вас в мою «Точку дня» — приложение для встреч, дел, заметок и учёта расходов.\n\nЯ подготовила несколько простых шагов, чтобы вам было легче начать.\n\n1. Зайдите по моей ссылке\nОткройте ссылку из этого сообщения. Придумайте пароль не короче 8 символов, введите его дважды и нажмите «Сохранить пароль и открыть приложение».\nЭто ваш новый пароль для «Точки дня». Пароль от почты вводить не нужно.\nЕсли ссылка не открывается или срок её действия закончился — напишите мне, я пришлю новую.\n\n2. Добавьте «Точку дня» на экран iPhone\nОткройте в Safari этот адрес:\nhttps://innaodincova-finpro.github.io/tochka-dnya/\nНажмите «Поделиться» → «На экран Домой» → «Добавить». Если увидите «Открыть как веб-приложение», включите этот пункт.\nНа экране телефона появится значок «Точки дня». Дальше открывайте приложение через него.\nЕсли оно попросит войти, откройте «Ещё» → «Мои данные» и введите почту из приглашения и пароль, который только что придумали.\nНа компьютере можно пользоваться тем же адресом в браузере.\n\n3. Включите напоминания о встречах\nВ приложении откройте «Ещё» → «Напоминания». Нажмите «Включить уведомления», затем «Разрешить».\nПосле этого нажмите «Проверить уведомление» и закройте приложение. Через 1–2 минуты должно прийти сообщение. Если не пришло — напишите мне, помогу разобраться.\nНа iPhone эта возможность работает начиная с iOS 16.4. Календарь Apple подключать не нужно.\n\n4. Запишите свою первую встречу\nВ разделе «План» нажмите «Добавить» и укажите название, дату и время встречи. Сохраните её и дождитесь надписи «сохранено в облаке».\nДобавляйте встречу заранее — больше чем за час до начала. Например, о встрече в 16:30 приложение напомнит в 15:30. Его можно закрыть, но телефон должен быть подключён к интернету.\nЕсли время встречи не указано, напоминания за час не будет.\n\n5. Осваивайтесь в своём темпе\nВ «Сегодня» можно посмотреть свой день, в «Плане» — встречи, в «Заметках» — записывать мысли, дела и списки, в «Финансах» — доходы и расходы.\nЧтобы прочитать заметку целиком, нажмите на неё. Расход можно внести за прошлый день — просто выберите нужную дату.\nЗаписи сохраняются автоматически. После важных изменений дождитесь отметки «сохранено в облаке».\n\nСохраните это сообщение, чтобы при необходимости вернуться к шагам. Ссылка для первого входа предназначена только вам — не пересылайте её другим людям.\n\nЕсли возникнут вопросы, напишите мне, что не получилось. Можно приложить снимок экрана, только без пароля и личной ссылки.\n\nИнна";
 function invitationMessage(invitation){
+  if(invitation?.existing)return 'Доступ к «Точке дня» открыт.\nПочта: '+invitation.email+'\nОткройте '+invitation.url+'\nВ разделе «Ещё» → «Мои данные» войдите с существующим паролем аккаунта. Если забыли пароль, нажмите «Забыли пароль».\nДанные других приложений сохраняются.';
   return 'Я создала для вас доступ к «Точке дня».\nВаша почта для входа: '+(invitation?.email||'')+'\nВаша личная ссылка для первого входа:\n'+(invitation?.url||'')+'\n\n'+NEW_USER_GUIDE;
 }
 async function shareInvitation(){
@@ -3873,4 +3879,5 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
 </script>
 </body>
 </html>
+
 

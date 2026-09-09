@@ -58,6 +58,8 @@ Deno.serve(async req=>{
   const userRes=await fetch(URL_BASE+'/auth/v1/user',{headers:{apikey:SERVICE,Authorization:auth},signal:AbortSignal.timeout(10000)});
   if(!userRes.ok)return json({error:'Войдите в приложение заново'},401);
   const user=await userRes.json();
+  const [access]=await db('tochka_members?user_id=eq.'+user.id+'&revoked_at=is.null&select=user_id');
+  if(!access)return json({error:'Облачный доступ к «Точке дня» закрыт. Обратитесь к Инне.'},403);
   const raw=await req.text();if(raw.length>4096)return json({error:'Слишком большой запрос'},413);
   const input=JSON.parse(raw),c=await config();
   if(input.action==='key')return json({publicKey:c.vapid.publicKey});
@@ -86,3 +88,4 @@ Deno.serve(async req=>{
   return json({error:'Неизвестное действие'},400);
  }catch{return json({error:'Сервис уведомлений временно недоступен. Повторите позже.'},503);}
 });
+
