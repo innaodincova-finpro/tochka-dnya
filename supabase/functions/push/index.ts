@@ -28,7 +28,7 @@ async function dispatch(c:any){
    try{
     const now=Date.now();const [row]=await db('user_app_data?user_id=eq.'+sub.user_id+'&select=payload');
     const items=dueEvents(row?.payload,sub.timezone,now);
-    if(sub.test_due&&now>=Date.parse(sub.test_due)&&now<Date.parse(sub.test_due)+300000)items.push({key:'test:'+sub.test_due,title:'Точка дня',body:'Проверка: уведомления приходят при закрытом приложении.',at:now+300000});
+    if(sub.test_due&&now>=Date.parse(sub.test_due)&&now<Date.parse(sub.test_due)+300000)items.push({key:'test:'+sub.test_due,title:'Проверка напоминаний',body:'Это пробное уведомление. Напоминания о встречах будут показывать название и время.',at:now+300000});
     for(const item of items){
      const key=sub.id+':'+item.key;
      if(!await db('rpc/claim_push_delivery','POST',{delivery_key:key,subscription_id:sub.id}))continue;
