@@ -1338,7 +1338,7 @@ async function run() {
     foldOpen['more-admin'] = true; renderMore();`);
   const cab = w.document.getElementById('s-more').textContent.replace(/\s+/g, ' ');
   assert(!cab.includes('a@b.ru') && !cab.includes('8 соб.'), 'список пользователей вынесен из приложения');
-  assert(w.document.querySelector('#s-more a[href="reestr.html"]'), 'администратору доступен отдельный реестр');
+  assert(w.document.querySelector('#s-more a[href="/reestr-tochki/"]'), 'администратору доступен отдельный реестр');
 
   // сервер не читает тексты — это устройство, а не обещание
   const kab = fs.readFileSync('supabase/functions/kabinet/index.ts', 'utf8');
