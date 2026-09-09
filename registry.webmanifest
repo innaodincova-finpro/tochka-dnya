@@ -4,7 +4,7 @@
   "description": "Управление приглашёнными пользователями приложения «Точка дня»",
   "id": "./reestr.html",
   "start_url": "./reestr.html",
-  "scope": "./",
+  "scope": "./reestr.html",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#F7F3FA",
