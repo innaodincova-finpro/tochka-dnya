@@ -275,10 +275,14 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .fold{padding:0;overflow:hidden}
 .fold-head{display:flex;width:100%;align-items:center;gap:9px;border:0;background:transparent;
   padding:15px 16px;cursor:pointer;text-align:left;font:inherit}
-.fold-title{font:600 14px/1.25 'Golos Text',sans-serif;letter-spacing:0;text-transform:none;color:var(--navy)}
+.fold-title{font:600 14px/1.25 'Golos Text',sans-serif;letter-spacing:0;text-transform:none;color:var(--ink)}
 .fold-sum{flex:1;font:400 12.5px 'Golos Text',sans-serif;color:var(--mut);
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fold-arrow{flex:0 0 auto;color:var(--accent);font-size:15px;line-height:1}
+#s-more .fold-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;text-align:left;min-height:64px}
+#s-more .fold-title{grid-column:1;font-size:16px;overflow-wrap:anywhere}
+#s-more .fold-sum{grid-column:1;font-size:14px;white-space:normal;overflow:visible}
+#s-more .fold-arrow{grid-column:2;grid-row:1 / 3}
 .fold-body{padding:0 16px 15px}
 /* Кнопка сворачивания была только сверху: дочитав длинный текст, человек
    оказывался внизу и вернуть блок в свёрнутый вид было нечем. */
@@ -622,7 +626,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.8.11';
+const APP_VERSION = '5.8.12';
 const APP_UPDATED = new Date('2026-09-08T13:40:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -640,7 +644,7 @@ let S = null, storageOk = true, loadBlocked = false;
 
 function blank(){
   return {
-    settings:{cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, theme:'light', onboarded:0, hi:1},
+    settings:{cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, theme:'light', reminderMode:'hour', onboarded:0, hi:1},
     exp:[], inc:[], ev:[], notes:[], day:{}, del:[], savedAt:null, backupAt:null, firstDataAt:null
   };
 }
@@ -1121,6 +1125,16 @@ async function disablePush(){
  const reg=await navigator.serviceWorker.getRegistration('./');const sub=await reg?.pushManager.getSubscription();if(sub)await sub.unsubscribe();pushStatus=null;
 }
 async function turnOffPush(){try{await disablePush();openSheet('push');toast('Уведомления на этом устройстве отключены');}catch(e){toast(e.message);}}
+function setReminderMode(value){
+ S.settings.reminderMode=value==='three-and-hour'?'three-and-hour':'hour';
+ save();sheetInitialFields=sheetFieldState();
+ toast('Время напоминаний сохранено. Для отправки требуется синхронизация с облаком.');
+}
+function reminderModeField(){
+ return '<div class="fld"><label for="reminder-mode">Когда напоминать</label><select id="reminder-mode" onchange="setReminderMode(this.value)">'+
+ '<option value="hour"'+(S.settings.reminderMode!=='three-and-hour'?' selected':'')+'>За час</option>'+
+ '<option value="three-and-hour"'+(S.settings.reminderMode==='three-and-hour'?' selected':'')+'>За 3 часа и за час</option></select></div>';
+}
 function pushSheet(){
  const title='<h3>Напоминания о встречах</h3>';
  if(!cloudUser)return title+'<p>Чтобы получать напоминания, сначала войдите в аккаунт «Точки дня».</p><button class="btn" onclick="openSheet(\'cloudAuth\')">Войти в аккаунт</button>';
@@ -1128,13 +1142,13 @@ function pushSheet(){
  if(ios&&!(navigator.standalone||matchMedia('(display-mode: standalone)').matches))return title+'<p>Чтобы включить напоминания на iPhone, сначала добавьте «Точку дня» на главный экран: откройте приложение в Safari → нажмите «Поделиться» → «На экран Домой». Затем откройте его через появившийся значок.</p>';
  if(!pushAvailable())return title+'<p>На этом устройстве уведомления недоступны. На iPhone требуется iOS 16.4 или новее и запуск «Точки дня» через значок на главном экране.</p>';
  const enabled=pushStatus?.enabled&&Notification.permission==='granted';
- if(!enabled)return title+'<p><b>Уведомления выключены</b></p><p>Включите их, чтобы получать на экран этого устройства напоминания за час до встречи.</p><button class="btn" onclick="enablePush()" '+(!pushPublicKey?'disabled':'')+'>Включить уведомления</button>'+(pushStatus?.error?'<p>'+esc(pushStatus.error)+'</p>':'');
+ if(!enabled)return title+reminderModeField()+'<p><b>Уведомления выключены</b></p><p>Включите их, чтобы получать на экран этого устройства напоминания в выбранное время.</p><button class="btn" onclick="enablePush()" '+(!pushPublicKey?'disabled':'')+'>Включить уведомления</button>'+(pushStatus?.error?'<p>'+esc(pushStatus.error)+'</p>':'');
  return title+
   '<p><b>Уведомления включены</b></p>'+
   '<p><b>Куда придут:</b> на экран этого устройства.</p>'+
-  '<p><b>Когда придут:</b> за 1 час до встречи.</p>'+
+  reminderModeField()+
   '<p><b>Что требуется:</b> у встречи должны быть указаны дата и время, а сама встреча должна быть сохранена заранее.</p>'+
-  '<p class="mut">Например: встреча назначена на 16:30 — уведомление придёт в 15:30. Приложение в это время может быть закрыто.</p>'+
+  '<p class="mut">Приложение может быть закрыто. Звук и вибрация зависят от настроек уведомлений, беззвучного режима и фокусирования на телефоне.</p>'+
   '<button class="btn" onclick="testPush()">Отправить пробное уведомление</button>'+
   '<p id="push-test-result" class="mut">После нажатия закройте приложение. Пробное уведомление появится на экране в течение двух минут.</p>'+
   '<button class="btn ghost" onclick="turnOffPush()">Отключить уведомления</button>'+
@@ -2881,7 +2895,7 @@ function renderMore(){
     fold('more-cloud','Мои данные',cloudUser?'облако подключено':'сохранение и копии',
       '<h3 style="font-size:16px;margin:0 0 10px">Облачное сохранение</h3>'+cloudBody+
       '<h3 style="font-size:16px;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line)">Резервная копия</h3>'+backupBody)+
-    fold('more-reminders','Напоминания','о встречах за час',
+    fold('more-reminders','Напоминания',S.settings.reminderMode==='three-and-hour'?'за 3 часа и за час':'о встречах за час',
       '<p>Настройте уведомления на этом устройстве и проверьте их получение.</p><button class="btn" onclick="openPushSheet()">Настроить напоминания</button>')+
     fold('more-set', 'Настройки приложения', 'оформление и разделы',
       '<div class="fld"><label>Имя в приветствии</label><input value="' + esc(S.settings.name || '') + '" onchange="setText(\'name\',this.value)" maxlength="40" placeholder="Например: Анастасия"></div>' +

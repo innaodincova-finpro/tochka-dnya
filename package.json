@@ -1,9 +1,9 @@
 {
   "name": "tochka-dnya",
-  "version": "5.8.11",
+  "version": "5.8.12",
   "private": true,
   "scripts": {
-    "test": "node activation-errors.cjs && node access-test.cjs && node access-api-test.cjs && node access-ui-test.cjs && node compact-notes-regression.cjs && node swipe-regression.cjs && node note-reader-regression.cjs && node parse-preview-regression.cjs && node proverki.js && node regression.js && node sdk-regression.cjs && node sql-regression.cjs && node ssylki.js && node invitation-regression.cjs && node push-regression.cjs && node push-handler-regression.cjs && node registry-regression.cjs"
+    "test": "node reminder-mode.cjs && node activation-errors.cjs && node access-test.cjs && node access-api-test.cjs && node access-ui-test.cjs && node compact-notes-regression.cjs && node swipe-regression.cjs && node note-reader-regression.cjs && node parse-preview-regression.cjs && node proverki.js && node regression.js && node sdk-regression.cjs && node sql-regression.cjs && node ssylki.js && node invitation-regression.cjs && node push-regression.cjs && node push-handler-regression.cjs && node registry-regression.cjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.8",

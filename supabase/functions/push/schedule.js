@@ -16,12 +16,21 @@ export function occurs(e,date){
  return false;
 }
 export function dueEvents(payload,zone,now){
- const out=[];const dates=new Set([localParts(now+3600000,zone).date,localParts(now+3300000,zone).date]);
+ const out=[];
+ const hours=payload?.settings?.reminderMode==='three-and-hour'?[3,1]:[1];
+ for(const hoursBefore of hours){
+ const offset=hoursBefore*3600000;
+ const dates=new Set([localParts(now+offset,zone).date,localParts(now+offset-300000,zone).date]);
  for(const e of payload?.ev||[]){
   if(!e.id||!/^\d{2}:\d{2}$/.test(e.time||''))continue;
-  for(const date of dates){if(!occurs(e,date)||(payload?.day?.[date]?.done||[]).includes(e.id))continue;const at=zonedTime(date,e.time,zone),due=at-3600000;
-   if(now>=due&&now<due+300000)out.push({key:'event:'+e.id+':'+date+':'+e.time,title:String(e.title||'Встреча').slice(0,100),body:'Сегодня в '+e.time,at});
+  for(const date of dates){
+   if(!occurs(e,date)||(payload?.day?.[date]?.done||[]).includes(e.id))continue;
+   const at=zonedTime(date,e.time,zone),due=at-offset;
+   // Keep the existing one-hour key so upgrading cannot repeat an accepted reminder.
+   const key='event:'+e.id+':'+date+':'+e.time+(hoursBefore===1?'':':3h');
+   if(now>=due&&now<due+300000)out.push({key,title:String(e.title||'Встреча').slice(0,100),body:(hoursBefore===3?'Через 3 часа, в ':'Через час, в ')+e.time,at});
   }
+ }
  }
  return out;
 }
