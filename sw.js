@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.8.10-install-1';
+const CACHE = 'tochka-dnya-v5.8.10-pending-1';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [

@@ -86,9 +86,41 @@ Deno.serve(async (req: Request) => {
     try { const raw=await req.text(); if(raw.length>2048)return json({error:'Запрос слишком большой'},413); input=JSON.parse(raw); }
     catch {return json({error:'Проверьте адрес почты'},400);}
     const target=String(input.email||'').trim().toLowerCase();
-    if (input.action!=='invite' || target.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))
+    if (!['invite','delete_pending'].includes(input.action) || target.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(target))
       return json({error:'Введите корректный адрес почты'},400);
     const existing=users.find(u=>String(u.email||'').toLowerCase()===target);
+
+    if (input.action === 'delete_pending') {
+      if (target === ADMIN || !existing || input.user_id !== existing.id || input.confirm_email !== target)
+        return json({error:'Пользователь изменился. Обновите список и подтвердите удаление заново.'},409);
+      const protectedUser=(u: any)=>!!(u.email_confirmed_at || u.confirmed_at || u.last_sign_in_at);
+      if (protectedUser(existing) || !existing.invited_at)
+        return json({error:'Можно удалить только неиспользованное приглашение.'},409);
+      const endpoint=SUPABASE_URL+'/auth/v1/admin/users/'+encodeURIComponent(existing.id);
+      // Block new sign-ins before re-reading the account to close the read/delete race.
+      const ban=await fetch(endpoint,{method:'PUT',headers:{...head,'Content-Type':'application/json'},body:JSON.stringify({ban_duration:'5m'})});
+      if(!ban.ok)return json({error:'Не удалось подготовить удаление. Повторите позже.'},502);
+      let removed=false;
+      try {
+        const fresh=await fetch(endpoint,{headers:head});
+        if(!fresh.ok)return json({error:'Не удалось повторно проверить пользователя.'},502);
+        const value=await fresh.json(),user=value.user||value;
+        if(user.id!==existing.id || String(user.email||'').toLowerCase()!==target || protectedUser(user))
+          return json({error:'Человек уже активировал доступ. Удаление отменено.'},409);
+        const data=await fetch(SUPABASE_URL+'/rest/v1/user_app_data?select=user_id&user_id=eq.'+encodeURIComponent(existing.id)+'&limit=1',{headers:head});
+        if(!data.ok)return json({error:'Не удалось проверить облачные сохранения. Удаление отменено.'},502);
+        const saved=await data.json();
+        if(!Array.isArray(saved)||saved.length)return json({error:'У пользователя есть облачные данные. Удаление отменено.'},409);
+        const result=await fetch(endpoint,{method:'DELETE',headers:head});
+        if(!result.ok)return json({error:'Удалить приглашение не удалось. Обновите список.'},502);
+        removed=true;return json({deleted:true,email:target});
+      } finally {
+        if(!removed) {
+          const remaining=existing.banned_until ? Math.max(0,Date.parse(existing.banned_until)-Date.now()) : 0;
+          await fetch(endpoint,{method:'PUT',headers:{...head,'Content-Type':'application/json'},body:JSON.stringify({ban_duration:remaining>0?Math.ceil(remaining/1000)+'s':'none'})});
+        }
+      }
+    }
     if (existing && (existing.email_confirmed_at || existing.last_sign_in_at))
       return json({error:'У этого человека уже есть доступ. Он может войти по почте и паролю или нажать «Забыли пароль».'},409);
     const res=await fetch(SUPABASE_URL+'/auth/v1/admin/generate_link',{
@@ -109,6 +141,9 @@ Deno.serve(async (req: Request) => {
   const list = users.map((u: any) => {
     const row = byId[u.id];
     return {
+      id: u.id,
+      mozhno_udalit: !!u.invited_at && !u.email_confirmed_at && !u.confirmed_at && !u.last_sign_in_at && !row && String(u.email||'').toLowerCase()!==ADMIN,
+      poslednee_priglashenie: u.invited_at || null,
       pochta: u.email,
       priglashen: u.created_at || null,
       podtverdil: u.email_confirmed_at || u.confirmed_at || null,
