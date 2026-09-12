@@ -48,6 +48,15 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    const hookInfo=await s.tg('getWebhookInfo');
    if(!hookInfo.allowed_updates?.includes('callback_query'))await s.tg('setWebhook',{url:env('SUPABASE_URL')+'/functions/v1/tochka-assistant-receiver',secret_token:secret,allowed_updates:['message','callback_query'],drop_pending_updates:false,max_connections:1});
    if(m.text==='/stop'){await s.db('tochka_assistant_pilot'+filter,'PATCH',{enabled:false,pending:null,pending_at:null});return new Response('ok');}
+   // Cancellation uses the same version/owner-checked RPC as its button, without AI quota.
+   if(typeof m.text==='string'&&['/cancel','отмена'].includes(m.text.trim().toLowerCase())){
+    const state=(await s.db('tochka_assistant_pilot'+filter+'&select=pending,pending_at'))[0];
+    if(!state?.pending){await s.tg('sendMessage',{chat_id:m.chat.id,text:'Нет записи, ожидающей сохранения. Можно написать новое задание.'});return new Response('ok');}
+    const version=Date.parse(state.pending_at);
+    const result=await s.db('rpc/tochka_assistant_confirm','POST',{p_user:uid,p_chat:m.chat.id,p_hook:await hash(secret),p_version:version,p_action:'cancel'});
+    await s.tg('sendMessage',{chat_id:m.chat.id,text:result.status==='cancelled'?'Черновик отменён. Ничего не добавлено.':result.status==='already_saved'?'Запись уже сохранена. Изменить или удалить её можно в «Точке дня».':'Черновик уже не актуален. Можно написать новое задание.'});
+    return new Response('ok');
+   }
    const reservation=await s.db('rpc/tochka_assistant_reserve','POST',{p_user:uid,p_update:update});
    if(reservation==='busy')return new Response('',{status:503});
    if(reservation==='limit'){
@@ -66,7 +75,6 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    if(context?.pending && Date.parse(context.pending_at)>Date.now()-30*60*1000 && Date.parse(context.pending_at)>=Date.parse(context.enabled_at)){try{pending=validateProposal(context.pending);}catch{}}
    if(text){}
    else if(typeof m.text!=='string')text='Отправьте текст или голосовое сообщение до 60 секунд.';
-   else if(m.text==='/cancel'||m.text.trim().toLowerCase()==='отмена'){pendingChange=null;text='Черновик отменён. Напишите новое задание.';}
    else if(m.text.startsWith('/'))text='Напишите встречу, расход или заметку обычными словами. Я уточню недостающее и покажу кнопку «Сохранить». Запись появится в «Точке дня» после вашего подтверждения. Можно текстом или голосовым до 60 секунд; для отключения — /stop.';
    else if(!m.text.trim()||m.text.length>1500)text='Отправьте сообщение длиной от 1 до 1500 символов.';
    else {
@@ -91,4 +99,3 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
   }
  };
 }
-

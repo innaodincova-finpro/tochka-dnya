@@ -28,3 +28,11 @@ Docs: https://console.groq.com/docs/speech-to-text ; https://core.telegram.org/b
 Receiver reads only `payload.settings.cur` from the linked owner's cloud row via a projected REST select after owner checks. The currency is applied in application code and is not sent to DeepSeek. New expenses default to Moscow today and the supported account currency unless another value is explicitly supplied. Events still require date/time. Unresolved explicit dates/currencies are not replaced silently. Short currency, relative-day and simple amount replies update the active proposal directly; other phrasing uses DeepSeek. Separate edit guidance for expenses/events/notes. No changes to saved-record editing or audio dependencies.
 
 `node defaults-test.mjs` verifies mocked-model flows and deterministic rules; receiver tests cover identity and buttons, SQL tests cover saving all kinds and idempotence. Live owner acceptance remains necessary for model quality and display in the installed application.
+
+## Reliable input follow-up
+
+Simple purchases (including `Магазин Пятёрочка пять тысяч`, grouped digits and decimal amounts) and explicit notes (`Запиши идею: ...`) now use conservative local parsing. Ambiguous input still goes through the existing provider. Local parsing and short amendments do not require a provider key; the existing 20-message daily reservation remains unchanged. No budget limit was removed or reset.
+
+Text cancellation uses the same version-checked confirmation RPC as the Cancel button before the paid reservation, so it remains available at the daily limit. It cancels only pending drafts, not saved records. Relative-date detection uses word boundaries and distinguishes decimal amounts from calendar dates.
+
+Run `node --test assistant-lab/direct-telegram/*test.mjs` from the repository root. The SQL test also loads the actual app and validates all three saved record formats. CI now covers direct Telegram code explicitly. These are isolated checks, not evidence of a message received on the owner's phone.

@@ -1,4 +1,5 @@
 import {shortChange,expenseDefaults} from './defaults.mjs';
+import {localDraft} from './local-draft.mjs';
 import {SYSTEM_PROMPT, validateProposal, formatProposal, normalizeModelProposal} from './proposal.mjs';
 export class AssistantError extends Error { constructor(code) { super(code); this.name='AssistantError'; } }
 const error = code => new AssistantError(code);
@@ -14,7 +15,6 @@ const temporalOnly = /^\s*(?:(?:перенеси\s+на|на)\s+)?(?:(?:сего
 // Server-side only. Caller must authenticate owner and reserve daily quota BEFORE calling.
 export async function prepareDraft({text, apiKey, now = new Date(), timeZone = 'Europe/Moscow', pending = null, defaultCurrency = null, fetchImpl = fetch}) {
   if (typeof text !== 'string' || !text.trim() || text.length > 1500) throw error('invalid_input');
-  if (typeof apiKey !== 'string' || !apiKey.trim() || /\s/.test(apiKey)) throw error('key_missing_or_invalid');
   let today;
   try {
     if (!Number.isFinite(+now)) throw 0;
@@ -25,6 +25,9 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
   if (pending !== null) pending = validateProposal(pending);
   const short=shortChange(text,pending,today);
   if(short){const proposal=expenseDefaults(short,{today,defaultCurrency,text,inheritedCurrency:short.currency,inheritedDate:short.date});return {proposal,...formatProposal(proposal)};}
+  const local=localDraft(text);
+  if(local){const proposal=expenseDefaults(local,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
+  if (typeof apiKey !== 'string' || !apiKey.trim() || /\s/.test(apiKey)) throw error('key_missing_or_invalid');
   pending = contextFor(text, pending);
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(),25000);
@@ -75,4 +78,3 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
     throw error(controller.signal.aborted ? 'provider_timeout' : 'provider_unavailable');
   } finally {clearTimeout(timer);}
 }
-
