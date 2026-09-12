@@ -1,6 +1,15 @@
 import {SYSTEM_PROMPT, validateProposal, formatProposal} from './proposal.mjs';
 export class AssistantError extends Error { constructor(code) { super(code); this.name='AssistantError'; } }
 const error = code => new AssistantError(code);
+// Only explicit amendments and short temporal answers inherit the active draft.
+export function contextFor(text, pending) {
+  if (!pending) return null;
+  if (/^\s*(?:сегодня|завтра|послезавтра)\s+.*(?:потрат|купил|купила|расход|встреч|замет)/iu.test(text)) return null;
+  const amendment = /^\s*(?:(?:завтра|послезавтра|сегодня|перенеси|измени|поменяй|исправь|нет|точнее)(?=\s|[,.:!?]|$)|(?:в|на)\s+|\d{1,2}[:.]\d{2}(?=\s|$))/iu.test(text);
+  return amendment ? validateProposal(pending) : null;
+}
+const temporalOnly = /^\s*(?:(?:перенеси\s+на|на)\s+)?(?:(?:сегодня|завтра|послезавтра)(?:\s+в)?\s*)?(?:в\s*)?\d{1,2}:\d{2}[.!]?\s*$/iu;
+
 // Server-side only. Caller must authenticate owner and reserve daily quota BEFORE calling.
 export async function prepareDraft({text, apiKey, now = new Date(), timeZone = 'Europe/Moscow', pending = null, fetchImpl = fetch}) {
   if (typeof text !== 'string' || !text.trim() || text.length > 1500) throw error('invalid_input');
@@ -13,6 +22,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
     today = `${get('year')}-${get('month')}-${get('day')}`;
   } catch { throw error('invalid_time_context'); }
   if (pending !== null) pending = validateProposal(pending);
+  pending = contextFor(text, pending);
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(),25000);
   try {
@@ -49,6 +59,11 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
     // Guard explicit scheduling requests against the observed model fallback to a note.
     if (proposal.kind === 'note' && /^\s*(?:пожалуйста[,\s]+)?(?:запланируй|назначь|организуй)\s+(?:мне\s+)?встречу(?=\s|[.!?]|$)/iu.test(text)) {
       return {proposal:validateProposal({kind:'event',title:text.trim()}),needsClarification:true,text:'На какую дату и время запланировать встречу? Можно ответить коротко, например: завтра в 15:00.\nВ «Точку дня» ничего не сохранено.'};
+    }
+    if (pending?.kind === 'event' && temporalOnly.test(text)) {
+      // The time-only message cannot rename the meeting or remove its location.
+      if (proposal.kind !== 'event' || !proposal.time) throw error('invalid_response');
+      proposal=validateProposal({...pending,...(/(?:сегодня|завтра|послезавтра)/iu.test(text)&&proposal.date?{date:proposal.date}:{}),time:proposal.time});
     }
     return {proposal,...formatProposal(proposal)};
   } catch(e) {

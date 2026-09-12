@@ -37,7 +37,7 @@ export function makeHandler(env,request=fetch,draft=prepareDraft){
    else if(m.text.startsWith('/'))text='Напишите встречу, расход или заметку. Я подготовлю черновик. Для отключения — /stop.';
    else if(!m.text.trim()||m.text.length>1500)text='Отправьте сообщение длиной от 1 до 1500 символов.';
    else {
-    try {const result=await draft({text:m.text,pending,apiKey:env('TOCHKA_ASSISTANT_DEEPSEEK_API_KEY'),fetchImpl:request});text=result.text;pendingChange=result.needsClarification&&result.proposal?validateProposal(result.proposal):null;}
+    try {const result=await draft({text:m.text,pending,apiKey:env('TOCHKA_ASSISTANT_DEEPSEEK_API_KEY'),fetchImpl:request});text=result.text;pendingChange=result.proposal?validateProposal(result.proposal):null;}
     catch(e){text=({balance_required:'На счёте DeepSeek недостаточно средств.',key_rejected:'Нужно проверить API-ключ DeepSeek.',key_missing_or_invalid:'Нужно проверить API-ключ DeepSeek.',provider_busy:'DeepSeek сейчас перегружен. Попробуйте позже.',provider_timeout:'DeepSeek не успел ответить. Попробуйте позже.',invalid_response:'Не удалось получить корректный черновик. Напишите задачу ещё раз с датой и временем.'})[e.message]||'Не удалось подготовить черновик. Попробуйте позже.';text+=' В «Точку дня» ничего не сохранено.';}
    }
    if(await linked()){

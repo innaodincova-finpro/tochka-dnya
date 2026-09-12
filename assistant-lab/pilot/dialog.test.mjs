@@ -10,6 +10,6 @@ async function scenario(expired=false,cancel=false){let contextSeen,change,model
  if(url.includes('tochka_assistant_deliveries'))return Response.json([]);assert.fail(url);
 };const h=makeHandler(env,request,async({pending})=>{modelCalls++;contextSeen=pending;return {proposal:{kind:'event',title:'Встреча с Ольгой',date:'2026-09-13',time:'15:00'},needsClarification:false,text:'Черновик'};});
  const r=await h(new Request('https://test.invalid',{method:'POST',headers:{'x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:123,message:{date:Math.floor(Date.now()/1000),chat:{id:123,type:'private'},from:{id:123,is_bot:false},text:cancel?'отмена':'завтра в 15:00'}})}));assert.equal(r.status,200);return {contextSeen,change,modelCalls};}
-test('receiver carries pending context and clears completed draft',async()=>{const r=await scenario();assert.equal(r.contextSeen.title,'Встреча с Ольгой');assert.equal(r.change.pending,null);});
+test('receiver carries pending context and retains completed draft',async()=>{const r=await scenario();assert.equal(r.contextSeen.title,'Встреча с Ольгой');assert.equal(r.change.pending.title,'Встреча с Ольгой');});
 test('expired context excluded',async()=>assert.equal((await scenario(true)).contextSeen,null));
 test('cancel clears draft without model',async()=>{const r=await scenario(false,true);assert.equal(r.modelCalls,0);assert.equal(r.change.pending,null);});

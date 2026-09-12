@@ -1,0 +1,3 @@
+# Completed draft corrections
+
+Receiver v4 retains the latest validated proposal after completion with the existing 30-minute eligibility window. Cancellation and stop clear it. No application writes. Short temporal amendments reuse context; explicit new tasks bypass previous context. Time-only event amendments preserve the previous title and place; clock-only amendments preserve the previous date. Nine local tests passed, including repeated time, time change, new task, expiry and cancellation. Real repeated Telegram message after v4 deployment is not yet verified. Context selection is limited; arbitrary freeform amendments may require restating the task. A draft already cleared by v3 cannot be recovered.
