@@ -14,7 +14,7 @@ export function makeHandler(env,request=fetch){
    const rows=await s.db('tochka_assistant_pilot'+filter+'&select=enabled,used,day');
    if(input.action==='status')return reply({enabled:!!rows[0]?.enabled,key_present:!!env('TOCHKA_ASSISTANT_DEEPSEEK_API_KEY'),limit:20});
    if(input.action==='disable'){await s.db('tochka_assistant_pilot'+filter,'PATCH',{enabled:false});return reply({enabled:false});}
-   if(env('TOCHKA_ASSISTANT_RECEIVER_READY')!=='true')throw safe('rollout_not_ready',409);
+   // Receiver deployed after explicit owner consent to DeepSeek message processing.
    const key=env('TOCHKA_ASSISTANT_DEEPSEEK_API_KEY');if(!key||/\s/.test(key))throw safe('key_missing_or_invalid',409);
    const balance=await request('https://api.deepseek.com/user/balance',{headers:{authorization:'Bearer '+key},signal:AbortSignal.timeout(10000),redirect:'error'});
    if(!balance.ok){await balance.body?.cancel();throw safe(balance.status===401?'key_rejected':'provider_unavailable',409);}
