@@ -5,6 +5,7 @@ on:
       - 'assistant-lab/**'
       - 'assistant-link/**'
       - 'supabase/functions/tochka-assistant-setup/**'
+      - 'supabase/functions/tochka-assistant-link/**'
       - '.github/workflows/assistant-lab.yml'
 permissions:
   contents: read
@@ -20,3 +21,5 @@ jobs:
       - run: node assistant-lab/test.cjs
       - run: node assistant-lab/setup-test.cjs
       - run: node assistant-lab/link-ui-test.cjs
+      - run: node assistant-lab/link-backend-test.cjs
+      - run: node assistant-lab/pairing-ui-test.cjs
