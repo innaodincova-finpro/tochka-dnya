@@ -18,7 +18,7 @@ function render(){
  const offset=(new Date(y,m-1,1).getDay()+6)%7;for(let i=0;i<offset;i++)$('grid').append(document.createElement('span'));
  for(let n=1;n<=new Date(y,m,0).getDate();n++){const d=$('month').value+'-'+String(n).padStart(2,'0'),count=records.filter(x=>x.calendar_event?.date===d).length;const b=button(n+(count?' •':''),()=>{day=d;render();});b.classList.toggle('selected',d===day);b.setAttribute('aria-label',d+(count?', встреч: '+count:''));$('grid').append(b);}
  $('daytitle').textContent='Встречи на '+day.split('-').reverse().join('.');$('events').replaceChildren();
- for(const r of records.filter(x=>x.calendar_event?.date===day).sort((a,b)=>a.calendar_event.time.localeCompare(b.calendar_event.time))){const a=document.createElement('article'),p=document.createElement('p');p.textContent=r.calendar_event.time+' · '+r.calendar_event.title+(r.calendar_event.place?' · '+r.calendar_event.place:'');a.append(p,button('Изменить',()=>{editing=structuredClone(r);for(const k of ['title','date','time','place'])$(k).value=r.calendar_event[k]||'';$('editor').hidden=false;$('conflict').hidden=true;$('title').focus();}));$('events').append(a);}
+ for(const r of records.filter(x=>x.calendar_event?.date===day).sort((a,b)=>a.calendar_event.time.localeCompare(b.calendar_event.time))){const a=document.createElement('article'),p=document.createElement('p');p.textContent=r.calendar_event.time+' · '+r.calendar_event.title+(r.calendar_event.address?' · '+r.calendar_event.address:'');a.append(p,button('Изменить',()=>{editing=structuredClone(r);for(const k of ['title','date','time','place'])$(k).value=r.calendar_event[k==='place'?'address':k]||'';$('editor').hidden=false;$('conflict').hidden=true;$('title').focus();}));$('events').append(a);}
  if(!$('events').children.length)$('events').textContent='На этот день встреч нет.';lock();
 }
 function logout(){token=null;records=[];editing=null;$('workspace').hidden=true;$('login').hidden=false;$('editor').hidden=true;$('password').value='';$('sources').replaceChildren();$('events').replaceChildren();}
@@ -28,10 +28,10 @@ $('logout').onclick=()=>{logout();say('Вы вышли.');};
 $('month').onchange=()=>{day=$('month').value+'-01';render();};
 $('cancel').onclick=()=>{editing=null;$('editor').hidden=true;};
 $('editform').onsubmit=e=>{e.preventDefault();if(!editing)return;run(async()=>{
- const original=structuredClone(editing),local={...original.calendar_event};for(const k of ['title','date','time','place'])local[k]=$(k).value.trim();
+ const original=structuredClone(editing),local={...original.calendar_event};for(const k of ['title','date','time','place'])local[k==='place'?'address':k]=$(k).value.trim();
  let target=original,event=local;
  for(let attempt=0;attempt<3;attempt++){
- const proposal={kind:'event',title:event.title,date:event.date,time:event.time,place:event.place||''};
+ const proposal={kind:'event',title:event.title,date:event.date,time:event.time,place:event.address||''};
  const d=await api({action:'edit',version:target.source_version,revision:target.calendar_revision,proposal});
  if(!d.error){upsert(d.record);day=d.record.calendar_event.date;$('month').value=day.slice(0,7);editing=null;$('editor').hidden=true;render();say('Изменения сохранены на сервере тестовой версии.');return;}
  if(!d.record)throw Error('Встреча больше недоступна.');

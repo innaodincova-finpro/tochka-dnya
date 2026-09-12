@@ -20,7 +20,7 @@ export function makeHandler(env,request=fetch){
  let p;try{p=validateProposal(input.action==='import'?row.proposal:input.proposal);}catch{throw safe('invalid_request',400);}
  if(p.kind!=='event'||formatProposal(p).needsClarification)throw safe('event_required',400);
  if(input.action==='edit'&&(!row.calendar_event||input.revision!==row.calendar_revision))return reply({error:'conflict',record:row},409);
- const event={id:'assistant_'+await hash(user.id+':'+row.source_version),title:p.title,date:p.date,time:p.time,place:p.place||'',repeat:'none'};
+ const event={id:'assistant_'+await hash(user.id+':'+row.source_version),title:p.title,date:p.date,time:p.time,address:p.place||null,plan:null,kind:'plain',repeat:'none'};
  const rows=await s.db('tochka_assistant_sandbox'+filter+'&calendar_revision=eq.'+row.calendar_revision+'&select='+fields,'PATCH',{calendar_event:event,calendar_revision:row.calendar_revision+1});
  if(!rows.length){const latest=(await s.db('tochka_assistant_sandbox'+filter+'&select='+fields))[0];return reply({error:'conflict',record:latest},409);}
  return reply({record:rows[0]});
