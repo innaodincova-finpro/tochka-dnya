@@ -50,6 +50,10 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    if(m.text==='/stop'){await s.db('tochka_assistant_pilot'+filter,'PATCH',{enabled:false,pending:null,pending_at:null});return new Response('ok');}
    const reservation=await s.db('rpc/tochka_assistant_reserve','POST',{p_user:uid,p_update:update});
    if(reservation==='busy')return new Response('',{status:503});
+   if(reservation==='limit'){
+    try{await s.tg('sendMessage',{chat_id:m.chat.id,text:'На сегодня достигнут лимит — 20 обращений. Работа возобновится после 00:00 по московскому времени. Это сообщение не обработано; после полуночи отправьте его снова. Сохранить уже подготовленную запись можно кнопкой «Сохранить».'});}catch{}
+    return new Response('ok');
+   }
    if(reservation!=='reserved')return new Response('ok');
    reserved=true;
    let text, pendingChange, presentation, transcript;
