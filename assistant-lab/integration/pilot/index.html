@@ -960,7 +960,8 @@ async function connectCloudUserOnce(user){
     }
     S.settings.cloudOwner=user.id;
     const stored=localStorage.getItem(KEY+':base:'+user.id);
-    cloudBase=stored?normalize(JSON.parse(stored)):blank();
+    if(!stored&&!['ev','exp','inc','notes'].some(k=>(S[k]||[]).length)&&!Object.values(S.day||{}).some(d=>Object.keys(d).length)&&!(S.del||[]).length&&!Object.keys(S.assistantImports||{}).length){S=cloneState(remote);cloudBase=cloneState(remote);}
+    else cloudBase=stored?normalize(JSON.parse(stored)):blank();
     saveQuiet();cloudReady=true;renderAll();await pushCloud();
   }catch(e){if(epoch===cloudEpoch)setCloudState(navigator.onLine?'error':'offline',e&&e.message);}
   if(epoch===cloudEpoch)renderAll();

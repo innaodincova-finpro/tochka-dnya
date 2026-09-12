@@ -7,6 +7,7 @@ s=s.replace("const KEY = 'tochka-dnya-v3';", "const KEY = 'tochka-dnya-owner-pil
 s=s.replace('<script src="supabase.js"></script>', '<script src="/tochka-dnya/supabase.js"></script><script src="pilot-gate.js"></script>')
 s=s.replace('async function connectCloudUser(user){', 'let pilotConnection=null;\nfunction connectCloudUser(user){\n  if(pilotConnection&&pilotConnection.user===user.id&&pilotConnection.epoch===cloudEpoch)return pilotConnection.promise;\n  const attempt={user:user.id};pilotConnection=attempt;\n  attempt.promise=connectCloudUserOnce(user).finally(()=>{if(pilotConnection===attempt)pilotConnection=null;});\n  attempt.epoch=cloudEpoch;\n  return attempt.promise;\n}\nasync function connectCloudUserOnce(user){')
 s=s.replace("    const access=await cloudClient.rpc('tochka_visit');", "    await window.pilotGate(user,cloudClient,()=>epoch===cloudEpoch);\n    if(epoch!==cloudEpoch)return;\n    const access=await cloudClient.rpc('tochka_visit');")
+s=s.replace("    cloudBase=stored?normalize(JSON.parse(stored)):blank();", "    if(!stored&&!['ev','exp','inc','notes'].some(k=>(S[k]||[]).length)&&!Object.values(S.day||{}).some(d=>Object.keys(d).length)&&!(S.del||[]).length&&!Object.keys(S.assistantImports||{}).length){S=cloneState(remote);cloudBase=cloneState(remote);}\n    else cloudBase=stored?normalize(JSON.parse(stored)):blank();")
 s=s.replace("if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){", 'if (false){')
 s=re.sub(r'<link rel="manifest"[^>]*>', '', s)
 s=s.replace('href="icon-', 'href="/tochka-dnya/icon-')
