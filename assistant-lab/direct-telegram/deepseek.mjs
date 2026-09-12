@@ -1,3 +1,4 @@
+import {shortChange,expenseDefaults} from './defaults.mjs';
 import {SYSTEM_PROMPT, validateProposal, formatProposal, normalizeModelProposal} from './proposal.mjs';
 export class AssistantError extends Error { constructor(code) { super(code); this.name='AssistantError'; } }
 const error = code => new AssistantError(code);
@@ -11,7 +12,7 @@ export function contextFor(text, pending) {
 const temporalOnly = /^\s*(?:(?:перенеси\s+на|на)\s+)?(?:(?:сегодня|завтра|послезавтра)(?:\s+в)?\s*)?(?:в\s*)?\d{1,2}:\d{2}[.!]?\s*$/iu;
 
 // Server-side only. Caller must authenticate owner and reserve daily quota BEFORE calling.
-export async function prepareDraft({text, apiKey, now = new Date(), timeZone = 'Europe/Moscow', pending = null, fetchImpl = fetch}) {
+export async function prepareDraft({text, apiKey, now = new Date(), timeZone = 'Europe/Moscow', pending = null, defaultCurrency = null, fetchImpl = fetch}) {
   if (typeof text !== 'string' || !text.trim() || text.length > 1500) throw error('invalid_input');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /\s/.test(apiKey)) throw error('key_missing_or_invalid');
   let today;
@@ -22,6 +23,8 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
     today = `${get('year')}-${get('month')}-${get('day')}`;
   } catch { throw error('invalid_time_context'); }
   if (pending !== null) pending = validateProposal(pending);
+  const short=shortChange(text,pending,today);
+  if(short){const proposal=expenseDefaults(short,{today,defaultCurrency,text,inheritedCurrency:short.currency,inheritedDate:short.date});return {proposal,...formatProposal(proposal)};}
   pending = contextFor(text, pending);
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(),25000);
@@ -31,7 +34,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
       headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},
       body:JSON.stringify({model:'deepseek-flash',stream:false,thinking:{type:'disabled'},max_tokens:1200,
         response_format:{type:'json_object'},messages:[
-          {role:'system',content:SYSTEM_PROMPT+'\nПример JSON: {"kind":"event","title":"Врач","date":"2026-09-15","time":"10:15"}. Пример не содержит данных пользователя.\nТекущая дата: '+today+'; часовой пояс: '+timeZone+'.'},
+          {role:'system',content:SYSTEM_PROMPT+'\nПример JSON: {"kind":"event","title":"Врач","date":"2026-09-15","time":"10:15"}. Пример не содержит данных пользователя.\nТекущая дата: '+today+'; часовой пояс: '+timeZone+'. Если расход без даты — используй текущую дату. Если валюта не названа — пропусти currency: её подставит программа из настроек. Суммы словами переводи в числа. Название магазина и сумма без глагола означают расход.'},
           ...(pending ? [{role:'assistant',content:JSON.stringify(pending)}] : []),
           {role:'user',content:text}
         ]})
@@ -65,6 +68,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
       if (proposal.kind !== 'event' || !proposal.time) throw error('invalid_response');
       proposal=validateProposal({...pending,...(/(?:сегодня|завтра|послезавтра)/iu.test(text)&&proposal.date?{date:proposal.date}:{}),time:proposal.time});
     }
+    proposal=expenseDefaults(proposal,{today,defaultCurrency,text,inheritedCurrency:pending?.currency,inheritedDate:pending?.date});
     return {proposal,...formatProposal(proposal)};
   } catch(e) {
     if(e instanceof AssistantError) throw e;

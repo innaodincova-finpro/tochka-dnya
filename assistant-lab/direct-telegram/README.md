@@ -22,3 +22,9 @@ Quota/update reservation and owner verification precede transcription; one voice
 Checks: `node voice-test.mjs`, `node receiver-test.mjs`, `node sql-test.mjs`. Tests use mocked speech responses and synthetic database rows. Actual provider recognition and live Telegram acceptance require the server key and a fresh owner voice message; not yet verified.
 
 Docs: https://console.groq.com/docs/speech-to-text ; https://core.telegram.org/bots/api#getfile ; https://supabase.com/docs/guides/functions/secrets
+
+## Owner defaults and short clarifications
+
+Receiver reads only `payload.settings.cur` from the linked owner's cloud row via a projected REST select after owner checks. The currency is applied in application code and is not sent to DeepSeek. New expenses default to Moscow today and the supported account currency unless another value is explicitly supplied. Events still require date/time. Unresolved explicit dates/currencies are not replaced silently. Short currency, relative-day and simple amount replies update the active proposal directly; other phrasing uses DeepSeek. Separate edit guidance for expenses/events/notes. No changes to saved-record editing or audio dependencies.
+
+`node defaults-test.mjs` verifies mocked-model flows and deterministic rules; receiver tests cover identity and buttons, SQL tests cover saving all kinds and idempotence. Live owner acceptance remains necessary for model quality and display in the installed application.

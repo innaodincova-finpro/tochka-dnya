@@ -1,3 +1,4 @@
+import {editHint} from './defaults.mjs';
 import {hash,services,readJSON} from './common.mjs';
 import {prepareDraft} from './deepseek.mjs';
 import {validateProposal} from './proposal.mjs';
@@ -34,7 +35,7 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
      if(match[1]==='edit'){
       const state=(await s.db('tochka_assistant_pilot'+filter+'&select=pending,pending_at'))[0];
       const fresh=state?.pending&&Date.parse(state.pending_at)===version&&version>Date.now()-1800000;
-      await s.tg('sendMessage',{chat_id:m.chat.id,text:fresh?'Напишите, что изменить. Например: «В 19:00» или «Измени адрес на …». Затем я снова покажу запись для подтверждения.':'Эта запись уже сохранена, отменена или заменена. Для новой записи напишите её целиком.'});
+      await s.tg('sendMessage',{chat_id:m.chat.id,text:fresh?editHint(state.pending):'Эта запись уже сохранена, отменена или заменена. Для новой записи напишите её целиком.'});
      }else{
       const result=await s.db('rpc/tochka_assistant_confirm','POST',{p_user:uid,p_chat:m.chat.id,p_hook:await hash(secret),p_version:version,p_action:match[1]});
       const reply=['saved','already_saved'].includes(result.status)?savedCard(result.kind):{text:result.status==='cancelled'?'Отменено. Ничего не добавлено.':'Эта версия уже не актуальна. Используйте последнее сообщение бота или напишите запись заново.',reply_markup:{inline_keyboard:[]}};
@@ -65,8 +66,11 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    else if(m.text.startsWith('/'))text='Напишите встречу, расход или заметку обычными словами. Я уточню недостающее и покажу кнопку «Сохранить». Запись появится в «Точке дня» после вашего подтверждения. Можно текстом или голосовым до 60 секунд; для отключения — /stop.';
    else if(!m.text.trim()||m.text.length>1500)text='Отправьте сообщение длиной от 1 до 1500 символов.';
    else {
-    try {const result=await draft({text:m.text,pending,apiKey:env('TOCHKA_ASSISTANT_DEEPSEEK_API_KEY'),fetchImpl:request});text=result.text;pendingChange=result.proposal?validateProposal(result.proposal):null;}
-    catch(e){text=({balance_required:'На счёте DeepSeek недостаточно средств.',key_rejected:'Нужно проверить API-ключ DeepSeek.',key_missing_or_invalid:'Нужно проверить API-ключ DeepSeek.',provider_busy:'DeepSeek сейчас перегружен. Попробуйте позже.',provider_timeout:'DeepSeek не успел ответить. Попробуйте позже.',invalid_response:'Не удалось разобрать запись. Для расхода укажите покупку, дату, сумму и валюту; для встречи — название, дату и время.'})[e.message]||'Не удалось подготовить черновик. Попробуйте позже.';text+=' В «Точку дня» ничего не сохранено.';}
+    try {
+     const settings=await s.db('user_app_data'+filter+'&select=currency:payload->settings->>cur');
+     const defaultCurrency=settings[0]?.currency;
+     const result=await draft({text:m.text,pending,defaultCurrency,apiKey:env('TOCHKA_ASSISTANT_DEEPSEEK_API_KEY'),fetchImpl:request});text=result.text;pendingChange=result.proposal?validateProposal(result.proposal):null;}
+    catch(e){text=({balance_required:'На счёте DeepSeek недостаточно средств.',key_rejected:'Нужно проверить API-ключ DeepSeek.',key_missing_or_invalid:'Нужно проверить API-ключ DeepSeek.',provider_busy:'DeepSeek сейчас перегружен. Попробуйте позже.',provider_timeout:'DeepSeek не успел ответить. Попробуйте позже.',invalid_response:'Не удалось разобрать запись. Попробуйте сформулировать одно задание: покупку с суммой, встречу или заметку.'})[e.message]||'Не удалось подготовить черновик. Попробуйте позже.';text+=' В «Точку дня» ничего не сохранено.';}
    }
    if(await linked()){
     await s.user(null,uid);
