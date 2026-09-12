@@ -44,6 +44,10 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
       if(choice?.finish_reason!=='stop' || choice.message?.tool_calls?.length || typeof choice.message?.content!=='string') throw 0;
       proposal=validateProposal(JSON.parse(choice.message.content));
     } catch {throw error('invalid_response');}
+    // Guard explicit scheduling requests against the observed model fallback to a note.
+    if (proposal.kind === 'note' && /^\s*(?:пожалуйста[,\s]+)?(?:запланируй|назначь|организуй)\s+(?:мне\s+)?встречу(?=\s|[.!?]|$)/iu.test(text)) {
+      return {needsClarification:true,text:'На какую дату и время запланировать встречу? Пришлите запрос целиком с датой и временем.\nВ «Точку дня» ничего не сохранено.'};
+    }
     return {proposal,...formatProposal(proposal)};
   } catch(e) {
     if(e instanceof AssistantError) throw e;
