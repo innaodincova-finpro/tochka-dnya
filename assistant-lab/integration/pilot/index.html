@@ -928,7 +928,15 @@ async function pushCloud(){
     if(cloudAgain){cloudAgain=false;scheduleCloudSync();}
   }
 }
-async function connectCloudUser(user){
+let pilotConnection=null;
+function connectCloudUser(user){
+  if(pilotConnection&&pilotConnection.user===user.id&&pilotConnection.epoch===cloudEpoch)return pilotConnection.promise;
+  const attempt={user:user.id};pilotConnection=attempt;
+  attempt.promise=connectCloudUserOnce(user).finally(()=>{if(pilotConnection===attempt)pilotConnection=null;});
+  attempt.epoch=cloudEpoch;
+  return attempt.promise;
+}
+async function connectCloudUserOnce(user){
   if(loadBlocked){setCloudState('error','Проверьте локальные данные перед подключением облака');return;}
   const epoch=++cloudEpoch;
   cloudReady=false;cloudSavedAt=null;cloudUser=user;cloudBase=null;cloudConflict=null;clearTimeout(cloudTimer);setCloudState('syncing');

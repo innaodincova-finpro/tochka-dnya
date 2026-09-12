@@ -3,6 +3,7 @@
 const prefix='tochka-owner-pilot-backup-v1:';
 function status(text){const el=document.getElementById('pilot-status');if(el)el.textContent=text;}
 window.pilotGate=async function(user,client,current){
+ document.getElementById('pilot-backup').hidden=true;
  status('Проверяем доступ и сохраняем резервную копию…');
  try{
  const {data,error}=await client.auth.getSession();
@@ -27,6 +28,6 @@ window.pilotGate=async function(user,client,current){
  const url=URL.createObjectURL(new Blob([localStorage.getItem(key+':first')],{type:'application/json'}));
  const a=document.createElement('a');a.href=url;a.download='tochka-before-assistant.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
  };
- }catch(e){status((e?.name==='QuotaExceededError'?'Недостаточно места для резервной копии.':e.message||'Не удалось создать резервную копию.')+' Синхронизация не запущена.');throw e;}
+ }catch(e){if(!current())throw e;status((e?.name==='QuotaExceededError'?'Недостаточно места для резервной копии.':e.message||'Не удалось создать резервную копию.')+' Синхронизация не запущена.');throw e;}
 };
 })();

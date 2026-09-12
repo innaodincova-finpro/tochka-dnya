@@ -5,6 +5,7 @@ out=root/'pilot'
 s=(root/'index.html').read_text()
 s=s.replace("const KEY = 'tochka-dnya-v3';", "const KEY = 'tochka-dnya-owner-pilot-v1';")
 s=s.replace('<script src="supabase.js"></script>', '<script src="/tochka-dnya/supabase.js"></script><script src="pilot-gate.js"></script>')
+s=s.replace('async function connectCloudUser(user){', 'let pilotConnection=null;\nfunction connectCloudUser(user){\n  if(pilotConnection&&pilotConnection.user===user.id&&pilotConnection.epoch===cloudEpoch)return pilotConnection.promise;\n  const attempt={user:user.id};pilotConnection=attempt;\n  attempt.promise=connectCloudUserOnce(user).finally(()=>{if(pilotConnection===attempt)pilotConnection=null;});\n  attempt.epoch=cloudEpoch;\n  return attempt.promise;\n}\nasync function connectCloudUserOnce(user){')
 s=s.replace("    const access=await cloudClient.rpc('tochka_visit');", "    await window.pilotGate(user,cloudClient,()=>epoch===cloudEpoch);\n    if(epoch!==cloudEpoch)return;\n    const access=await cloudClient.rpc('tochka_visit');")
 s=s.replace("if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){", 'if (false){')
 s=re.sub(r'<link rel="manifest"[^>]*>', '', s)
