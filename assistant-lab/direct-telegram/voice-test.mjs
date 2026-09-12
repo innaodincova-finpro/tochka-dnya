@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {transcribeVoice} from './voice.mjs';
+const voice={file_id:'file',duration:10,file_size:8};
+const env=n=>n==='TOCHKA_ASSISTANT_GROQ_API_KEY'?'fake-groq':'fake-token';
+let calls=[];
+const tg=async()=>({file_path:'voice/file_1.oga',file_size:8});
+const request=async(url,o)=>{calls.push(url);if(url.includes('/file/bot'))return new Response('OggSfake');assert.ok(o.body instanceof FormData);assert.equal(o.body.get('file').name,'voice.ogg');assert.equal(o.body.get('language'),'ru');assert.equal(o.body.get('model'),'whisper-large-v3-turbo');return Response.json({text:'Завтра в 18:00 встреча',segments:[{no_speech_prob:0.01}]});};
+assert.equal(await transcribeVoice({voice,env,tg,request}),'Завтра в 18:00 встреча');
+assert.equal(calls.length,2);
+await assert.rejects(transcribeVoice({voice,env:()=>undefined,tg,request}),/voice_not_configured/);
+await assert.rejects(transcribeVoice({voice:{...voice,duration:61},env,tg,request}),/voice_too_long/);
+await assert.rejects(transcribeVoice({voice:{...voice,file_size:5e6},env,tg,request}),/voice_too_large/);
+await assert.rejects(transcribeVoice({voice,env,tg:async()=>({file_path:'../secrets'}),request}),/voice_empty/);
+await assert.rejects(transcribeVoice({voice,env,tg,request:async url=>url.includes('/file/bot')?new Response('audio'):Response.json({text:'Спасибо за просмотр',segments:[{no_speech_prob:0.95}]})}),/voice_empty/);
+await assert.rejects(transcribeVoice({voice,env,tg,request:async url=>url.includes('/file/bot')?new Response('audio'):new Response('',{status:401})}),/voice_key/);
+await assert.rejects(transcribeVoice({voice,env,tg,request:async()=>new Response(new Uint8Array(4*1024*1024+1))}),/voice_too_large/);
+console.log('PASS voice upload, format, Russian, missing key, duration/size, path safety, silence, provider failure, streamed size');

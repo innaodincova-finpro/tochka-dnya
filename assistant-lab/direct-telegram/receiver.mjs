@@ -2,7 +2,8 @@ import {hash,services,readJSON} from './common.mjs';
 import {prepareDraft} from './deepseek.mjs';
 import {validateProposal} from './proposal.mjs';
 import {card,savedCard} from './conversation.mjs';
-export function makeHandler(env,request=fetch,draft=prepareDraft){
+import {transcribeVoice,voiceErrorText} from './voice.mjs';
+export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=transcribeVoice){
  return async req=>{
   if(req.method!=='POST')return new Response('',{status:405});
   const secret=req.headers.get('x-telegram-bot-api-secret-token')||'';
@@ -50,13 +51,18 @@ export function makeHandler(env,request=fetch,draft=prepareDraft){
    if(reservation==='busy')return new Response('',{status:503});
    if(reservation!=='reserved')return new Response('ok');
    reserved=true;
-   let text, pendingChange, presentation;
+   let text, pendingChange, presentation, transcript;
+   if(m.voice){
+    try {transcript=await transcribe({voice:m.voice,env,tg:s.tg,request});m.text=transcript;}
+    catch(e){text=voiceErrorText(e)+' В «Точку дня» ничего не сохранено.';}
+   }
    const context=(await s.db('tochka_assistant_pilot'+filter+'&select=pending,pending_at,enabled_at'))[0];
    let pending=null;
    if(context?.pending && Date.parse(context.pending_at)>Date.now()-30*60*1000 && Date.parse(context.pending_at)>=Date.parse(context.enabled_at)){try{pending=validateProposal(context.pending);}catch{}}
-   if(typeof m.text!=='string')text='Пока я принимаю только текст. Голосовые сообщения ещё не подключены.';
+   if(text){}
+   else if(typeof m.text!=='string')text='Отправьте текст или голосовое сообщение до 60 секунд.';
    else if(m.text==='/cancel'||m.text.trim().toLowerCase()==='отмена'){pendingChange=null;text='Черновик отменён. Напишите новое задание.';}
-   else if(m.text.startsWith('/'))text='Напишите встречу, расход или заметку обычными словами. Я уточню недостающее и покажу кнопку «Сохранить». Запись появится в «Точке дня» после вашего подтверждения. Сейчас принимаю текст; для отключения — /stop.';
+   else if(m.text.startsWith('/'))text='Напишите встречу, расход или заметку обычными словами. Я уточню недостающее и покажу кнопку «Сохранить». Запись появится в «Точке дня» после вашего подтверждения. Можно текстом или голосовым до 60 секунд; для отключения — /stop.';
    else if(!m.text.trim()||m.text.length>1500)text='Отправьте сообщение длиной от 1 до 1500 символов.';
    else {
     try {const result=await draft({text:m.text,pending,apiKey:env('TOCHKA_ASSISTANT_DEEPSEEK_API_KEY'),fetchImpl:request});text=result.text;pendingChange=result.proposal?validateProposal(result.proposal):null;}
@@ -65,6 +71,7 @@ export function makeHandler(env,request=fetch,draft=prepareDraft){
    if(await linked()){
     await s.user(null,uid);
     if(pendingChange!==undefined){const changed=await s.db('tochka_assistant_pilot'+filter+'&enabled=eq.true&current_update=eq.'+update,'PATCH',{pending:pendingChange,pending_at:pendingChange?new Date(Math.max(Date.now(),(Date.parse(context?.pending_at)||0)+1)).toISOString():null});if(!changed.length)return new Response('ok');if(pendingChange)presentation=card(pendingChange,Date.parse(changed[0].pending_at));}
+    if(presentation&&transcript)presentation.text='Я услышал: «'+transcript+'»\n\n'+presentation.text;
     await s.tg('sendMessage',{chat_id:m.chat.id,...(presentation||{text}),link_preview_options:{is_disabled:true}});
     await s.db('tochka_assistant_deliveries?update_id=eq.'+update+'&user_id=eq.'+encodeURIComponent(uid),'PATCH',{state:'sent'});
    }

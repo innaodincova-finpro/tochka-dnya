@@ -17,3 +17,12 @@ calls=[];assert.equal((await send({update_id:2,callback_query:{id:'cb',from:mess
 calls=[];await send({update_id:3,callback_query:{id:'cb',from:{id:777,is_bot:false},data:'save:'+now,message}});assert.equal(calls.filter(([u])=>u.includes('confirm')).length,0);
 const missing=card({kind:'event',title:'test'},now);assert.equal(missing.reply_markup.inline_keyboard.flat().some(b=>b.callback_data.startsWith('save:')),false);
 console.log('PASS direct button path, callback identity, no paid inference on click, incomplete proposal cannot save');
+let speechCalls=0,draftInput;
+const vh=makeHandler(env,request,async args=>{draftInput=args;return {proposal:{kind:'event',title:'Врач',date:'2026-09-15',time:'18:00'}};},async()=>{speechCalls++;return 'Врач 15 сентября в 18:00';});
+const vsend=b=>vh(new Request('https://local',{method:'POST',headers:{'x-telegram-bot-api-secret-token':secret},body:JSON.stringify(b)}));
+calls=[];await vsend({update_id:4,message:{...message,text:undefined,voice:{file_id:'f',duration:10}}});
+assert.equal(speechCalls,1);assert.equal(draftInput.text,'Врач 15 сентября в 18:00');
+const voiceSent=calls.find(([u])=>u.endsWith('/sendMessage'))[1];assert.ok(voiceSent.text.startsWith('Я услышал:'));assert.ok(voiceSent.reply_markup.inline_keyboard[0][0].callback_data.startsWith('save:'));
+await vsend({update_id:5,message:{...message,from:{id:999,is_bot:false},text:undefined,voice:{file_id:'f',duration:10}}});assert.equal(speechCalls,1);
+calls=[];stored=null;await send({update_id:6,message:{...message,text:undefined,voice:{file_id:'f',duration:10}}});assert.equal(stored,null);assert.ok(calls.find(([u])=>u.endsWith('/sendMessage'))[1].text.includes('нужен ключ'));assert.ok(!calls.some(([u])=>u.includes('groq.com')));
+console.log('PASS voice owner gate, text pipeline/buttons, missing key preserves pending');
