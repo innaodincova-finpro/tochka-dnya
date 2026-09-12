@@ -676,6 +676,7 @@ function validateData(raw){
     (x.at!==undefined && (typeof x.at!=='string' || !date(x.at.slice(0,10)) ||
       !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(x.at) || !Number.isFinite(Date.parse(x.at))))
   ))) throw new Error('Некорректные отметки удаления');
+  if (raw.assistantImports!==undefined && (!obj(raw.assistantImports) || Object.entries(raw.assistantImports).some(([k,v])=>!/^ai_[a-f0-9]{64}$/.test(k)||v!==true))) throw new Error('Некорректная история добавлений помощника');
   if (raw.settings!==undefined && !obj(raw.settings)) throw new Error('Некорректные настройки');
   if (raw.day!==undefined && (!obj(raw.day)||Object.entries(raw.day).some(([d,r])=>!date(d)||!obj(r)||(r.done!==undefined&&!Array.isArray(r.done))))) throw new Error('Некорректные отметки календаря');
   return raw;
@@ -827,6 +828,7 @@ function mergeStates(local, remote){
     });
   });
 
+  if(local.assistantImports || remote.assistantImports)out.assistantImports=Object.assign({},local.assistantImports||{},remote.assistantImports||{});
   out.day = Object.assign({}, older.day||{}, newer.day||{});
 
   /* обычно свежая настройка вытесняет прежнюю, но нетронутое значение
@@ -2910,6 +2912,7 @@ function renderMore(){
     fold('more-cloud','Мои данные',cloudUser?'облако подключено':'сохранение и копии',
       '<h3 style="font-size:16px;margin:0 0 10px">Облачное сохранение</h3>'+cloudBody+
       '<h3 style="font-size:16px;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line)">Резервная копия</h3>'+backupBody)+
+    card('<button class="btn ghost" onclick="openAssistantImport()">Встречи помощника</button>')+
     fold('more-reminders','Напоминания',S.settings.reminderMode==='three-and-hour'?'за 3 часа и за час':'о встречах за час',
       '<p>Настройте уведомления на этом устройстве и проверьте их получение.</p><button class="btn" onclick="openPushSheet()">Настроить напоминания</button>')+
     fold('more-set', 'Настройки приложения', 'оформление и разделы',
@@ -3906,6 +3909,8 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
 }
 
 </script>
+<script src="assistant-import.js"></script>
+<script src="assistant-panel.js"></script>
 </body>
 </html>
 
