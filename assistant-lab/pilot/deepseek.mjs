@@ -2,7 +2,7 @@ import {SYSTEM_PROMPT, validateProposal, formatProposal} from './proposal.mjs';
 export class AssistantError extends Error { constructor(code) { super(code); this.name='AssistantError'; } }
 const error = code => new AssistantError(code);
 // Server-side only. Caller must authenticate owner and reserve daily quota BEFORE calling.
-export async function prepareDraft({text, apiKey, now = new Date(), timeZone = 'Europe/Moscow', fetchImpl = fetch}) {
+export async function prepareDraft({text, apiKey, now = new Date(), timeZone = 'Europe/Moscow', pending = null, fetchImpl = fetch}) {
   if (typeof text !== 'string' || !text.trim() || text.length > 1500) throw error('invalid_input');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /\s/.test(apiKey)) throw error('key_missing_or_invalid');
   let today;
@@ -12,6 +12,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
     const get = type => parts.find(p=>p.type===type).value;
     today = `${get('year')}-${get('month')}-${get('day')}`;
   } catch { throw error('invalid_time_context'); }
+  if (pending !== null) pending = validateProposal(pending);
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(),25000);
   try {
@@ -21,6 +22,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
       body:JSON.stringify({model:'deepseek-flash',stream:false,thinking:{type:'disabled'},max_tokens:1200,
         response_format:{type:'json_object'},messages:[
           {role:'system',content:SYSTEM_PROMPT+'\nПример JSON: {"kind":"event","title":"Врач","date":"2026-09-15","time":"10:15"}. Пример не содержит данных пользователя.\nТекущая дата: '+today+'; часовой пояс: '+timeZone+'.'},
+          ...(pending ? [{role:'assistant',content:JSON.stringify(pending)}] : []),
           {role:'user',content:text}
         ]})
     });
@@ -46,7 +48,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
     } catch {throw error('invalid_response');}
     // Guard explicit scheduling requests against the observed model fallback to a note.
     if (proposal.kind === 'note' && /^\s*(?:пожалуйста[,\s]+)?(?:запланируй|назначь|организуй)\s+(?:мне\s+)?встречу(?=\s|[.!?]|$)/iu.test(text)) {
-      return {needsClarification:true,text:'На какую дату и время запланировать встречу? Пришлите запрос целиком с датой и временем.\nВ «Точку дня» ничего не сохранено.'};
+      return {proposal:validateProposal({kind:'event',title:text.trim()}),needsClarification:true,text:'На какую дату и время запланировать встречу? Можно ответить коротко, например: завтра в 15:00.\nВ «Точку дня» ничего не сохранено.'};
     }
     return {proposal,...formatProposal(proposal)};
   } catch(e) {

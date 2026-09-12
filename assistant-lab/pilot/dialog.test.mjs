@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {prepareDraft} from './deepseek.mjs';import {makeHandler} from './receiver.mjs';import {hash} from './common.mjs';
+test('validated prior draft is sent separately with short clarification',async()=>{let body;const r=await prepareDraft({text:'завтра в 15:00',pending:{kind:'event',title:'Встреча с Ольгой'},apiKey:'test',fetchImpl:async(u,o)=>{body=JSON.parse(o.body);return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({kind:'event',title:'Встреча с Ольгой',date:'2026-09-13',time:'15:00'})}}]});}});assert.equal(body.messages[1].role,'assistant');assert.equal(JSON.parse(body.messages[1].content).title,'Встреча с Ольгой');assert.equal(body.messages[2].content,'завтра в 15:00');assert.equal(r.needsClarification,false);});
+test('invalid context rejected before sending to model',async()=>{await assert.rejects(prepareDraft({text:'завтра',pending:{kind:'event',title:'X',owner:'fake'},apiKey:'test',fetchImpl:()=>assert.fail()}));});
+async function scenario(expired=false,cancel=false){let contextSeen,change,modelCalls=0;const secret='a'.repeat(64),digest=await hash(secret),uid='owner';const env=n=>({SUPABASE_URL:'https://test.invalid',SUPABASE_SERVICE_ROLE_KEY:'test',TOCHKA_ASSISTANT_OWNER_EMAIL:'owner@example.test'})[n];const request=async(url,o={})=>{
+ if(url.includes('tochka_assistant_pilot')){if(o.method==='PATCH'){change=JSON.parse(o.body);return Response.json([{}]);}return Response.json([{user_id:uid,enabled:true,enabled_at:'2026-01-01',hook_hash:digest,pending:{kind:'event',title:'Встреча с Ольгой'},pending_at:new Date(Date.now()-(expired?3600000:10000)).toISOString()}]);}
+ if(url.includes('tochka_assistant_links'))return Response.json([{chat_id:123}]);
+ if(url.includes('/auth/'))return Response.json({id:uid,email:'owner@example.test',email_confirmed_at:'2026-01-01'});
+ if(url.includes('/rpc/'))return Response.json('reserved');
+ if(url.includes('api.telegram'))return Response.json({ok:true,result:{}});
+ if(url.includes('tochka_assistant_deliveries'))return Response.json([]);assert.fail(url);
+};const h=makeHandler(env,request,async({pending})=>{modelCalls++;contextSeen=pending;return {proposal:{kind:'event',title:'Встреча с Ольгой',date:'2026-09-13',time:'15:00'},needsClarification:false,text:'Черновик'};});
+ const r=await h(new Request('https://test.invalid',{method:'POST',headers:{'x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:123,message:{date:Math.floor(Date.now()/1000),chat:{id:123,type:'private'},from:{id:123,is_bot:false},text:cancel?'отмена':'завтра в 15:00'}})}));assert.equal(r.status,200);return {contextSeen,change,modelCalls};}
+test('receiver carries pending context and clears completed draft',async()=>{const r=await scenario();assert.equal(r.contextSeen.title,'Встреча с Ольгой');assert.equal(r.change.pending,null);});
+test('expired context excluded',async()=>assert.equal((await scenario(true)).contextSeen,null));
+test('cancel clears draft without model',async()=>{const r=await scenario(false,true);assert.equal(r.modelCalls,0);assert.equal(r.change.pending,null);});
