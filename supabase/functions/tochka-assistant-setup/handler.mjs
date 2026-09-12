@@ -1,8 +1,11 @@
 // Read-only connection check. Never returns secrets; never sends messages or modifies webhooks.
 const EXPECTED_BOT='inna_assistant_bot';
 export function makeHandler(env, request=fetch){
- const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}});
+ const reply=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','access-control-allow-origin':'https://innaodincova-finpro.github.io','access-control-allow-headers':'authorization, apikey, content-type','access-control-allow-methods':'GET, OPTIONS','vary':'Origin'}});
  return async req=>{
+  const origin=req.headers.get('origin');
+  if(origin&&origin!=='https://innaodincova-finpro.github.io')return reply({error:'origin_not_allowed'},403);
+  if(req.method==='OPTIONS')return reply({ok:true});
   if(req.method!=='GET')return reply({error:'method_not_allowed'},405);
   const auth=req.headers.get('authorization')||'';
   if(!/^Bearer \S+$/.test(auth))return reply({error:'sign_in_required'},401);

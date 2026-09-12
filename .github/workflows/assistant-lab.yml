@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'assistant-lab/**'
+      - 'assistant-link/**'
       - 'supabase/functions/tochka-assistant-setup/**'
       - '.github/workflows/assistant-lab.yml'
 permissions:
@@ -18,3 +19,4 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: node assistant-lab/test.cjs
       - run: node assistant-lab/setup-test.cjs
+      - run: node assistant-lab/link-ui-test.cjs
