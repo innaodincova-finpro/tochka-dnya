@@ -2,7 +2,7 @@
 const BASE='https://dcpthwmuiodrjepifzsd.supabase.co';
 const KEY='sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const $=id=>document.getElementById(id);
-const errors={sign_in_required:'Войдите заново.',owner_only:'Проверка доступна только владельцу. Убедитесь, что указана почта из настройки TOCHKA_ASSISTANT_OWNER_EMAIL.',server_not_configured:'Проверьте, сохранена ли почта владельца в настройках сервера.',invalid_bot_token_format:'Токен сохранён не полностью или с лишними символами. Проверьте его в настройках Supabase.',wrong_bot:'Сохранён токен другого бота. Нужен токен @Inna_Assistant_bot.',telegram_check_failed:'Telegram не подтвердил токен. Проверьте токен или повторите позже.',connection_check_unavailable:'Сейчас нет соединения с сервисом проверки. Попробуйте позже.'};
+const errors={sign_in_required:'Войдите заново.',owner_only:'Проверка доступна только владельцу. Убедитесь, что указана почта из настройки TOCHKA_ASSISTANT_OWNER_EMAIL.',server_not_configured:'Проверьте, сохранена ли почта владельца в настройках сервера.',invalid_bot_token_format:'Токен сохранён не полностью или с лишними символами. Проверьте его в настройках Supabase.',wrong_bot:'Сохранён токен другого бота. Нужен токен @Inna_Assis_bot.',telegram_check_failed:'Telegram не подтвердил токен. Проверьте токен или повторите позже.',connection_check_unavailable:'Сейчас нет соединения с сервисом проверки. Попробуйте позже.'};
 $('login').addEventListener('submit',async e=>{
  e.preventDefault();if($('submit').disabled)return;$('submit').disabled=true;$('result').hidden=true;$('status').textContent='Проверяем вход…';let access=null;
  try{
