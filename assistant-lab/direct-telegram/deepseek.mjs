@@ -1,4 +1,4 @@
-import {SYSTEM_PROMPT, validateProposal, formatProposal} from './proposal.mjs';
+import {SYSTEM_PROMPT, validateProposal, formatProposal, normalizeModelProposal} from './proposal.mjs';
 export class AssistantError extends Error { constructor(code) { super(code); this.name='AssistantError'; } }
 const error = code => new AssistantError(code);
 // Only explicit amendments and short temporal answers inherit the active draft.
@@ -54,7 +54,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
     try {
       const result=JSON.parse(body),choice=result.choices?.[0];
       if(choice?.finish_reason!=='stop' || choice.message?.tool_calls?.length || typeof choice.message?.content!=='string') throw 0;
-      proposal=validateProposal(JSON.parse(choice.message.content));
+      proposal=normalizeModelProposal(JSON.parse(choice.message.content));
     } catch {throw error('invalid_response');}
     // Guard explicit scheduling requests against the observed model fallback to a note.
     if (proposal.kind === 'note' && /^\s*(?:пожалуйста[,\s]+)?(?:запланируй|назначь|организуй)\s+(?:мне\s+)?встречу(?=\s|[.!?]|$)/iu.test(text)) {
