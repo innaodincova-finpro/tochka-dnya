@@ -14,10 +14,10 @@ if (location.pathname.endsWith('/')) {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Точка дня">
-<title>Точка дня</title>
-<link rel="apple-touch-icon" sizes="180x180" href="icon-180-v3.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v3.png">
-<link rel="manifest" href="manifest.webmanifest">
+<title>Точка дня · Проверка помощника</title>
+<link rel="apple-touch-icon" sizes="180x180" href="/tochka-dnya/icon-180-v3.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/tochka-dnya/icon-192-v3.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <!-- шрифты не задерживают первую отрисовку: экран появляется сразу
@@ -573,7 +573,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
 .compact-note .note-open:active{background:rgba(118,82,168,.07)}
 </style>
 </head>
-<body>
+<body><aside style="position:relative;z-index:1;max-width:520px;margin:auto;padding:12px;background:#f1ebf8;color:#302a3d;box-sizing:border-box;font:14px/1.5 sans-serif"><strong>Проверка помощника · только для владельца</strong><div>Здесь ваши настоящие облачные записи. Подтверждённые изменения появятся и в обычной «Точке дня».</div><p id="pilot-status" role="status">Для начала войдите в «Мои данные». Копия будет создана автоматически перед синхронизацией.</p><button type="button" onclick="goScreen('s-more');toggleFold('more-cloud')">Мои данные</button> <button type="button" onclick="openAssistantImport()">Встречи помощника</button> <button id="pilot-backup" type="button" hidden>Скачать исходную копию</button><div><a href="/tochka-dnya/">Обычная «Точка дня»</a></div></aside>
 <div class="phone">
   <div class="status"><span>9:41</span><span></span></div>
   <div class="appbar">
@@ -617,7 +617,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
   </div>
   <div class="toasts" id="toasts"></div>
 </div>
-<script src="supabase.js"></script>
+<script src="/tochka-dnya/supabase.js"></script><script src="pilot-gate.js"></script>
 <script>
 /* ================= Точка дня — рабочая версия =================
    Один файл. Данные хранятся в браузере телефона. Пока облачный аккаунт
@@ -625,7 +625,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    Семья приложений: Точка решения / Точка речи / Точка ответа / Точка красоты.
    ============================================================== */
 
-const KEY = 'tochka-dnya-v3';
+const KEY = 'tochka-dnya-owner-pilot-v1';
 const APP_VERSION = '5.8.13';
 const APP_UPDATED = new Date('2026-09-08T13:40:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
@@ -928,11 +928,21 @@ async function pushCloud(){
     if(cloudAgain){cloudAgain=false;scheduleCloudSync();}
   }
 }
-async function connectCloudUser(user){
+let pilotConnection=null;
+function connectCloudUser(user){
+  if(pilotConnection&&pilotConnection.user===user.id&&pilotConnection.epoch===cloudEpoch)return pilotConnection.promise;
+  const attempt={user:user.id};pilotConnection=attempt;
+  attempt.promise=connectCloudUserOnce(user).finally(()=>{if(pilotConnection===attempt)pilotConnection=null;});
+  attempt.epoch=cloudEpoch;
+  return attempt.promise;
+}
+async function connectCloudUserOnce(user){
   if(loadBlocked){setCloudState('error','Проверьте локальные данные перед подключением облака');return;}
   const epoch=++cloudEpoch;
   cloudReady=false;cloudSavedAt=null;cloudUser=user;cloudBase=null;cloudConflict=null;clearTimeout(cloudTimer);setCloudState('syncing');
   try{
+    await window.pilotGate(user,cloudClient,()=>epoch===cloudEpoch);
+    if(epoch!==cloudEpoch)return;
     const access=await cloudClient.rpc('tochka_visit');
     if(epoch!==cloudEpoch)return;
     if(access.error)throw access.error;
@@ -950,7 +960,8 @@ async function connectCloudUser(user){
     }
     S.settings.cloudOwner=user.id;
     const stored=localStorage.getItem(KEY+':base:'+user.id);
-    cloudBase=stored?normalize(JSON.parse(stored)):blank();
+    if(!stored&&!['ev','exp','inc','notes'].some(k=>(S[k]||[]).length)&&!Object.values(S.day||{}).some(d=>Object.keys(d).length)&&!(S.del||[]).length&&!Object.keys(S.assistantImports||{}).length){S=cloneState(remote);cloudBase=cloneState(remote);}
+    else cloudBase=stored?normalize(JSON.parse(stored)):blank();
     saveQuiet();cloudReady=true;renderAll();await pushCloud();
   }catch(e){if(epoch===cloudEpoch)setCloudState(navigator.onLine?'error':'offline',e&&e.message);}
   if(epoch===cloudEpoch)renderAll();
@@ -3899,12 +3910,12 @@ document.addEventListener('keydown', e => {
       && sheetState.kind !== 'welcome') closeSheet();
 });
 initCloud();
-if (!S.settings.onboarded && !/type=recovery/.test(location.hash)) setTimeout(() => {if(sheetState.kind!=='cloudPassword')openSheet('welcome');}, 120);
+if (false) setTimeout(() => {if(sheetState.kind!=='cloudPassword')openSheet('welcome');}, 120);
 setInterval(() => {
   if (!document.getElementById('s-today').hidden) renderToday();
 }, 60000);
 if (!storageOk) toast('Браузер не сохраняет данные — работайте в обычном режиме, не в инкогнито');
-if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+if (false){
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
 

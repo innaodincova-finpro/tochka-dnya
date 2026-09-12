@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; connect-src https://dcpthwmuiodrjepifzsd.supabase.co; base-uri 'none'; form-action 'none'"><meta name="referrer"  content="no-referrer"><title>Точка дня · Тестовые записи помощника</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f7f3fb;color:#302a3d;font:18px/1.5 system-ui,sans-serif}main{max-width:850px;margin:auto;padding:max(24px,env(safe-area-inset-top)) 20px 48px}h1{font-size:clamp(26px,5vw,38px);line-height:1.2}h2{font-size:24px}section,article{background:white;border:1px solid #dfd3ec;border-radius:20px;padding:24px;margin:20px 0}label{display:block;margin:16px 0}input{display:block;width:100%;font:inherit;padding:14px;border:1px solid #bba5d0;border-radius:12px}button,a{font:inherit}button{border:0;border-radius:12px;background:#7752a4;color:white;padding:14px 20px;min-height:48px;cursor:pointer;margin:4px 8px 4px 0}button.secondary{background:#eee6f5;color:#58377e}button:disabled{opacity:.55;cursor:default}a{color:#65428b}pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere}#status{min-height:28px}#status:focus{outline:none}[hidden]{display:none!important}.muted{color:#72677d}li{margin:12px 0}#records{padding:0;list-style:none}#records li{border-top:1px solid #dfd3ec;padding-top:16px}
+</style>
+<main><p class="muted">Точка дня · Тест помощника</p><h1>Сохранить черновик</h1>
+<p>Здесь сохраняются только тестовые записи. Они не попадают в ваш рабочий план, расходы и заметки.</p>
+<section id="login"><h2>Вход для владельца</h2><form id="form">
+<label>Почта «Точки дня»<input id="email" type="email" autocomplete="username" required></label>
+<label>Пароль «Точки дня»<input id="password" type="password" autocomplete="current-password" required></label>
+<button id="enter">Войти</button></form></section>
+<p id="status" role="status" aria-live="polite" tabindex="-1"></p>
+<div id="workspace" hidden><section><h2>Последний черновик</h2>
+<p>Подготовьте запись в <a href="https://t.me/Inna_Assis_bot" target="_blank" rel="noopener noreferrer">Telegram-помощнике</a>, затем нажмите «Обновить».</p>
+<pre id="preview"></pre><button id="save" disabled>Сохранить в тестовую версию</button>
+<button id="refresh" class="secondary">Обновить</button></section>
+<section><h2>Сохранённые тестовые записи</h2><p class="muted">Последние 100 записей. Список загружается с сервера.</p><ul id="records"></ul></section>
+<button id="logout" class="secondary">Выйти</button></div></main>
+<script type="module" src="./sandbox.js"></script></html>

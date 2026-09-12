@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; worker-src 'none'; frame-src 'self'; base-uri 'none'; form-action 'none'">
 <script>
 // Keep existing root links, including password-recovery fragments, in the app scope.
 if (location.pathname.endsWith('/')) {
@@ -14,17 +14,16 @@ if (location.pathname.endsWith('/')) {
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Точка дня">
-<title>Точка дня</title>
-<link rel="apple-touch-icon" sizes="180x180" href="icon-180-v3.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192-v3.png">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<title>Точка дня — демонстрационная проверка</title>
+
+
+
+
+
 <!-- шрифты не задерживают первую отрисовку: экран появляется сразу
      системным шрифтом, а фирменный подставляется, когда придёт -->
-<link rel="stylesheet" media="print" onload="this.media='all'"
-      href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600&family=Golos+Text:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap"></noscript>
+
+<noscript></noscript>
 <style>
 
 /* Действующая палитра объявлена ниже, в праздничном блоке. Прежний синий
@@ -617,7 +616,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
   </div>
   <div class="toasts" id="toasts"></div>
 </div>
-<script src="supabase.js"></script>
+<script src="/tochka-dnya/supabase.js"></script><script src="visual-fixture.js"></script>
 <script>
 /* ================= Точка дня — рабочая версия =================
    Один файл. Данные хранятся в браузере телефона. Пока облачный аккаунт
@@ -625,11 +624,11 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    Семья приложений: Точка решения / Точка речи / Точка ответа / Точка красоты.
    ============================================================== */
 
-const KEY = 'tochka-dnya-v3';
+const KEY = 'tochka-visual-v1-'+(new URLSearchParams(location.search).get('device')||'a');
 const APP_VERSION = '5.8.13';
 const APP_UPDATED = new Date('2026-09-08T13:40:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
-const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
+const SUPABASE_URL = location.origin;
+const SUPABASE_KEY = 'fixture-local-only';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
 const REPEATS = [['none','Не повторять'],['year','Каждый год'],['month','Каждый месяц'],['week','Каждую неделю']];
 
@@ -3904,7 +3903,7 @@ setInterval(() => {
   if (!document.getElementById('s-today').hidden) renderToday();
 }, 60000);
 if (!storageOk) toast('Браузер не сохраняет данные — работайте в обычном режиме, не в инкогнито');
-if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
+if (false){
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
 }
 

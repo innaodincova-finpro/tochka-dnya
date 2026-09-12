@@ -1,0 +1,7 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {prepareDraft,contextFor} from './deepseek.mjs';
+const prior={kind:'event',title:'Встреча с Мариной',date:'2026-09-13',time:'15:00',place:'Кафе'};
+async function run(text,pending,result){let messages;const out=await prepareDraft({text,pending,apiKey:'synthetic',fetchImpl:async(u,o)=>{messages=JSON.parse(o.body).messages;return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(result)}}]});}});return {out,messages};}
+test('repeated time keeps Marina and location despite generic model title',async()=>{const {out}=await run('Завтра в 15:00',prior,{kind:'event',title:'Встреча',date:'2026-09-13',time:'15:00'});assert.deepEqual(out.proposal,prior);});
+test('time change preserves name and existing date, ignores model date drift',async()=>{const {out}=await run('В 16:00',prior,{kind:'event',title:'Встреча',date:'2026-10-01',time:'16:00'});assert.deepEqual(out.proposal,{...prior,time:'16:00'});});
+test('new event and expense receive no previous draft',async()=>{for(const text of ['Запланируй встречу с Анной','Сегодня потратила 350 рублей на кофе']){const r=await run(text,prior,{kind:'note',title:'Новое задание'});assert.equal(r.messages.length,2);}});
+test('no context remains no context; explicit amendment retains it',()=>{assert.equal(contextFor('В 15:00',null),null);assert.deepEqual(contextFor('Перенеси на завтра',prior),prior);assert.equal(contextFor('Идеи для отпуска',prior),null);});

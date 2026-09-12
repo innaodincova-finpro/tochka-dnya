@@ -1,0 +1,25 @@
+name: Проверка изолированного помощника
+on:
+  pull_request:
+    paths:
+      - 'assistant-lab/**'
+      - 'assistant-link/**'
+      - 'supabase/functions/tochka-assistant-setup/**'
+      - 'supabase/functions/tochka-assistant-link/**'
+      - '.github/workflows/assistant-lab.yml'
+permissions:
+  contents: read
+jobs:
+  proposals:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node assistant-lab/test.cjs
+      - run: node assistant-lab/setup-test.cjs
+      - run: node assistant-lab/link-ui-test.cjs
+      - run: node assistant-lab/link-backend-test.cjs
+      - run: node assistant-lab/pairing-ui-test.cjs
