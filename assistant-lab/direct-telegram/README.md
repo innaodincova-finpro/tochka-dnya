@@ -37,6 +37,12 @@ Text cancellation uses the same version-checked confirmation RPC as the Cancel b
 
 Run `node --test assistant-lab/direct-telegram/*test.mjs` from the repository root. The SQL test also loads the actual app and validates all three saved record formats. CI now covers direct Telegram code explicitly. These are isolated checks, not evidence of a message received on the owner's phone.
 
+## Documents v1 (local implementation)
+
+The linked owner can send a PDF, Word, JPG, PNG, WEBP or iPhone photo up to 20 MB. The receiver validates identity and active membership before downloading, uploads the original bytes with the service role to the private `tochka-documents` bucket, and writes owner-scoped metadata to `public.tochka_documents`. Browser access remains owner-only through RLS. If metadata insertion fails, the newly uploaded object is removed best-effort.
+
+`Найди документ <название>` is deterministic and does not call DeepSeek or reserve daily AI quota. A single or unique exact match is returned as a Telegram document; ambiguous matches produce a short numbered list and ask for a narrower title. Apply `documents.sql` only after review, then deploy the receiver and perform owner-phone acceptance. This branch does not create the bucket/table or deploy anything by itself.
+
 ## Agenda and note search (receiver v13)
 
 Text queries: `Что сегодня?`, `Что у меня сегодня?`, `План на сегодня`, `/today`; corresponding tomorrow variants and `/tomorrow`; `Найди заметку про документы`, `Найди заметки ...`, `Поиск заметок ...`, `/search ...`.
