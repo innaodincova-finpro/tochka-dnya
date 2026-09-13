@@ -1,6 +1,6 @@
 {
   "name": "tochka-dnya",
-  "version": "5.9.1",
+  "version": "5.9.2",
   "private": true,
   "scripts": {
     "test:finance-category": "node finance-category-regression.cjs",

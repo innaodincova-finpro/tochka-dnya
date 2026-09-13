@@ -18,6 +18,7 @@ async function main(){
  ok(!run("allowedDocument({name:'script.html',type:'text/html',size:10})"),'неподдерживаемый тип отклонён');
  run("cloudUser={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};documentsState='ready';documents=[{id:'d1',title:'Паспорт',original_name:'scan.pdf',object_path:'a/d1/original.pdf',mime_type:'application/pdf',size_bytes:2048,created_at:'2026-09-13T10:00:00Z'}];noteQuery='пас';renderNotes();");
  ok(w.document.getElementById('s-notes').textContent.includes('Паспорт'),'поиск находит документ по названию');
+ ok(!!w.document.querySelector('.doc-row .doc-actions'),'карточка документа использует мобильную сетку без сжатия названия');
  run("noteQuery='содержимое';renderNotes();");
  ok(!w.document.getElementById('s-notes').textContent.includes('Паспорт'),'первая версия не ищет по содержимому');
  ok(/grid-template-columns:repeat\(4/.test(html),'четыре вкладки помещаются в одну строку');
