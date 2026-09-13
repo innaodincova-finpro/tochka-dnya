@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.8.13-reminders';
+const CACHE = 'tochka-dnya-v5.8.14-finance-filter';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
@@ -97,4 +97,3 @@ self.addEventListener('notificationclick', event => {
   if(existing)return existing.focus();return self.clients.openWindow(url);
  })());
 });
-

@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'finance-category-browser.cjs'
       - 'more-browser.cjs'
       - 'reestr.html'
       - 'registry*.js'
@@ -23,6 +24,7 @@ jobs:
       - run: npx playwright install chromium
       - run: node registry-browser.cjs
       - run: node more-browser.cjs
+      - run: node finance-category-browser.cjs
       - uses: actions/upload-artifact@v4
         with:
           name: registry-previews
