@@ -127,12 +127,15 @@ body{
 .switch button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 5px rgba(40,66,92,.12)}
 .switch.notes-switch{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
 .switch.notes-switch button{padding-left:4px;padding-right:4px;font-size:12px}
-.doc-preview{width:46px;height:56px;flex:0 0 46px;border-radius:9px;border:1px solid var(--line);background:#F7F2FA;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px;overflow:hidden}
+.doc-preview{width:40px;height:46px;flex:0 0 40px;border-radius:9px;border:1px solid var(--line);background:#F7F2FA;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:15px;font-weight:600;overflow:hidden}
 .doc-preview img{width:100%;height:100%;object-fit:cover}
-.doc-row{display:grid;grid-template-columns:46px minmax(0,1fr);align-items:center;gap:10px 12px}
-.doc-row .txt b{overflow-wrap:anywhere;word-break:normal}
-.doc-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
-.doc-actions .mini,.doc-actions .del{width:100%;margin:0;min-height:36px}
+.doc-tools{display:flex;align-items:center;justify-content:flex-end;margin:-2px 0 4px}
+.doc-tools select{width:auto;min-height:34px;padding:5px 30px 5px 10px;border-radius:10px;font-size:12px;color:var(--mut);background-color:transparent}
+.doc-row{display:grid;grid-template-columns:40px minmax(0,1fr) 38px;align-items:center;gap:10px;cursor:pointer;min-height:64px}
+.doc-row .txt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.doc-row .txt small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-more{width:38px;height:38px;border:0;border-radius:12px;background:transparent;color:var(--accent);font:700 22px/1 Arial,sans-serif;cursor:pointer}
+.doc-more:active{background:#F7F2FA}
 
 /* календарь */
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
@@ -638,7 +641,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.9.2';
+const APP_VERSION = '5.9.3';
 const APP_UPDATED = new Date('2026-09-13T05:40:49.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
@@ -2236,6 +2239,7 @@ function noteBucket(n){
 }
 const NOTE_TABS = [['task','Дела'],['note','Заметки'],['list','Списки'],['document','Документы']];
 function setNotesTab(v){ S.settings.notesTab = v; saveQuiet(); renderNotes(); if(v==='document'&&documentsState==='idle')loadDocuments(); }
+function setDocumentSort(v){S.settings.documentSort=v;saveQuiet();renderNotes();}
 function renderNotes(){
   const list = S.notes;
   const q = (noteQuery || '').toLowerCase();
@@ -2271,9 +2275,11 @@ function renderNotes(){
 
 
   if(tab==='document'){
-    const docs=q?documents.filter(d=>String(d.title||'').toLowerCase().includes(q)):documents;
+    const source=q?documents.filter(d=>String(d.title||'').toLowerCase().includes(q)):documents;
+    const sort=S.settings.documentSort||'new',docs=source.slice().sort((a,b)=>sort==='name'?String(a.title||a.original_name||'').localeCompare(String(b.title||b.original_name||''),'ru',{sensitivity:'base'}):sort==='old'?new Date(a.created_at)-new Date(b.created_at):new Date(b.created_at)-new Date(a.created_at));
     h+=card('<div class="switch notes-switch" role="tablist" aria-label="Что показать" style="margin-bottom:11px">'+
       NOTE_TABS.map(t=>'<button type="button" role="tab" aria-selected="'+(t[0]===tab)+'" onclick="setNotesTab(\''+t[0]+'\')">'+t[1]+(counts[t[0]]?' <em style="font-style:normal;opacity:.6">'+counts[t[0]]+'</em>':'')+'</button>').join('')+'</div>'+
+      (docs.length?'<div class="doc-tools"><select aria-label="Порядок документов" onchange="setDocumentSort(this.value)"><option value="new"'+(sort==='new'?' selected':'')+'>Сначала новые</option><option value="old"'+(sort==='old'?' selected':'')+'>Сначала старые</option><option value="name"'+(sort==='name'?' selected':'')+'>По названию</option></select></div>':'')+
       documentRows(docs,q));
     document.getElementById('s-notes').innerHTML=h;return;
   }
@@ -2303,7 +2309,7 @@ function documentRows(rows,q){
   if(documentsState==='loading')return '<div class="empty">Загружаю документы…</div>';
   if(documentsState==='error')return '<div class="empty">Не удалось загрузить документы. Проверьте интернет и повторите.</div><button class="btn ghost" style="margin-top:11px" onclick="loadDocuments()">Повторить</button>';
   if(!rows.length)return '<div class="empty">'+(q?'Документов с таким названием не найдено.':'Документов пока нет. Загрузите фотографию, PDF или файл Word.')+'</div>';
-  return rows.map(d=>'<div class="item doc-row"><div class="doc-preview">'+(String(d.mime_type||'').startsWith('image/')?'▧':d.mime_type==='application/pdf'?'PDF':'W')+'</div><div class="txt"><b>'+esc(d.title||d.original_name)+'</b><small>'+docDate(d.created_at)+' · '+docType(d)+' · '+docSize(d.size_bytes)+'</small></div><span class="doc-actions"><button class="mini" onclick="openDocument(\''+d.id+'\')">Открыть</button><button class="mini" onclick="downloadDocument(\''+d.id+'\')">Скачать</button><button class="mini" onclick="openSheet(\'documentRename\',\''+d.id+'\')">Название</button><button class="del" onclick="deleteDocument(\''+d.id+'\')">Удалить</button></span></div>').join('');
+  return rows.map(d=>'<div class="item doc-row" role="button" tabindex="0" aria-label="Открыть документ '+esc(d.title||d.original_name)+'" onclick="openDocument(\''+d.id+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openDocument(\''+d.id+'\')}"><div class="doc-preview">'+(String(d.mime_type||'').startsWith('image/')?'Фото':d.mime_type==='application/pdf'?'PDF':'Word')+'</div><div class="txt"><b>'+esc(d.title||d.original_name)+'</b><small>'+docDate(d.created_at)+' · '+docType(d)+' · '+docSize(d.size_bytes)+'</small></div><button class="doc-more" aria-label="Действия с документом" onclick="event.stopPropagation();openSheet(\'documentActions\',\''+d.id+'\')">⋯</button></div>').join('');
 }
 function docDate(v){const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString('ru-RU'):'Без даты';}
 function docSize(v){const n=Number(v)||0;return n>=1048576?(n/1048576).toFixed(n>=10485760?0:1).replace('.',',')+' МБ':Math.max(1,Math.round(n/1024))+' КБ';}
@@ -3290,6 +3296,7 @@ const SHEETS = {
 
   documentUpload: () => '<h3>Новый документ</h3><p>Оригинал сохранится в закрытом облаке и будет доступен только в вашем аккаунте.</p><div class="fld"><label>Файл или фотография</label><input id="f-document-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.pdf,.doc,.docx" onchange="if(!val(\'f-document-title\')&&this.files[0])document.getElementById(\'f-document-title\').value=this.files[0].name.replace(/\\.[^.]+$/,\'\')"></div><div class="fld"><label>Название</label><input id="f-document-title" maxlength="160" placeholder="Например: Полис страхования"></div><div class="mut">Фотография, PDF или Word · не больше 20 МБ</div><button class="btn" id="document-upload-button" style="margin-top:12px" onclick="uploadDocument()">Загрузить</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
   documentRename: id => {const d=documentById(id)||{};return '<h3>Название документа</h3><div class="fld"><label>Название</label><input id="f-document-title" maxlength="160" value="'+esc(d.title||d.original_name||'')+'"></div><button class="btn" onclick="renameDocument(\''+id+'\')">Сохранить</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';},
+  documentActions: id => {const d=documentById(id)||{};return '<h3>'+esc(d.title||d.original_name||'Документ')+'</h3><button class="btn" onclick="closeSheet();openDocument(\''+id+'\')">Открыть</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet();downloadDocument(\''+id+'\')">Скачать</button><button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'documentRename\',\''+id+'\')">Переименовать</button><button class="del" style="display:block;margin:16px auto 0" onclick="closeSheet();deleteDocument(\''+id+'\')">Удалить</button><button class="btn ghost" style="margin-top:12px" onclick="closeSheet()">Отмена</button>';},
 
   quick: () => '<h3>Что добавить?</h3>' +
 
