@@ -5,6 +5,7 @@ import {hash} from './common.mjs';
 
 assert.deepEqual(documentSearchIntent('Найди документ договор'),{query:'договор'});
 assert.deepEqual(documentSearchIntent('найди документы про квартиру?'),{query:'квартиру'});
+assert.deepEqual(documentSearchIntent('Найди иконки'),{query:'иконки'});
 assert.equal(documentSearchIntent('найди заметку договор'),null);
 assert.equal(incomingDocument({document:{file_id:'f',file_size:10,mime_type:'application/pdf',file_name:'Договор.pdf'}}).title,'Договор');
 assert.equal(incomingDocument({date:1,caption:'Чек',photo:[{file_id:'small',file_size:3},{file_id:'large',file_size:9}]}).fileId,'large');
