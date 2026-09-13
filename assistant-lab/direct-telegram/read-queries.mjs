@@ -1,3 +1,4 @@
+import {CATEGORIES} from './proposal.mjs';
 const norm=t=>String(t||'').normalize('NFKC').toLowerCase().replace(/ё/g,'е').replace(/\s+/g,' ').trim();
 const short=(t,n=220)=>{const s=String(t||'').replace(/\s+/g,' ').trim();return s.length>n?s.slice(0,n-1)+'…':s;};
 export function readIntent(text){
@@ -5,6 +6,8 @@ export function readIntent(text){
  const t=norm(text).replace(/[?!\.]+$/,'').trim();
  if(['/today','что сегодня','что у меня сегодня','план на сегодня','планы на сегодня'].includes(t))return {kind:'agenda',offset:0};
  if(['/tomorrow','что завтра','что у меня завтра','план на завтра','планы на завтра'].includes(t))return {kind:'agenda',offset:1};
+ const expense=/^(?:сколько (?:я )?потратила?|расходы|сводка расходов)(?: на (.+?))? за (сегодня|вчера|неделю|месяц|\d{4}-\d{2}-\d{2} по \d{4}-\d{2}-\d{2})$/u.exec(t);
+ if(expense)return {kind:'expenses',category:expense[1]||null,period:expense[2]};
  const m=/^(?:\/search|найди заметку|найди заметки|поиск заметок)(?:\s+(?:про|о))?(?:\s+|:\s*)(.*)$/u.exec(t);
  if(m)return {kind:'search',query:m[1].trim()};
  if(['/search','найди заметку','найди заметки','поиск заметок'].includes(t))return {kind:'search',query:''};
@@ -18,6 +21,7 @@ function occurs(e,date){
 }
 export function readAnswer(intent,payload,now=new Date()){
  if(!payload||!Array.isArray(payload.ev)||!Array.isArray(payload.notes))throw new Error('cloud_unavailable');
+ if(intent.kind==='expenses')return expenseAnswer(intent,payload,now);
  const deleted=new Set((payload.del||[]).map(x=>x.id));
  if(intent.kind==='search'){
   if(intent.query.length<2||intent.query.length>120)return 'Напишите от 2 до 120 символов для поиска. Например: «Найди заметку про документы».';
@@ -50,4 +54,34 @@ export async function answerReadQuery(intent,s,uid,chat,linked){
  if(!await linked()||!(await s.db(memberPath)).length)return;
  await s.user(null,uid);
  await s.tg('sendMessage',{chat_id:chat,text,link_preview_options:{is_disabled:true},reply_markup:{inline_keyboard:[[{text:'Открыть сайт',url:'https://innaodincova-finpro.github.io/tochka-dnya/'}]]}});
+}
+
+function expenseAnswer(intent,payload,now){
+ if(!Array.isArray(payload.exp))throw new Error('cloud_unavailable');
+ const end=dateInMoscow(now,0);let from=end,to=end;
+ if(intent.period==='вчера')from=to=dateInMoscow(now,-1);
+ else if(intent.period==='неделю')from=dateInMoscow(now,-6);
+ else if(intent.period==='месяц')from=end.slice(0,8)+'01';
+ else if(intent.period!=='сегодня'){
+  [from,to]=intent.period.split(' по ');
+  const valid=d=>/^\d{4}-\d{2}-\d{2}$/.test(d)&&Number.isFinite(Date.parse(d+'T12:00Z'))&&new Date(d+'T12:00Z').toISOString().slice(0,10)===d;
+  if(!valid(from)||!valid(to)||from>to)return 'Проверьте даты: например, «Расходы за 2026-09-01 по 2026-09-13».';
+ }
+ const category=intent.category?CATEGORIES.find(c=>norm(c)===norm(intent.category)):null;
+ if(intent.category&&!category)return 'Не узнаю категорию. Доступны: '+CATEGORIES.join(', ')+'.';
+ const deleted=new Set((payload.del||[]).map(x=>x.id));
+ const rows=payload.exp.filter(e=>!deleted.has(e.id)&&e.date>=from&&e.date<=to&&(!category||(e.cat||'Прочее')===category));
+ const totals=new Map();
+ for(const e of rows){
+  const value=Number(e.sum),currency=e.cur;
+  if(!Number.isFinite(value)||value<0||!Number.isSafeInteger(Math.round(value*100))||typeof currency!=='string'||!/^[A-Z]{3}$/.test(currency))throw new Error('invalid_expense');
+  const cents=(totals.get(currency)||0)+Math.round(value*100);
+  if(!Number.isSafeInteger(cents))throw new Error('invalid_expense');
+  totals.set(currency,cents);
+ }
+ const lines=['Расходы: '+from.split('-').reverse().join('.')+' — '+to.split('-').reverse().join('.')+' (Москва)'];
+ if(category)lines.push('Категория: '+category);
+ if(!rows.length)lines.push('Расходов нет.');
+ else {lines.push('Операций: '+rows.length);for(const [currency,cents] of [...totals].sort())lines.push((cents/100).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2})+' '+currency);}
+ return lines.join('\n');
 }

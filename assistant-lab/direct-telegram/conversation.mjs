@@ -6,6 +6,8 @@ export function card(raw,version){
  if(p.date)lines.push(p.date.split('-').reverse().join('.'));
  if(p.time)lines.push(p.time+' (московское время)');
  if(p.place)lines.push(p.place);
+ if(p.repeat)lines.push('Повтор: '+({week:'каждую неделю',month:'каждый месяц',year:'каждый год'})[p.repeat]+'. Отметка выполнения — отдельно для каждой даты.');
+ if(p.repeat==='month'&&Number(p.date?.slice(8))>28)lines.push('В месяце без этого числа повтор будет пропущен.');
  if(p.amount)lines.push(p.amount+' '+(p.currency||''));
  if(p.category)lines.push('Категория: '+p.category);
  const unsupported=p.kind==='expense'&&p.currency&&!['RUB','AZN','KZT'].includes(p.currency);

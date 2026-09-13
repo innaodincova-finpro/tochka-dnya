@@ -34,11 +34,12 @@ begin
  if proposal->>'kind'='expense' and (coalesce(jsonb_typeof(proposal->'amount'),'')<>'number' or (proposal->>'amount')::numeric<=0 or (proposal->>'amount')::numeric>1000000000 or round((proposal->>'amount')::numeric,2)<>(proposal->>'amount')::numeric or coalesce(proposal->>'currency','') not in ('RUB','AZN','KZT')) then raise exception 'invalid_expense'; end if;
  select payload,updated_at into old,old_time from public.user_app_data where user_id=p_user for update;
  if not found or jsonb_typeof(old)<>'object' then raise exception 'cloud_unavailable'; end if;
+ if proposal ? 'repeat' and (proposal->>'kind'<>'event' or coalesce(proposal->>'repeat','') not in ('week','month','year')) then raise exception 'invalid_repeat'; end if;
  section=case proposal->>'kind' when 'event' then 'ev' when 'expense' then 'exp' else 'notes' end;
  if coalesce(jsonb_typeof(old->section),'')<>'array' then raise exception 'invalid_cloud_section'; end if;
  rid='tg_'||replace(p_user::text,'-','')||'_'||p_version::text;
  if exists(select 1 from jsonb_array_elements(old->section) e where e->>'id'=rid) then raise exception 'unexpected_duplicate'; end if;
- if proposal->>'kind'='event' then rec=jsonb_build_object('id',rid,'title',proposal->>'title','date',proposal->>'date','time',proposal->>'time','address',coalesce(proposal->>'place',''),'plan',null,'kind','plain','repeat','none');
+ if proposal->>'kind'='event' then rec=jsonb_build_object('id',rid,'title',proposal->>'title','date',proposal->>'date','time',proposal->>'time','address',coalesce(proposal->>'place',''),'plan',null,'kind','plain','repeat',coalesce(proposal->>'repeat','none'));
  elsif proposal->>'kind'='expense' then
  if proposal ? 'category' and coalesce(proposal->>'category','') not in ('Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее') then raise exception 'invalid_category'; end if;
  rec=jsonb_build_object('id',rid,'title',proposal->>'title','date',proposal->>'date','sum',proposal->'amount','cur',proposal->>'currency','cat',coalesce(proposal->>'category','Прочее'),'src','Telegram');

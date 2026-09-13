@@ -17,6 +17,7 @@ export function shortChange(text,pending,today){
   const d=new Date(today+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+({сегодня:0,вчера:-1,позавчера:-2,завтра:1,послезавтра:2})[t]);
   return validateProposal({...pending,date:d.toISOString().slice(0,10)});
  }
+ if(pending.kind==='event'&&/^(?:в\s+)?([01]?\d|2[0-3]):[0-5]\d$/.test(t)){const time=t.replace(/^в\s+/,'').padStart(5,'0');return validateProposal({...pending,time});}
  if(pending.kind==='expense'){
   const category=CATEGORIES.find(c=>c.toLowerCase()===t.replace(/^категория\s*:?\s*/,''));
   if(category)return validateProposal({...pending,category});

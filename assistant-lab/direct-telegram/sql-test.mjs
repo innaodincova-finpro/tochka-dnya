@@ -29,5 +29,9 @@ try{
 await pending({kind:'event',title:'incomplete'},now+3);await assert.rejects(call(now+3));assert.equal((await call(now+2)).status,'already_saved');
 assert.equal((await call(now+4)).status,'stale');await assert.rejects(call(now+3,'save',999));assert.equal((await call(now+3,'cancel')).status,'cancelled');
 await db.exec('set role authenticated');await assert.rejects(db.query('select tochka_assistant_confirm($1,123,$2,$3,\'save\')',[user,hook,now]));await db.exec('reset role');
+await pending({kind:'event',title:'Internet',date:'2026-10-10',time:'09:00',repeat:'month'},now+5);
+assert.equal((await call(now+5)).status,'saved');assert.equal((await call(now+5)).status,'already_saved');
+state=(await db.query('select payload from user_app_data')).rows[0].payload;assert.equal(state.ev.at(-1).repeat,'month');assert.equal(state.ev.length,3);
+await pending({kind:'event',title:'bad',date:'2026-10-10',time:'09:00',repeat:'daily'},now+6);await assert.rejects(call(now+6));
 console.log('PASS atomic save 3 kinds, snapshot, duplicate, stale, cancel, wrong chat, incomplete, role restriction; existing data preserved');
 }finally{await db.close();}

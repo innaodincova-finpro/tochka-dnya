@@ -2,8 +2,9 @@ import {simpleAmount, currencyWord, hasDateMention} from './defaults.mjs';
 import {validateProposal} from './proposal.mjs';
 
 // Conservative fast path. Ambiguous requests continue through the existing model.
-export function localDraft(text){
+export function localDraft(text,today){
  const t=text.trim();
+ const recurring=monthlyDraft(t,today);if(recurring)return recurring;
  const note=/^(?:заметка\s*:|запиши\s+(?:идею|заметку)\s*:?)\s*(.+)$/isu.exec(t);
  if(note)return validateProposal({kind:'note',title:note[1].trim()});
  if(hasDateMention(t)||/\d\s*[:/]\s*\d|(?:встреч|врач|стоматолог|напомни|перенеси|измени|исправь|доход|зарплат|получил|вернул|возврат|план|задач|замет|иде[яю])/iu.test(t))return null;
@@ -21,4 +22,18 @@ export function localDraft(text){
  return validateProposal({kind:'expense',title,amount,...(currency?{currency}:{})});
  }
  return null;
+}
+
+function monthlyDraft(text,today){
+ const m=/^(?:напомни\s+)?каждого\s+([1-9]|[12]\d|3[01])(?:-го)?\s+числа\s+(.+)$/iu.exec(text);
+ if(!m)return null;
+ const time=/\s+в\s+([01]?\d|2[0-3]):([0-5]\d)[.!]?$/u.exec(m[2]);
+ const title=(time?m[2].slice(0,time.index):m[2]).trim();
+ if(!title)return null;
+ const start=new Date(today+'T12:00Z');let date;
+ for(let i=0;i<24;i++){
+  const d=new Date(Date.UTC(start.getUTCFullYear(),start.getUTCMonth()+i,Number(m[1]),12));
+  if(d.getUTCDate()===Number(m[1])&&d.toISOString().slice(0,10)>=today){date=d.toISOString().slice(0,10);break;}
+ }
+ return validateProposal({kind:'event',title,date,repeat:'month',...(time?{time:time[1].padStart(2,'0')+':'+time[2]}:{})});
 }
