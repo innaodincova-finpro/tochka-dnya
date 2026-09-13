@@ -39,7 +39,9 @@ begin
  rid='tg_'||replace(p_user::text,'-','')||'_'||p_version::text;
  if exists(select 1 from jsonb_array_elements(old->section) e where e->>'id'=rid) then raise exception 'unexpected_duplicate'; end if;
  if proposal->>'kind'='event' then rec=jsonb_build_object('id',rid,'title',proposal->>'title','date',proposal->>'date','time',proposal->>'time','address',coalesce(proposal->>'place',''),'plan',null,'kind','plain','repeat','none');
- elsif proposal->>'kind'='expense' then rec=jsonb_build_object('id',rid,'title',proposal->>'title','date',proposal->>'date','sum',proposal->'amount','cur',proposal->>'currency','cat','Прочее','src','Telegram');
+ elsif proposal->>'kind'='expense' then
+ if proposal ? 'category' and coalesce(proposal->>'category','') not in ('Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее') then raise exception 'invalid_category'; end if;
+ rec=jsonb_build_object('id',rid,'title',proposal->>'title','date',proposal->>'date','sum',proposal->'amount','cur',proposal->>'currency','cat',coalesce(proposal->>'category','Прочее'),'src','Telegram');
  else rec=jsonb_build_object('id',rid,'text',proposal->>'title','date',to_char(clock_timestamp() at time zone 'Europe/Moscow','YYYY-MM-DD'),'kind','note','done',false); end if;
  moment=greatest(clock_timestamp(),old_time+interval '1 millisecond');
  result=jsonb_set(old,array[section],(old->section)||jsonb_build_array(rec));

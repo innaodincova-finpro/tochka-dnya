@@ -17,13 +17,13 @@ await pending({kind:'event',title:'test',date:'2026-09-15',time:'18:30'},now);
 assert.equal((await call(now)).status,'saved');assert.equal((await call(now)).status,'already_saved');
 let state=(await db.query('select payload from user_app_data')).rows[0].payload;assert.equal(state.ev.length,2);assert.deepEqual(state.settings,payload.settings);assert.deepEqual(state.ev[0],payload.ev[0]);
 assert.deepEqual((await db.query('select before_payload from tochka_assistant_confirmed')).rows[0].before_payload,payload);
-await pending({kind:'expense',title:'coffee',date:'2026-09-15',amount:350,currency:'RUB'},now+1);assert.equal((await call(now+1)).status,'saved');
+await pending({kind:'expense',title:'coffee',date:'2026-09-15',amount:350,currency:'RUB',category:'Кафе'},now+1);assert.equal((await call(now+1)).status,'saved');
 await pending({kind:'note',title:'idea'},now+2);assert.equal((await call(now+2)).status,'saved');
 state=(await db.query('select payload from user_app_data')).rows[0].payload;
 const dom=new JSDOM(fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8'),{url:'https://test.invalid/index.html',runScripts:'dangerously',beforeParse(w){w.matchMedia=()=>({matches:false,addListener(){}});w.scrollTo=()=>{};}});
 try{
  dom.window.saved=state;dom.window.eval('validateData(saved)');
- assert.equal(state.exp[0].sum,350);assert.equal(state.exp[0].cur,'RUB');assert.equal(state.notes[0].text,'idea');
+ assert.equal(state.exp[0].cat,'Кафе');assert.equal(state.exp[0].sum,350);assert.equal(state.exp[0].cur,'RUB');assert.equal(state.notes[0].text,'idea');
  assert.deepEqual(state.settings,payload.settings);assert.deepEqual(state.ev[0],payload.ev[0]);
 }finally{dom.window.close();}
 await pending({kind:'event',title:'incomplete'},now+3);await assert.rejects(call(now+3));assert.equal((await call(now+2)).status,'already_saved');

@@ -1,12 +1,13 @@
 import {validateProposal} from './proposal.mjs';
 export function card(raw,version){
- const p=validateProposal(raw),missing=({event:['date','time'],expense:['date','amount','currency'],note:[]})[p.kind].filter(k=>p[k]===undefined);
- const fields={date:'дату',time:'время',amount:'сумму',currency:'валюту'};
+ const p=validateProposal(raw),missing=({event:['date','time'],expense:['date','amount','currency','category'],note:[]})[p.kind].filter(k=>p[k]===undefined);
+ const fields={date:'дату',time:'время',amount:'сумму',currency:'валюту',category:'категорию (Продукты, Кафе, Доставка, Дом, Красота, Транспорт, Здоровье, Одежда, Дети или Прочее)'};
  const lines=[p.title];
  if(p.date)lines.push(p.date.split('-').reverse().join('.'));
  if(p.time)lines.push(p.time+' (московское время)');
  if(p.place)lines.push(p.place);
  if(p.amount)lines.push(p.amount+' '+(p.currency||''));
+ if(p.category)lines.push('Категория: '+p.category);
  const unsupported=p.kind==='expense'&&p.currency&&!['RUB','AZN','KZT'].includes(p.currency);
  lines.push(missing.length?'Уточните '+missing.map(x=>fields[x]).join(' и ')+'.':unsupported?'Пока поддерживаются рубли, тенге и манаты. Уточните валюту.':'Сохранить в «Точку дня»?');
  const keyboard=[];

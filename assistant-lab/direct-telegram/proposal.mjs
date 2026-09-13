@@ -1,5 +1,12 @@
 // Provider-independent boundary. No database, network, or persistence access.
-const fields = ['kind', 'title', 'date', 'time', 'amount', 'currency', 'place'];
+export const CATEGORIES = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
+export function inferCategory(title){
+ const t=title.toLowerCase().replace(/ё/g,'е');
+ const rules=[['Продукты',/продукт|пятерочк|магнит|перекресток|вкусвилл/],['Кафе',/кафе|ресторан|кофе/],['Доставка',/доставк/],['Дом',/для дома|посуда|мебель/],['Красота',/маникюр|педикюр|парикмахер|массаж/],['Транспорт',/такси|метро|автобус|бензин/],['Здоровье',/аптек|лекарств|врач/],['Одежда',/одежд|обувь|платье|куртка/],['Дети',/игрушк|детский сад/]];
+ const matches=rules.filter(([,re])=>re.test(t));
+ return matches.length===1?matches[0][0]:undefined;
+}
+const fields = ['kind', 'title', 'date', 'time', 'amount', 'currency', 'place', 'category'];
 const fail = () => { throw new Error('invalid_proposal'); };
 function str(value, max) {
   if (typeof value !== 'string' || value.length > max || /[\u0000-\u0008\u000b-\u001f\u007f]/u.test(value)) fail();
@@ -26,7 +33,8 @@ export function validateProposal(raw) {
   if (p.date !== undefined) date(p.date);
   if (p.time !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(p.time)) fail();
   if (p.currency !== undefined && !/^[A-Z]{3}$/.test(p.currency)) fail();
-  const allowed = {event:['date','time','place'],expense:['date','amount','currency'],note:[]}[p.kind];
+  if (p.category !== undefined && !CATEGORIES.includes(p.category)) fail();
+  const allowed = {event:['date','time','place'],expense:['date','amount','currency','category'],note:[]}[p.kind];
   if (fields.slice(2).some(k => p[k] !== undefined && !allowed.includes(k))) fail();
   return Object.freeze(p);
 }
