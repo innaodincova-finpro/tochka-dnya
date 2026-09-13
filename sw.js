@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.8.14-finance-filter';
+const CACHE = 'tochka-dnya-v5.9.0-documents';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
