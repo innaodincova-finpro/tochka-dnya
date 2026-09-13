@@ -89,6 +89,9 @@ body{
 .stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
 .stat:last-child{border:0;padding-bottom:0}
 .stat b{font-family:'IBM Plex Mono',monospace;font-weight:500}
+.finance-category{width:100%;min-height:44px;align-items:center;gap:12px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;border:0;border-bottom:1px solid var(--line)}
+.finance-category[aria-pressed="true"]{color:var(--accent);font-weight:600}
+.finance-category:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 
 .item{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)}
 .item:last-child{border-bottom:0}
@@ -626,8 +629,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.8.13';
-const APP_UPDATED = new Date('2026-09-08T13:40:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
+const APP_VERSION = '5.8.14';
+const APP_UPDATED = new Date('2026-09-13T05:40:49.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -2120,7 +2123,8 @@ function daySheet(date){
 }
 
 /* ---------- Финансы: самостоятельный учёт расходов ---------- */
-let financePeriod = 'week', financeFrom = '', financeTo = '';
+let financePeriod = 'week', financeFrom = '', financeTo = '', financeCategory = '';
+function financeCategorySet(value){ financeCategory=value; foldOpen['fin-ops']=true; renderMoney(); }
 function financeDates(){
   const end = today();
   if (financePeriod === 'today') return [end,end];
@@ -2141,6 +2145,7 @@ function renderMoney(){
   const total = sum(rows), grouped = {};
   rows.forEach(e => { grouped[e.cat || 'Прочее'] = (grouped[e.cat || 'Прочее'] || 0) + (+e.sum || 0); });
   const cats = Object.entries(grouped).sort((a,b)=>b[1]-a[1]);
+  const visibleRows = financeCategory ? rows.filter(e => (e.cat || 'Прочее') === financeCategory) : rows;
   const colors = ['#7652A8','#D47794','#4E8C78','#A978C3','#D9A36F','#668DB1','#B26E7C','#8B78A8','#6E9D95','#A7999F'];
   host.innerHTML =
     '<div class="switch" role="tablist" aria-label="Период">' +
@@ -2160,7 +2165,7 @@ function renderMoney(){
     fold('fin-cats', 'По категориям',
       cats.length ? cats.length + ' ' + plural(cats.length,'категория','категории','категорий') : 'пусто',
       (cats.length ? cats.map((c,i)=>
-      '<div class="stat"><span><i class="dot" style="display:inline-block;margin-right:7px;background:'+colors[i%colors.length]+'"></i>'+esc(c[0])+'</span><b>'+money(c[1])+'</b></div>').join('') :
+      '<button type="button" class="stat finance-category" aria-pressed="'+(financeCategory===c[0])+'" onclick="financeCategorySet(decodeURIComponent(\''+encodeURIComponent(c[0]).replace(/'/g,'%27')+'\'))"><span><i class="dot" style="display:inline-block;margin-right:7px;background:'+colors[i%colors.length]+'"></i>'+esc(c[0])+(financeCategory===c[0]?' ✓':'')+'</span><b>'+money(c[1])+'</b></button>').join('') :
       '<div class="empty">За выбранный период расходов нет.</div>')) +
     fold('fin-inc', 'Доходы за период', incTotal ? money(incTotal) : 'пока нет',
       (incRows.length ? incRows.map(e=>
@@ -2169,13 +2174,14 @@ function renderMoney(){
       '<button class="mini" onclick="editInc(\''+e.id+'\')">изменить</button><button class="del" onclick="confirmDropInc(\''+e.id+'\')">удалить</button></span></div>').join('') :
       '<div class="empty">За выбранный период доходов нет.</div>') +
       '<button class="btn ok" style="margin-top:11px" onclick="openSheet(\'inc\')">Добавить доход</button>') +
-    fold('fin-ops', 'Операции',
-      rows.length ? rows.length + ' ' + plural(rows.length,'запись','записи','записей') : 'пока нет',
-      (rows.length ? rows.map(e=>
+    fold('fin-ops', financeCategory ? 'Операции · '+financeCategory : 'Операции',
+      visibleRows.length ? visibleRows.length + ' ' + plural(visibleRows.length,'запись','записи','записей') : 'пока нет',
+      (financeCategory ? '<button type="button" class="mini" onclick="financeCategorySet(\'\')">Все категории</button><div class="mut">Итого: '+money(sum(visibleRows))+'</div>' : '') +
+      (visibleRows.length ? visibleRows.map(e=>
       '<div class="item"><div class="ic">₽</div><div class="txt"><b>'+esc(e.title)+'</b><small>'+esc(e.cat)+' · '+humanDate(e.date)+'</small></div>' +
       '<div class="sum">−'+money(e.sum,curOf(e))+'</div><span style="display:flex;flex-direction:column;gap:4px">' +
       '<button class="mini" onclick="editExp(\''+e.id+'\')">изменить</button><button class="del" onclick="confirmDropExp(\''+e.id+'\')">удалить</button></span></div>').join('') :
-      '<div class="empty">Нажмите «Расход», чтобы добавить первую операцию.</div>') +
+      '<div class="empty">За выбранный период и категорию расходов нет.</div>') +
       '<button class="btn" style="margin-top:11px" onclick="openSheet(\'exp\')">Добавить расход</button>');
 }
 
@@ -3908,5 +3914,3 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
 </script>
 </body>
 </html>
-
-
