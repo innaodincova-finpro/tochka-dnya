@@ -7,6 +7,9 @@ async function main(){
  run("clearTimeout(cloudTimer);S=blank();S.settings.onboarded=1;S.notes=[{id:'n1',date:'2026-09-13',kind:'note',text:'Рецепт аджики'}];renderAll();");
  ok(run("NOTE_TABS.some(x=>x[0]==='document')"),'есть отдельная вкладка Документы');
  run("setNotesTab('document')");
+ run("cloudUser={id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};curScreen='s-notes';openContext()");
+ ok(w.document.querySelector('#sheet h3')?.textContent==='Новый документ','кнопка Добавить открывает загрузку файла во вкладке Документы');
+ run("closeSheet();cloudUser=null");
  ok(run("S.notes.length===1&&S.notes[0].text==='Рецепт аджики'"),'переход не меняет существующие заметки');
  ok(w.document.getElementById('s-notes').textContent.includes('закрытом облаке'),'без входа объяснено закрытое облако');
  ok(run("allowedDocument({name:'scan.pdf',type:'application/pdf',size:10})"),'PDF разрешён');
