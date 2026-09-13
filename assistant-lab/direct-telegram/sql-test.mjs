@@ -33,5 +33,6 @@ await pending({kind:'event',title:'Internet',date:'2026-10-10',time:'09:00',repe
 assert.equal((await call(now+5)).status,'saved');assert.equal((await call(now+5)).status,'already_saved');
 state=(await db.query('select payload from user_app_data')).rows[0].payload;assert.equal(state.ev.at(-1).repeat,'month');assert.equal(state.ev.length,3);
 await pending({kind:'event',title:'bad',date:'2026-10-10',time:'09:00',repeat:'daily'},now+6);await assert.rejects(call(now+6));
+for(const [i,repeat] of ['week','year'].entries()){await pending({kind:'event',title:'repeat',date:'2026-10-10',time:'09:00',repeat},now+10+i);assert.equal((await call(now+10+i)).status,'saved');assert.equal((await call(now+10+i)).status,'already_saved');state=(await db.query('select payload from user_app_data')).rows[0].payload;assert.equal(state.ev.at(-1).repeat,repeat);}
 console.log('PASS atomic save 3 kinds, snapshot, duplicate, stale, cancel, wrong chat, incomplete, role restriction; existing data preserved');
 }finally{await db.close();}
