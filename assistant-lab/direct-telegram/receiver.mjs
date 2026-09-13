@@ -32,7 +32,7 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    if(cb){
     if(typeof cb.id!=='string'||!Number.isSafeInteger(m.message_id)||typeof cb.data!=='string')return new Response('ok');
     if(await confirmAction(cb,m,s,uid,secret))return new Response('ok');
-    const match=/^(save|cancel|edit):([0-9]{13})$/.exec(cb.data);if(!match)return new Response('ok');
+    const match=/^(save|cancel|edit|undo):([0-9]{13})$/.exec(cb.data);if(!match)return new Response('ok');
     try{await s.tg('answerCallbackQuery',{callback_query_id:cb.id});}catch{}
     const version=Number(match[2]);
     try{
@@ -42,11 +42,11 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
       await s.tg('sendMessage',{chat_id:m.chat.id,text:fresh?editHint(state.pending):'Эта запись уже сохранена, отменена или заменена. Для новой записи напишите её целиком.'});
      }else{
       const result=await s.db('rpc/tochka_assistant_confirm','POST',{p_user:uid,p_chat:m.chat.id,p_hook:await hash(secret),p_version:version,p_action:match[1]});
-      const reply=['saved','already_saved'].includes(result.status)?savedCard(result.kind):{text:result.status==='cancelled'?'Отменено. Ничего не добавлено.':'Эта версия уже не актуальна. Используйте последнее сообщение бота или напишите запись заново.',reply_markup:{inline_keyboard:[]}};
+      const reply=['saved','already_saved'].includes(result.status)?savedCard(result.kind,result.can_undo?version:null,result.repeat):{text:result.status==='undone'?'Сохранение отменено. Запись удалена из «Точки дня».':result.status==='undo_changed'?'Запись уже изменена или выполнена. Отмена сохранения недоступна; проверьте её в приложении.':result.status==='undo_expired'?'Срок отмены истёк или эта запись сохранена до появления функции. При необходимости удалите запись в приложении.':result.status==='cancelled'?'Отменено. Ничего не добавлено.':'Эта версия уже не актуальна. Используйте последнее сообщение бота или напишите запись заново.',reply_markup:{inline_keyboard:[]}};
       if(result.status==='saved'&&typeof m.text==='string')reply.text=m.text.split('Сохранить в «Точку дня»?')[0].trim()+'\n\n'+reply.text;
       try{await s.tg('editMessageText',{chat_id:m.chat.id,message_id:m.message_id,...reply,link_preview_options:{is_disabled:true}});}catch{await s.tg('sendMessage',{chat_id:m.chat.id,...reply});}
      }
-    }catch{try{await s.tg('sendMessage',{chat_id:m.chat.id,text:'Не удалось подтвердить результат. Нажмите «Сохранить» ещё раз: повторное нажатие не создаёт дубль.'});}catch{}}
+    }catch{try{await s.tg('sendMessage',{chat_id:m.chat.id,text:'Не удалось подтвердить результат. Нажмите ту же кнопку ещё раз: повторное нажатие не применяет действие дважды.'});}catch{}}
     return new Response('ok');
    }
    const hookInfo=await s.tg('getWebhookInfo');
@@ -63,7 +63,7 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
     if(!state?.pending){await s.tg('sendMessage',{chat_id:m.chat.id,text:'Нет записи, ожидающей сохранения. Можно написать новое задание.'});return new Response('ok');}
     const version=Date.parse(state.pending_at);
     const result=await s.db('rpc/tochka_assistant_confirm','POST',{p_user:uid,p_chat:m.chat.id,p_hook:await hash(secret),p_version:version,p_action:'cancel'});
-    await s.tg('sendMessage',{chat_id:m.chat.id,text:result.status==='cancelled'?'Черновик отменён. Ничего не добавлено.':result.status==='already_saved'?'Запись уже сохранена. Изменить или удалить её можно в «Точке дня».':'Черновик уже не актуален. Можно написать новое задание.'});
+    await s.tg('sendMessage',{chat_id:m.chat.id,text:result.status==='undone'?'Сохранение отменено. Запись удалена из «Точки дня».':result.status==='undo_changed'?'Запись уже изменена или выполнена. Отмена сохранения недоступна; проверьте её в приложении.':result.status==='undo_expired'?'Срок отмены истёк или эта запись сохранена до появления функции. При необходимости удалите запись в приложении.':result.status==='cancelled'?'Черновик отменён. Ничего не добавлено.':result.status==='already_saved'?'Запись уже сохранена. Изменить или удалить её можно в «Точке дня».':'Черновик уже не актуален. Можно написать новое задание.'});
     return new Response('ok');
    }
    const reservation=await s.db('rpc/tochka_assistant_reserve','POST',{p_user:uid,p_update:update});

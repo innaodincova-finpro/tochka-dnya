@@ -6,6 +6,9 @@ create table if not exists public.tochka_assistant_confirmed (
 alter table public.tochka_assistant_confirmed enable row level security;
 revoke all on public.tochka_assistant_confirmed from public,anon,authenticated;
 grant select,insert on public.tochka_assistant_confirmed to service_role;
+alter table public.tochka_assistant_confirmed add column if not exists saved_record jsonb;
+alter table public.tochka_assistant_confirmed add column if not exists undone_at timestamptz;
+grant update(undone_at) on public.tochka_assistant_confirmed to service_role;
 create or replace function public.tochka_assistant_confirm(p_user uuid,p_chat bigint,p_hook text,p_version bigint,p_action text)
 returns jsonb language plpgsql security invoker set search_path='' as $$
 declare p public.tochka_assistant_pilot%rowtype; receipt public.tochka_assistant_confirmed%rowtype;
@@ -17,9 +20,28 @@ begin
  if not found then raise exception 'chat_not_linked'; end if;
  perform 1 from public.tochka_members where user_id=p_user and revoked_at is null for share;
  if not found then raise exception 'access_revoked'; end if;
- if p_action not in ('save','cancel') then raise exception 'invalid_action'; end if;
+ if p_action not in ('save','cancel','undo') then raise exception 'invalid_action'; end if;
  select * into receipt from public.tochka_assistant_confirmed where user_id=p_user and version=p_version;
- if found then return jsonb_build_object('status','already_saved','kind',receipt.kind); end if;
+ if found then
+  if receipt.undone_at is not null then return jsonb_build_object('status','undone'); end if;
+  if p_action<>'undo' then return jsonb_build_object('status','already_saved','kind',receipt.kind,'repeat',receipt.proposal->>'repeat','can_undo',receipt.saved_record is not null and receipt.created_at>clock_timestamp()-interval '30 minutes'); end if;
+  if receipt.saved_record is null or receipt.created_at<clock_timestamp()-interval '30 minutes' then return jsonb_build_object('status','undo_expired'); end if;
+  select payload,updated_at into old,old_time from public.user_app_data where user_id=p_user for update;
+  if not found or jsonb_typeof(old)<>'object' then raise exception 'cloud_unavailable'; end if;
+  section=case receipt.kind when 'event' then 'ev' when 'expense' then 'exp' else 'notes' end;
+  select e into rec from jsonb_array_elements(old->section) e where e->>'id'=receipt.record_id;
+  if not found or rec<>receipt.saved_record or exists(select 1 from jsonb_array_elements(coalesce(old->'del','[]')) e where e->>'id'=receipt.record_id) then return jsonb_build_object('status','undo_changed'); end if;
+  if exists(select 1 from jsonb_each(coalesce(old->'day','{}')) d where coalesce(d.value->'done','[]') ? receipt.record_id) then return jsonb_build_object('status','undo_changed'); end if;
+  moment=greatest(clock_timestamp(),old_time+interval '1 millisecond');
+  select coalesce(jsonb_agg(e order by ord),'[]') into result from jsonb_array_elements(old->section) with ordinality t(e,ord) where e->>'id'<>receipt.record_id;
+  result=jsonb_set(old,array[section],result);
+  result=jsonb_set(result,'{del}',coalesce(old->'del','[]')||jsonb_build_array(jsonb_build_object('id',receipt.record_id,'at',moment)));
+  result=jsonb_set(result,'{savedAt}',to_jsonb(to_char(moment at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')));
+  update public.user_app_data set payload=result,updated_at=moment where user_id=p_user;
+  update public.tochka_assistant_confirmed set undone_at=moment where user_id=p_user and version=p_version;
+  return jsonb_build_object('status','undone');
+ end if;
+ if p_action='undo' then return jsonb_build_object('status','undo_expired'); end if;
  if p.pending is null or floor(extract(epoch from p.pending_at)*1000)::bigint<>p_version or p.pending_at<clock_timestamp()-interval '30 minutes' or p.pending_at<p.enabled_at then return jsonb_build_object('status','stale'); end if;
  if p_action='cancel' then
   update public.tochka_assistant_pilot set pending=null,pending_at=null where user_id=p_user;
@@ -47,10 +69,10 @@ begin
  moment=greatest(clock_timestamp(),old_time+interval '1 millisecond');
  result=jsonb_set(old,array[section],(old->section)||jsonb_build_array(rec));
  result=jsonb_set(result,'{savedAt}',to_jsonb(to_char(moment at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')));
- insert into public.tochka_assistant_confirmed(user_id,version,record_id,kind,proposal,before_payload) values(p_user,p_version,rid,proposal->>'kind',proposal,old);
+ insert into public.tochka_assistant_confirmed(user_id,version,record_id,kind,proposal,before_payload,saved_record) values(p_user,p_version,rid,proposal->>'kind',proposal,old,rec);
  update public.user_app_data set payload=result,updated_at=moment where user_id=p_user;
  update public.tochka_assistant_pilot set pending=null,pending_at=null where user_id=p_user;
- return jsonb_build_object('status','saved','kind',proposal->>'kind');
+ return jsonb_build_object('status','saved','kind',proposal->>'kind','repeat',proposal->>'repeat','can_undo',true);
 end;
 $$;
 revoke all on function public.tochka_assistant_confirm(uuid,bigint,text,bigint,text) from public,anon,authenticated;
