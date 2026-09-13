@@ -1,4 +1,5 @@
 import {editHint} from './defaults.mjs';
+import {actionIntent,prepareAction,confirmAction} from './actions.mjs';
 import {reminderCommand} from './reminders.mjs';
 import {readIntent,answerReadQuery} from './read-queries.mjs';
 import {hash,services,readJSON} from './common.mjs';
@@ -30,6 +31,7 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    await s.user(null,uid);
    if(cb){
     if(typeof cb.id!=='string'||!Number.isSafeInteger(m.message_id)||typeof cb.data!=='string')return new Response('ok');
+    if(await confirmAction(cb,m,s,uid,secret))return new Response('ok');
     const match=/^(save|cancel|edit):([0-9]{13})$/.exec(cb.data);if(!match)return new Response('ok');
     try{await s.tg('answerCallbackQuery',{callback_query_id:cb.id});}catch{}
     const version=Number(match[2]);
@@ -51,6 +53,8 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    if(!hookInfo.allowed_updates?.includes('callback_query'))await s.tg('setWebhook',{url:env('SUPABASE_URL')+'/functions/v1/tochka-assistant-receiver',secret_token:secret,allowed_updates:['message','callback_query'],drop_pending_updates:false,max_connections:1});
    if(m.text==='/stop'){await s.db('tochka_assistant_pilot'+filter,'PATCH',{enabled:false,pending:null,pending_at:null});return new Response('ok');}
    if(await reminderCommand(m.text,s,uid,m.chat.id))return new Response('ok');
+   const action=actionIntent(m.text);
+   if(action){await prepareAction(action,s,uid,m.chat.id,linked);return new Response('ok');}
    const query=readIntent(m.text);
    if(query){await answerReadQuery(query,s,uid,m.chat.id,linked);return new Response('ok');}
    // Cancellation uses the same version/owner-checked RPC as its button, without AI quota.
