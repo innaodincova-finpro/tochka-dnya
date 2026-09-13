@@ -8,6 +8,9 @@ const before=JSON.stringify(payload);
 let a=readAnswer(readIntent('Сколько потратила на продукты за неделю?'),payload,now);
 assert.match(a,/0,30 RUB/);assert.match(a,/900,00 KZT/);assert.match(a,/Операций: 3/);assert.ok(!a.includes('99,00'));
 assert.match(readAnswer(readIntent('Расходы за вчера'),payload,now),/Расходов нет/);
+for(const text of ['Сколько я потратила сегодня','Сколько я потратила вчера','Расходы сегодня','Расходы вчера']){
+ const intent=readIntent(text);assert.equal(intent?.kind,'expenses',text);assert.ok(readAnswer(intent,payload,now).startsWith('Расходы:'),text);
+}
 assert.match(readAnswer(readIntent('Расходы за 2026-02-30 по 2026-03-02'),payload,now),/Проверьте даты/);
 assert.match(readAnswer(readIntent('Расходы на неизвестное за месяц'),payload,now),/Не узнаю категорию/);
 assert.equal(JSON.stringify(payload),before);
