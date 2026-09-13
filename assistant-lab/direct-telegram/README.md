@@ -36,3 +36,13 @@ Simple purchases (including `Магазин Пятёрочка пять тыся
 Text cancellation uses the same version-checked confirmation RPC as the Cancel button before the paid reservation, so it remains available at the daily limit. It cancels only pending drafts, not saved records. Relative-date detection uses word boundaries and distinguishes decimal amounts from calendar dates.
 
 Run `node --test assistant-lab/direct-telegram/*test.mjs` from the repository root. The SQL test also loads the actual app and validates all three saved record formats. CI now covers direct Telegram code explicitly. These are isolated checks, not evidence of a message received on the owner's phone.
+
+## Agenda and note search (receiver v13)
+
+Text queries: `Что сегодня?`, `Что у меня сегодня?`, `План на сегодня`, `/today`; corresponding tomorrow variants and `/tomorrow`; `Найди заметку про документы`, `Найди заметки ...`, `Поиск заметок ...`, `/search ...`.
+
+Replies read the linked owner's latest cloud row, never invoke the model, never reserve daily AI quota and never change a pending draft or an app record. Active membership and linkage are checked again before replying. Cloud failure is reported explicitly, never as an empty calendar. Date is Moscow time, as displayed in the reply.
+
+Agenda includes up to 8 meetings (recurrence and completed status) and 6 unfinished dated tasks; today includes overdue tasks. Larger counts are shown explicitly and the user is directed to the app for the full list. Search matches all query words as case-insensitive substrings (е/ё normalised) against note title, text, theme and list items. It is not semantic search. Up to 8 excerpts of 300 characters are returned; query length is 2–120 characters. All replies are bounded below Telegram's message limit. Existing notes marked done remain searchable. Deleted records are excluded. Commands must be sent as text; spoken queries are not implemented in this stage.
+
+Verification: `node --test assistant-lab/direct-telegram/*test.mjs assistant-lab/reminders/*.test.mjs` — 9 files pass, including full mocked webhook queries, no quota/write/provider requests, owner/revocation/relink rejection, cloud errors, Moscow date boundary and bounded results. No synthetic query was sent to the owner's phone.
