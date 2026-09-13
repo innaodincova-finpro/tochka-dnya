@@ -1,5 +1,6 @@
 import {editHint} from './defaults.mjs';
 import {reminderCommand} from './reminders.mjs';
+import {readIntent,answerReadQuery} from './read-queries.mjs';
 import {hash,services,readJSON} from './common.mjs';
 import {prepareDraft} from './deepseek.mjs';
 import {validateProposal} from './proposal.mjs';
@@ -50,6 +51,8 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    if(!hookInfo.allowed_updates?.includes('callback_query'))await s.tg('setWebhook',{url:env('SUPABASE_URL')+'/functions/v1/tochka-assistant-receiver',secret_token:secret,allowed_updates:['message','callback_query'],drop_pending_updates:false,max_connections:1});
    if(m.text==='/stop'){await s.db('tochka_assistant_pilot'+filter,'PATCH',{enabled:false,pending:null,pending_at:null});return new Response('ok');}
    if(await reminderCommand(m.text,s,uid,m.chat.id))return new Response('ok');
+   const query=readIntent(m.text);
+   if(query){await answerReadQuery(query,s,uid,m.chat.id,linked);return new Response('ok');}
    // Cancellation uses the same version/owner-checked RPC as its button, without AI quota.
    if(typeof m.text==='string'&&['/cancel','отмена'].includes(m.text.trim().toLowerCase())){
     const state=(await s.db('tochka_assistant_pilot'+filter+'&select=pending,pending_at'))[0];
