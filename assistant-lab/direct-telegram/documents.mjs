@@ -11,8 +11,11 @@ const encodedPath=path=>path.split('/').map(encodeURIComponent).join('/');
 
 export function documentSearchIntent(text){
  if(typeof text!=='string')return null;
- const m=/^найди\s+документ(?:ы)?(?:\s+(?:про|о))?(?:\s+|:\s*)(.*?)[?!.]*$/iu.exec(text.trim());
- return m?{query:m[1].trim()}:null;
+ const t=text.trim();
+ const explicit=/^найди\s+документ(?:ы)?(?:\s+(?:про|о))?(?:\s+|:\s*)(.*?)[?!.]*$/iu.exec(t);
+ if(explicit)return {query:explicit[1].trim()};
+ const short=/^найди\s+(?!заметк(?:у|и)?(?:\s|$))(.*?)[?!.]*$/iu.exec(t);
+ return short?{query:short[1].trim()}:null;
 }
 
 export function incomingDocument(message){
