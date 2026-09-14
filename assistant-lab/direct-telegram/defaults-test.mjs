@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {prepareDraft} from './deepseek.mjs';
-import {shortChange,expenseDefaults,editHint} from './defaults.mjs';
+import {shortChange,proposalDefaults,editHint,hasDateMention} from './defaults.mjs';
 const now=new Date('2026-09-12T21:10:00Z'); // Moscow already September 13.
 let calls=0;
 const base={kind:'expense',title:'Пятёрочка',amount:5000};
@@ -13,9 +13,13 @@ r=await run('пять тысяч',base,{pending:{...pending,amount:400}});assert
 r=await run('вчера',base,{pending});assert.equal(r.proposal.date,'2026-09-12');
 r=await run('рубли',base,{pending:{...pending,currency:'KZT'}});assert.equal(r.proposal.currency,'RUB');assert.equal(calls,before);
 r=await run('Кофе 200',{kind:'expense',title:'Кофе',amount:200},{pending});assert.equal(r.proposal.currency,'KZT');assert.equal(r.proposal.title,'Кофе');
-r=await run('Встреча с Анной',{kind:'event',title:'Встреча с Анной'});assert.equal(r.proposal.date,undefined);assert.equal(r.needsClarification,true);
+r=await run('Встреча с Анной',{kind:'event',title:'Встреча с Анной'});assert.equal(r.proposal.date,'2026-09-13');assert.equal(r.needsClarification,true);
+r=await run('Встреча с Анной в 15:00',{kind:'event',title:'Встреча с Анной',time:'15:00'});assert.equal(r.proposal.date,'2026-09-13');assert.equal(r.needsClarification,false);
+r=await run('Встреча с Анной завтра в 15:00',{kind:'event',title:'Встреча с Анной',date:'2026-09-14',time:'15:00'});assert.equal(r.proposal.date,'2026-09-14');
 r=await run('Идея отпуска',{kind:'note',title:'Идея отпуска'});assert.deepEqual(r.proposal,{kind:'note',title:'Идея отпуска'});
-assert.equal(expenseDefaults(base,{today:'2026-09-13',defaultCurrency:'RUB',text:'Пятёрочка в пятницу 5000 евро'}).date,undefined);
-assert.equal(expenseDefaults(base,{today:'2026-09-13',defaultCurrency:'RUB',text:'Пятёрочка 5000 евро'}).currency,undefined);
+assert.equal(proposalDefaults(base,{today:'2026-09-13',defaultCurrency:'RUB',text:'Пятёрочка в пятницу 5000 евро'}).date,undefined);
+assert.equal(proposalDefaults(base,{today:'2026-09-13',defaultCurrency:'RUB',text:'Пятёрочка 5000 евро'}).currency,undefined);
+assert.equal(hasDateMention('Купить майонез 250'),false);
+assert.equal(proposalDefaults({...base,title:'Майонез'},{today:'2026-09-13',defaultCurrency:'RUB',text:'Майонез 250'}).date,'2026-09-13');
 assert.ok(!editHint(base).includes('адрес'));assert.ok(editHint({kind:'note'}).includes('текст'));
-console.log('PASS currency preference/override, Moscow date, short replies preserve record, new expense isolation, event/note behavior, unresolved explicit values');
+console.log('PASS default-today contract, explicit dates, mayonnaise boundary, currency preference/override, short replies, event/note behavior');
