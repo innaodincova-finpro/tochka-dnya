@@ -33,5 +33,26 @@ await pending({kind:'event',title:'Internet',date:'2026-10-10',time:'09:00',repe
 assert.equal((await call(now+5)).status,'saved');assert.equal((await call(now+5)).status,'already_saved');
 state=(await db.query('select payload from user_app_data')).rows[0].payload;assert.equal(state.ev.at(-1).repeat,'month');assert.equal(state.ev.length,3);
 await pending({kind:'event',title:'bad',date:'2026-10-10',time:'09:00',repeat:'daily'},now+6);await assert.rejects(call(now+6));
+for(const [i,repeat] of ['week','year'].entries()){await pending({kind:'event',title:'repeat',date:'2026-10-10',time:'09:00',repeat},now+10+i);assert.equal((await call(now+10+i)).status,'saved');assert.equal((await call(now+10+i)).status,'already_saved');state=(await db.query('select payload from user_app_data')).rows[0].payload;assert.equal(state.ev.at(-1).repeat,repeat);}
+// Undo affects only the inserted record, preserves later records and active draft.
+const prior=(await db.query('select payload from user_app_data')).rows[0].payload;
+await pending({kind:'note',title:'undo target'},now+20);await call(now+20);
+await pending({kind:'note',title:'keep later'},now+21);await call(now+21);
+await pending({kind:'note',title:'keep draft'},now+22);
+assert.equal((await call(now+20,'undo')).status,'undone');assert.equal((await call(now+20,'undo')).status,'undone');assert.equal((await call(now+20)).status,'undone');
+state=(await db.query('select payload from user_app_data')).rows[0].payload;
+assert.ok(!state.notes.some(n=>n.text==='undo target'));assert.ok(state.notes.some(n=>n.text==='keep later'));assert.deepEqual(state.ev,prior.ev);assert.deepEqual(state.settings,prior.settings);
+assert.equal((await db.query('select pending from tochka_assistant_pilot')).rows[0].pending.title,'keep draft');assert.ok(state.del.some(d=>d.id.endsWith(String(now+20))));
+await pending({kind:'expense',title:'unchanged',date:'2026-09-13',amount:10,currency:'RUB'},now+23);await call(now+23);
+await db.exec("update user_app_data set payload=jsonb_set(payload,'{exp,1,title}','\"edited\"')");
+assert.equal((await call(now+23,'undo')).status,'undo_changed');
+await pending({kind:'event',title:'done event',date:'2026-09-13',time:'18:00',repeat:'week'},now+24);await call(now+24);
+const rid=(await db.query('select record_id from tochka_assistant_confirmed where version=$1',[now+24])).rows[0].record_id;
+await db.query("update user_app_data set payload=jsonb_set(payload,'{day}',$1)",[{'2026-09-13':{done:[rid]}}]);
+assert.equal((await call(now+24,'undo')).status,'undo_changed');
+await db.query("update tochka_assistant_confirmed set created_at=now()-interval '31 minutes' where version=$1",[now+21]);assert.equal((await call(now+21,'undo')).status,'undo_expired');
+await assert.rejects(call(now+23,'undo',999));
+await pending({kind:'event',title:'series undo',date:'2026-09-13',time:'18:00',repeat:'month'},now+25);await call(now+25);assert.equal((await call(now+25,'undo')).status,'undone');
+console.log('PASS undo scoped removal, tombstone, replay, no resave, active draft/later data retained, edited/completed/expired/wrong-chat blocked, series removal');
 console.log('PASS atomic save 3 kinds, snapshot, duplicate, stale, cancel, wrong chat, incomplete, role restriction; existing data preserved');
 }finally{await db.close();}
