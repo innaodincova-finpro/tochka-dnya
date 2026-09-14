@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.9.3-documents-list';
+const CACHE = 'tochka-dnya-v5.9.4-calendar-colors';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [

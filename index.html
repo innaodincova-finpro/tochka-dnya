@@ -164,6 +164,12 @@ body{
   overflow:hidden;word-break:keep-all;overflow-wrap:normal;hyphens:none;letter-spacing:-.01em}
 .continuous-cal .day-preview.p-s{font-size:8px;letter-spacing:-.02em}
 .continuous-cal .day-preview.p-xs{font-size:7px;letter-spacing:-.03em}
+.continuous-cal .day-preview:before{content:'●';display:inline-block;margin-right:3px;font-size:.82em;line-height:1;color:#7652A8}
+.continuous-cal .day-preview.type-event:before{color:#7652A8}
+.continuous-cal .day-preview.type-task:before{color:#D16991}
+.continuous-cal .day-preview.type-note:before{color:#4287A9}
+.continuous-cal .day-preview.type-list:before{color:#4E8C78}
+.continuous-cal .day-preview.day-more:before{content:none}
 .continuous-cal .d.has-plan{background:linear-gradient(145deg,#F4E8FA,#FCEAF1);border-color:#B98BD4;box-shadow:inset 0 0 0 1px rgba(128,81,179,.12)}
 .continuous-cal .d.has-plan .day-preview{color:#704395}
 /* впереди — спокойный сиреневый; прошло и не отмечено — тёплый тревожный;
@@ -550,6 +556,11 @@ body{
 [data-theme="dark"] .note-menu-pop button:active{background:#332742}
 [data-theme="dark"] .continuous-cal .d.has-plan{background:linear-gradient(145deg,#332545,#3D2739);border-color:#7A5AA0}
 [data-theme="dark"] .continuous-cal .d.has-plan .day-preview,[data-theme="dark"] .continuous-cal .d.has-plan .day-num{color:#D5AEFF}
+[data-theme="dark"] .continuous-cal .day-preview:before{color:#C39AEF}
+[data-theme="dark"] .continuous-cal .day-preview.type-event:before{color:#C39AEF}
+[data-theme="dark"] .continuous-cal .day-preview.type-task:before{color:#F08DA6}
+[data-theme="dark"] .continuous-cal .day-preview.type-note:before{color:#79BBDD}
+[data-theme="dark"] .continuous-cal .day-preview.type-list:before{color:#80C2AA}
 [data-theme="dark"] .continuous-cal .d.day-missed{background:linear-gradient(145deg,#3E2C28,#41282E);border-color:#9A6B4A}
 [data-theme="dark"] .continuous-cal .d.day-missed .day-preview,[data-theme="dark"] .continuous-cal .d.day-missed .day-num{color:#E8A87C}
 [data-theme="dark"] .continuous-cal .d.day-done{background:#26332C;border-color:#4C6B58}
@@ -641,8 +652,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.9.3';
-const APP_UPDATED = new Date('2026-09-13T05:40:49.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
+const APP_VERSION = '5.9.4';
+const APP_UPDATED = new Date('2026-09-14T12:45:15.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -2064,8 +2075,9 @@ function addMonths(key, amount){ const p=key.split('-').map(Number);return iso(n
 function calendarEntries(date){
   /* в клетке календаря у списка достаточно названия: перечень пунктов
      превращал ячейку в кашу */
-  return evOf(date).map(e=>({title:e.title,e:e}))
-    .concat(notesOn(date).map(n=>({title:n.items ? (n.title || 'Список') : noteTitle(n), note:n})));
+  return evOf(date).map(e=>({title:e.title,e:e,type:'event'}))
+    .concat(notesOn(date).map(n=>({title:n.items ? (n.title || 'Список') : noteTitle(n), note:n,
+      type:n.items?'list':((n.kind||'task')==='task'?'task':'note')})));
 }
 /* Календарь показывал только «здесь что-то есть». Теперь показывает,
    что с этим стало: закрыто, впереди или прошло и осталось не отмеченным. */
@@ -2097,7 +2109,7 @@ function monthCalendar(key){
   for(let i=0;i<shift;i++)cells+='<div class="d out"></div>';
   for(let i=1;i<=daysInMonth(key);i++){
     const ds=key+'-'+String(i).padStart(2,'0'),entries=calendarEntries(ds),count=entries.length;
-    const preview=entries.slice(0,2).map(x=>'<span class="day-preview '+previewSize(x.title)+'">• '+esc(x.title)+'</span>').join('')+(count>2?'<span class="day-preview">ещё '+(count-2)+'</span>':'');
+    const preview=entries.slice(0,2).map(x=>'<span class="day-preview type-'+x.type+' '+previewSize(x.title)+'">'+esc(x.title)+'</span>').join('')+(count>2?'<span class="day-preview day-more">ещё '+(count-2)+'</span>':'');
     const st=dayState(ds,entries);
     cells+='<button type="button" class="d'+(ds===today()?' today':'')+(count?' has-plan':'')+(st?' '+st:'')+'" onclick="openDay(\''+ds+'\')" aria-label="'+(count?humanDate(ds)+', записей: '+count+dayStateWord(st,count):humanDate(ds))+'"><span class="day-num">'+i+'</span>'+preview+'</button>';
   }
