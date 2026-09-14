@@ -7,6 +7,8 @@ export function localDraft(text,today){
  const recurring=recurringDraft(t,today);if(recurring)return recurring;
  const note=/^(?:заметка\s*:|запиши\s+(?:идею|заметку)\s*:?)\s*(.+)$/isu.exec(t);
  if(note)return validateProposal({kind:'note',title:note[1].trim()});
+ const timedAction=/^((?:зайти|пойти|прийти|сходить|заехать|позвонить|встретиться)(?=\s).+?)\s+в\s+([01]?\d|2[0-3])[.:]([0-5]\d)[.!]?$/iu.exec(t);
+ if(timedAction)return validateProposal({kind:'event',title:timedAction[1].trim(),time:timedAction[2].padStart(2,'0')+':'+timedAction[3]});
  if(/(?:кажд(?:ый|ую|ое|ого|ые)|ежедневно|еженедельно|ежемесячно|ежегодно|по будням|по выходным)/iu.test(t))return null;
  if(hasDateMention(t)||/\d\s*[:/]\s*\d|(?:встреч|врач|стоматолог|напомни|перенеси|измени|исправь|доход|зарплат|получил|вернул|возврат|план|задач|замет|иде[яю])/iu.test(t))return null;
  // Require a letter-only description followed by one unambiguous positive amount.
