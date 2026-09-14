@@ -6,7 +6,7 @@ export function inferCategory(title){
  const matches=rules.filter(([,re])=>re.test(t));
  return matches.length===1?matches[0][0]:undefined;
 }
-const fields = ['kind', 'title', 'date', 'time', 'amount', 'currency', 'place', 'category'];
+const fields = ['kind', 'title', 'date', 'time', 'amount', 'currency', 'place', 'category', 'repeat'];
 const fail = () => { throw new Error('invalid_proposal'); };
 function str(value, max) {
   if (typeof value !== 'string' || value.length > max || /[\u0000-\u0008\u000b-\u001f\u007f]/u.test(value)) fail();
@@ -34,7 +34,8 @@ export function validateProposal(raw) {
   if (p.time !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(p.time)) fail();
   if (p.currency !== undefined && !/^[A-Z]{3}$/.test(p.currency)) fail();
   if (p.category !== undefined && !CATEGORIES.includes(p.category)) fail();
-  const allowed = {event:['date','time','place'],expense:['date','amount','currency','category'],note:[]}[p.kind];
+  if(p.repeat!==undefined&&!['week','month','year'].includes(p.repeat))fail();
+  const allowed = {event:['date','time','place','repeat'],expense:['date','amount','currency','category'],note:[]}[p.kind];
   if (fields.slice(2).some(k => p[k] !== undefined && !allowed.includes(k))) fail();
   return Object.freeze(p);
 }

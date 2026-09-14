@@ -6,6 +6,9 @@ export function card(raw,version){
  if(p.date)lines.push(p.date.split('-').reverse().join('.'));
  if(p.time)lines.push(p.time+' (московское время)');
  if(p.place)lines.push(p.place);
+ if(p.repeat)lines.push('Повтор: '+({week:'каждую неделю',month:'каждый месяц',year:'каждый год'})[p.repeat]+'. Отметка выполнения — отдельно для каждой даты.');
+ if(p.repeat==='year'&&p.date?.slice(5)==='02-29')lines.push('29 февраля: повтор только в високосные годы.');
+ if(p.repeat==='month'&&Number(p.date?.slice(8))>28)lines.push('В месяце без этого числа повтор будет пропущен.');
  if(p.amount)lines.push(p.amount+' '+(p.currency||''));
  if(p.category)lines.push('Категория: '+p.category);
  const unsupported=p.kind==='expense'&&p.currency&&!['RUB','AZN','KZT'].includes(p.currency);
@@ -15,4 +18,4 @@ export function card(raw,version){
  keyboard.push([{text:'Изменить',callback_data:'edit:'+version},{text:'Отмена',callback_data:'cancel:'+version}]);
  return {text:lines.join('\n'),reply_markup:{inline_keyboard:keyboard}};
 }
-export const savedCard=kind=>({text:(({event:'Встреча сохранена в «План». Напоминания — по вашим настройкам.',expense:'Расход сохранён в «Финансы».',note:'Заметка сохранена в «Заметки».'})[kind]||'Уже сохранено в «Точку дня».')+'\nЗапись доступна и в приложении с экрана «Домой».',reply_markup:{inline_keyboard:[[{text:'Открыть сайт',url:'https://innaodincova-finpro.github.io/tochka-dnya/'}]]}});
+export const savedCard=(kind,version,repeat)=>({text:(({event:'Встреча сохранена в «План». Напоминания — по вашим настройкам.',expense:'Расход сохранён в «Финансы».',note:'Заметка сохранена в «Заметки».'})[kind]||'Уже сохранено в «Точку дня».')+'\nЗапись доступна и в приложении с экрана «Домой».',reply_markup:{inline_keyboard:[...(version?[[{text:repeat?'Отменить сохранение всей серии (30 мин)':'Отменить сохранение (30 мин)',callback_data:'undo:'+version}]]:[]),[{text:'Открыть сайт',url:'https://innaodincova-finpro.github.io/tochka-dnya/'}]]}});
