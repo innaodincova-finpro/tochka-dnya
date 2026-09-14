@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  safety:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,3 +18,4 @@ jobs:
           node-version: 22
       - run: npm ci --no-audit --no-fund
       - run: npm test
+      - run: npm run test:finance-category

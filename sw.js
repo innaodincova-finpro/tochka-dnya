@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.8.13-assistant-import-test';
+const CACHE = 'tochka-dnya-v5.9.3-documents-list';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
@@ -6,8 +6,6 @@ const APP_SHELL = [
   './index.html',
   './manifest.webmanifest',
   './supabase.js',
-  './assistant-import.js',
-  './assistant-panel.js',
   './icon-180-v3.png',
   './icon-192-v3.png',
   './icon-512-v3.png',
@@ -99,4 +97,3 @@ self.addEventListener('notificationclick', event => {
   if(existing)return existing.focus();return self.clients.openWindow(url);
  })());
 });
-

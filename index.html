@@ -89,6 +89,9 @@ body{
 .stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
 .stat:last-child{border:0;padding-bottom:0}
 .stat b{font-family:'IBM Plex Mono',monospace;font-weight:500}
+.finance-category{width:100%;min-height:44px;align-items:center;gap:12px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;border:0;border-bottom:1px solid var(--line)}
+.finance-category[aria-pressed="true"]{color:var(--accent);font-weight:600}
+.finance-category:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 
 .item{display:flex;align-items:center;gap:11px;padding:10px 0;border-bottom:1px solid var(--line)}
 .item:last-child{border-bottom:0}
@@ -122,6 +125,17 @@ body{
 .switch{display:flex;background:#E6EDF3;border-radius:12px;padding:3px;margin-bottom:12px}
 .switch button{flex:1;border:0;background:transparent;padding:9px;border-radius:10px;cursor:pointer;font-family:'Golos Text',sans-serif;font-size:13px;font-weight:500;color:var(--mut)}
 .switch button[aria-selected="true"]{background:#fff;color:var(--ink);box-shadow:0 1px 5px rgba(40,66,92,.12)}
+.switch.notes-switch{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
+.switch.notes-switch button{padding-left:4px;padding-right:4px;font-size:12px}
+.doc-preview{width:40px;height:46px;flex:0 0 40px;border-radius:9px;border:1px solid var(--line);background:#F7F2FA;display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:15px;font-weight:600;overflow:hidden}
+.doc-preview img{width:100%;height:100%;object-fit:cover}
+.doc-tools{display:flex;align-items:center;justify-content:flex-end;margin:-2px 0 4px}
+.doc-tools select{width:auto;min-height:34px;padding:5px 30px 5px 10px;border-radius:10px;font-size:12px;color:var(--mut);background-color:transparent}
+.doc-row{display:grid;grid-template-columns:40px minmax(0,1fr) 38px;align-items:center;gap:10px;cursor:pointer;min-height:64px}
+.doc-row .txt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.doc-row .txt small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.doc-more{width:38px;height:38px;border:0;border-radius:12px;background:transparent;color:var(--accent);font:700 22px/1 Arial,sans-serif;cursor:pointer}
+.doc-more:active{background:#F7F2FA}
 
 /* календарь */
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
@@ -505,6 +519,7 @@ body{
 [data-theme="dark"] .switch,[data-theme="dark"] .parse,[data-theme="dark"] .tip{background:#30263C;border-color:#544263}
 [data-theme="dark"] .switch button,[data-theme="dark"] .chip,[data-theme="dark"] .mini,[data-theme="dark"] .btn.ghost{color:#D6B6F3}
 [data-theme="dark"] .switch button[aria-selected="true"],[data-theme="dark"] .mini,[data-theme="dark"] .btn.ghost,[data-theme="dark"] .mic{background:#2C2338;border-color:#59466A}
+[data-theme="dark"] .doc-preview{background:#30263C;border-color:#544263}
 [data-theme="dark"] .textarea,[data-theme="dark"] .fld input,[data-theme="dark"] .fld select,[data-theme="dark"] .fld textarea,[data-theme="dark"] input,[data-theme="dark"] textarea,[data-theme="dark"] select{background:#1D1726;border-color:#51405F;color:#F4EDF8}
 [data-theme="dark"] input::placeholder,[data-theme="dark"] textarea::placeholder{color:#96899F}
 [data-theme="dark"] .ic{background:linear-gradient(145deg,#342641,#41283A);box-shadow:inset 0 0 0 1px #594361}
@@ -626,8 +641,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.8.13';
-const APP_UPDATED = new Date('2026-09-08T13:40:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
+const APP_VERSION = '5.9.3';
+const APP_UPDATED = new Date('2026-09-13T05:40:49.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -676,7 +691,6 @@ function validateData(raw){
     (x.at!==undefined && (typeof x.at!=='string' || !date(x.at.slice(0,10)) ||
       !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(x.at) || !Number.isFinite(Date.parse(x.at))))
   ))) throw new Error('Некорректные отметки удаления');
-  if (raw.assistantImports!==undefined && (!obj(raw.assistantImports) || Object.entries(raw.assistantImports).some(([k,v])=>!/^ai_[a-f0-9]{64}$/.test(k)||v!==true))) throw new Error('Некорректная история добавлений помощника');
   if (raw.settings!==undefined && !obj(raw.settings)) throw new Error('Некорректные настройки');
   if (raw.day!==undefined && (!obj(raw.day)||Object.entries(raw.day).some(([d,r])=>!date(d)||!obj(r)||(r.done!==undefined&&!Array.isArray(r.done))))) throw new Error('Некорректные отметки календаря');
   return raw;
@@ -734,6 +748,8 @@ function save(){
 let cloudClient=null,cloudUser=null,cloudTimer=null,cloudState='local',cloudError='',cloudRetry=0;
 let cloudSavedAt=null;
 let cloudReady=false, cloudEpoch=0, cloudBusy=false, cloudAgain=false, cloudBase=null, cloudConflict=null;
+const DOCUMENT_BUCKET='tochka-documents', DOCUMENT_LIMIT=20*1024*1024;
+let documents=[],documentsState='idle',documentsError='';
 const cloneState = x => JSON.parse(JSON.stringify(x));
 function stable(x){
   if(Array.isArray(x))return '['+x.map(stable).join(',')+']';
@@ -828,7 +844,6 @@ function mergeStates(local, remote){
     });
   });
 
-  if(local.assistantImports || remote.assistantImports)out.assistantImports=Object.assign({},local.assistantImports||{},remote.assistantImports||{});
   out.day = Object.assign({}, older.day||{}, newer.day||{});
 
   /* обычно свежая настройка вытесняет прежнюю, но нетронутое значение
@@ -866,6 +881,16 @@ function cloudSaveDetails(){
   return last;
 }
 function setCloudState(state,error){cloudState=state;cloudError=error||'';const el=document.getElementById('saved');if(el)el.textContent=cloudLabel();const detail=document.getElementById('cloud-save-details');if(detail)detail.textContent=cloudSaveDetails();}
+function resetDocuments(){documents=[];documentsState='idle';documentsError='';}
+async function loadDocuments(){
+  if(!cloudClient||!cloudUser){resetDocuments();renderNotes();return;}
+  const owner=cloudUser.id;documentsState='loading';documentsError='';renderNotes();
+  const result=await cloudClient.from('tochka_documents').select('id,title,original_name,object_path,mime_type,size_bytes,created_at').eq('user_id',owner).is('deleted_at',null).order('created_at',{ascending:false});
+  if(!cloudUser||cloudUser.id!==owner)return;
+  if(result.error){documentsState='error';documentsError=result.error.message||'';documents=[];}
+  else{documents=result.data||[];documentsState='ready';}
+  renderNotes();
+}
 function scheduleCloudSync(){
   if(!cloudUser)return;
   cloudRetry=0;
@@ -931,7 +956,7 @@ async function pushCloud(){
 async function connectCloudUser(user){
   if(loadBlocked){setCloudState('error','Проверьте локальные данные перед подключением облака');return;}
   const epoch=++cloudEpoch;
-  cloudReady=false;cloudSavedAt=null;cloudUser=user;cloudBase=null;cloudConflict=null;clearTimeout(cloudTimer);setCloudState('syncing');
+  cloudReady=false;cloudSavedAt=null;cloudUser=user;cloudBase=null;cloudConflict=null;resetDocuments();clearTimeout(cloudTimer);setCloudState('syncing');
   try{
     const access=await cloudClient.rpc('tochka_visit');
     if(epoch!==cloudEpoch)return;
@@ -952,6 +977,7 @@ async function connectCloudUser(user){
     const stored=localStorage.getItem(KEY+':base:'+user.id);
     cloudBase=stored?normalize(JSON.parse(stored)):blank();
     saveQuiet();cloudReady=true;renderAll();await pushCloud();
+    if(S.settings.notesTab==='document')await loadDocuments();
   }catch(e){if(epoch===cloudEpoch)setCloudState(navigator.onLine?'error':'offline',e&&e.message);}
   if(epoch===cloudEpoch)renderAll();
 }
@@ -962,7 +988,7 @@ async function initCloud(){
   cloudClient.auth.onAuthStateChange((event,session)=>{
     if(event==='PASSWORD_RECOVERY')setTimeout(()=>openSheet('cloudPassword'),0);
     if(session&&(!cloudUser||cloudUser.id!==session.user.id))setTimeout(()=>connectCloudUser(session.user),0);
-    if(!session){adminData=null;adminInvitation=null;cloudEpoch++;cloudReady=false;clearTimeout(cloudTimer);cloudUser=null;cloudSavedAt=null;cloudBase=null;cloudConflict=null;setCloudState('local');renderAll();}
+    if(!session){adminData=null;adminInvitation=null;cloudEpoch++;cloudReady=false;clearTimeout(cloudTimer);cloudUser=null;cloudSavedAt=null;cloudBase=null;cloudConflict=null;resetDocuments();setCloudState('local');renderAll();}
   });
   const result=await cloudClient.auth.getSession();
   if(result.data&&result.data.session&&!cloudUser)await connectCloudUser(result.data.session.user);
@@ -1840,7 +1866,7 @@ function openContext(){
   if (curScreen === 's-money') return openSheet('exp');
   if (curScreen === 's-today' && screenOff('s-money') && screenOff('s-notes') && screenOff('s-cal')) return openSheet('ev');
   if (curScreen === 's-cal') return openSheet('ev', selDay || today());
-  if (curScreen === 's-notes') return focusNote();
+  if (curScreen === 's-notes') return (S.settings.notesTab || 'task') === 'document' ? openDocumentUpload() : focusNote();
   openSheet('quick');
 }
 /* кнопка внизу меняется по разделу — значок и слово должны это показывать */
@@ -2164,7 +2190,7 @@ function renderMoney(){
     fold('fin-cats', 'По категориям',
       cats.length ? cats.length + ' ' + plural(cats.length,'категория','категории','категорий') : 'пусто',
       (cats.length ? cats.map((c,i)=>
-      '<button type="button" class="stat" style="width:100%;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer" aria-pressed="'+(financeCategory===c[0])+'" onclick="financeCategorySet(decodeURIComponent(\''+encodeURIComponent(c[0]).replace(/'/g,'%27')+'\'))"><span><i class="dot" style="display:inline-block;margin-right:7px;background:'+colors[i%colors.length]+'"></i>'+esc(c[0])+(financeCategory===c[0]?' ✓':'')+'</span><b>'+money(c[1])+'</b></button>').join('') :
+      '<button type="button" class="stat finance-category" aria-pressed="'+(financeCategory===c[0])+'" onclick="financeCategorySet(decodeURIComponent(\''+encodeURIComponent(c[0]).replace(/'/g,'%27')+'\'))"><span><i class="dot" style="display:inline-block;margin-right:7px;background:'+colors[i%colors.length]+'"></i>'+esc(c[0])+(financeCategory===c[0]?' ✓':'')+'</span><b>'+money(c[1])+'</b></button>').join('') :
       '<div class="empty">За выбранный период расходов нет.</div>')) +
     fold('fin-inc', 'Доходы за период', incTotal ? money(incTotal) : 'пока нет',
       (incRows.length ? incRows.map(e=>
@@ -2211,8 +2237,9 @@ function noteBucket(n){
   if (n.items) return 'list';
   return (n.kind || 'task') === 'task' ? 'task' : 'note';
 }
-const NOTE_TABS = [['task','Дела'],['note','Заметки'],['list','Списки']];
-function setNotesTab(v){ S.settings.notesTab = v; saveQuiet(); renderNotes(); }
+const NOTE_TABS = [['task','Дела'],['note','Заметки'],['list','Списки'],['document','Документы']];
+function setNotesTab(v){ S.settings.notesTab = v; saveQuiet(); renderNotes(); if(v==='document'&&documentsState==='idle')loadDocuments(); }
+function setDocumentSort(v){S.settings.documentSort=v;saveQuiet();renderNotes();}
 function renderNotes(){
   const list = S.notes;
   const q = (noteQuery || '').toLowerCase();
@@ -2223,7 +2250,7 @@ function renderNotes(){
   const sorted = inTab.slice().sort((a,b) =>
     (+!!b.pinned) - (+!!a.pinned) || (+!!a.done) - (+!!b.done) ||
     (b.date + b.id).localeCompare(a.date + a.id));
-  const counts = {task:0, note:0, list:0};
+  const counts = {task:0, note:0, list:0, document:documents.length};
   list.forEach(x => { if (!x.done) counts[noteBucket(x)]++; });
 
   /* Поиск стоял под формой новой записи: чтобы им воспользоваться, надо было
@@ -2233,7 +2260,10 @@ function renderNotes(){
 
   /* Раньше вид записи выбирался дважды: переключателем в форме и вкладкой ниже,
      и они друг о друге не знали. Теперь выбор один — вкладка, а форма ей следует. */
-  if (!q) h += (tab === 'list'
+  if (!q) h += (tab === 'document'
+    ? fold('new-document', 'Новый документ', '',
+        '<button class="btn" onclick="openDocumentUpload()">Загрузить файл или фотографию</button>')
+    : tab === 'list'
     ? fold('new-list', 'Новый список', '',
         '<button class="btn" onclick="openSheet(\'list\')">Создать список</button>')
     : fold('new-' + tab, tab === 'note' ? 'Новая заметка' : 'Новое дело', '',
@@ -2244,10 +2274,19 @@ function renderNotes(){
         ''));
 
 
+  if(tab==='document'){
+    const source=q?documents.filter(d=>String(d.title||'').toLowerCase().includes(q)):documents;
+    const sort=S.settings.documentSort||'new',docs=source.slice().sort((a,b)=>sort==='name'?String(a.title||a.original_name||'').localeCompare(String(b.title||b.original_name||''),'ru',{sensitivity:'base'}):sort==='old'?new Date(a.created_at)-new Date(b.created_at):new Date(b.created_at)-new Date(a.created_at));
+    h+=card('<div class="switch notes-switch" role="tablist" aria-label="Что показать" style="margin-bottom:11px">'+
+      NOTE_TABS.map(t=>'<button type="button" role="tab" aria-selected="'+(t[0]===tab)+'" onclick="setNotesTab(\''+t[0]+'\')">'+t[1]+(counts[t[0]]?' <em style="font-style:normal;opacity:.6">'+counts[t[0]]+'</em>':'')+'</button>').join('')+'</div>'+
+      (docs.length?'<div class="doc-tools"><select aria-label="Порядок документов" onchange="setDocumentSort(this.value)"><option value="new"'+(sort==='new'?' selected':'')+'>Сначала новые</option><option value="old"'+(sort==='old'?' selected':'')+'>Сначала старые</option><option value="name"'+(sort==='name'?' selected':'')+'>По названию</option></select></div>':'')+
+      documentRows(docs,q));
+    document.getElementById('s-notes').innerHTML=h;return;
+  }
   /* при пустом поиске карточка с заголовком не нужна — сообщение будет одно, ниже */
   if (!q || sorted.length) h += card(
     (q ? lab('Найдено во всех записях')
-       : '<div class="switch" role="tablist" aria-label="Что показать" style="margin-bottom:11px">' +
+       : '<div class="switch notes-switch" role="tablist" aria-label="Что показать" style="margin-bottom:11px">' +
          NOTE_TABS.map(t => '<button type="button" role="tab" aria-selected="' + (t[0] === tab) +
            '" onclick="setNotesTab(\'' + t[0] + '\')">' + t[1] +
            (counts[t[0]] ? ' <em style="font-style:normal;opacity:.6">' + counts[t[0]] + '</em>' : '') +
@@ -2265,6 +2304,38 @@ function renderNotes(){
 
   document.getElementById('s-notes').innerHTML = h;
 }
+function documentRows(rows,q){
+  if(!cloudUser)return '<div class="empty">Документы хранятся в закрытом облаке. Войдите в аккаунт «Точки дня», чтобы открыть их.</div><button class="btn" style="margin-top:11px" onclick="openSheet(\'cloudAuth\')">Войти в аккаунт</button>';
+  if(documentsState==='loading')return '<div class="empty">Загружаю документы…</div>';
+  if(documentsState==='error')return '<div class="empty">Не удалось загрузить документы. Проверьте интернет и повторите.</div><button class="btn ghost" style="margin-top:11px" onclick="loadDocuments()">Повторить</button>';
+  if(!rows.length)return '<div class="empty">'+(q?'Документов с таким названием не найдено.':'Документов пока нет. Загрузите фотографию, PDF или файл Word.')+'</div>';
+  return rows.map(d=>'<div class="item doc-row" role="button" tabindex="0" aria-label="Открыть документ '+esc(d.title||d.original_name)+'" onclick="openDocument(\''+d.id+'\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openDocument(\''+d.id+'\')}"><div class="doc-preview">'+(String(d.mime_type||'').startsWith('image/')?'Фото':d.mime_type==='application/pdf'?'PDF':'Word')+'</div><div class="txt"><b>'+esc(d.title||d.original_name)+'</b><small>'+docDate(d.created_at)+' · '+docType(d)+' · '+docSize(d.size_bytes)+'</small></div><button class="doc-more" aria-label="Действия с документом" onclick="event.stopPropagation();openSheet(\'documentActions\',\''+d.id+'\')">⋯</button></div>').join('');
+}
+function docDate(v){const d=new Date(v);return Number.isFinite(d.getTime())?d.toLocaleDateString('ru-RU'):'Без даты';}
+function docSize(v){const n=Number(v)||0;return n>=1048576?(n/1048576).toFixed(n>=10485760?0:1).replace('.',',')+' МБ':Math.max(1,Math.round(n/1024))+' КБ';}
+function docType(d){const m=String(d.mime_type||'');return m.startsWith('image/')?'Фото':m==='application/pdf'?'PDF':/wordprocessingml|msword/.test(m)?'Word':'Файл';}
+function documentById(id){return documents.find(d=>d.id===id)||null;}
+function openDocumentUpload(){if(!cloudUser){openSheet('cloudAuth');return;}openSheet('documentUpload');}
+function documentId(){return crypto.randomUUID();}
+function cleanFileName(v){const parts=String(v||'document').split('.'),ext=parts.length>1?'.'+parts.pop().toLowerCase().replace(/[^a-z0-9]/g,''):'';return 'original'+ext;}
+function allowedDocument(file){return !!file&&(/^(image\/(jpeg|png|webp|heic|heif)|application\/pdf|application\/msword|application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document)$/i.test(file.type)||/\.(jpe?g|png|webp|heic|heif|pdf|doc|docx)$/i.test(file.name));}
+async function uploadDocument(){
+  const input=document.getElementById('f-document-file'),file=input&&input.files&&input.files[0],title=val('f-document-title')||(file?file.name.replace(/\.[^.]+$/,''):'');
+  if(!cloudClient||!cloudUser){toast('Сначала войдите в аккаунт «Точки дня»');return;}
+  if(!file){toast('Выберите файл или фотографию');return;}if(!allowedDocument(file)){toast('Можно загрузить фотографию, PDF или файл Word');return;}if(file.size>DOCUMENT_LIMIT){toast('Файл больше 20 МБ');return;}if(!title){toast('Укажите название документа');return;}
+  const owner=cloudUser.id,id=documentId(),path=owner+'/'+id+'/'+cleanFileName(file.name),button=document.getElementById('document-upload-button');if(button){button.disabled=true;button.textContent='Загружаю…';}
+  let uploaded=false;
+  try{
+    const up=await cloudClient.storage.from(DOCUMENT_BUCKET).upload(path,file,{contentType:file.type||undefined,upsert:false});if(up.error)throw up.error;uploaded=true;
+    const added=await cloudClient.from('tochka_documents').insert({id,user_id:owner,title:tidy(title),original_name:file.name,object_path:path,mime_type:file.type||'application/octet-stream',size_bytes:file.size}).select('id,title,original_name,object_path,mime_type,size_bytes,created_at').single();
+    if(added.error)throw added.error;if(!cloudUser||cloudUser.id!==owner)throw new Error('Аккаунт изменился');documents.unshift(added.data);documentsState='ready';closeSheet();renderNotes();toast('Документ сохранён в закрытом облаке');
+  }catch(e){if(uploaded)await cloudClient.storage.from(DOCUMENT_BUCKET).remove([path]);toast('Не удалось сохранить документ. Проверьте интернет и повторите.');if(button){button.disabled=false;button.textContent='Загрузить';}}
+}
+async function documentBlob(d){const r=await cloudClient.storage.from(DOCUMENT_BUCKET).download(d.object_path);if(r.error)throw r.error;return r.data;}
+async function openDocument(id){const d=documentById(id);if(!d||!cloudClient)return;try{const blob=await documentBlob(d),url=URL.createObjectURL(blob);window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000);}catch(e){toast('Не удалось открыть документ');}}
+async function downloadDocument(id){const d=documentById(id);if(!d||!cloudClient)return;try{const blob=await documentBlob(d),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=d.original_name||d.title||'document';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}catch(e){toast('Не удалось скачать документ');}}
+async function renameDocument(id){const d=documentById(id),title=val('f-document-title');if(!d||!title)return toast('Укажите название документа');const r=await cloudClient.from('tochka_documents').update({title:tidy(title),updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',cloudUser.id).select('id').single();if(r.error)return toast('Не удалось изменить название');d.title=tidy(title);closeSheet();renderNotes();toast('Название изменено');}
+async function deleteDocument(id){const d=documentById(id);if(!d||!window.confirm('Удалить документ «'+(d.title||d.original_name)+'»?'))return;const owner=cloudUser&&cloudUser.id;if(!owner)return;const hidden=await cloudClient.from('tochka_documents').update({deleted_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',owner).select('id').single();if(hidden.error)return toast('Не удалось удалить документ');const removed=await cloudClient.storage.from(DOCUMENT_BUCKET).remove([d.object_path]);if(removed.error){await cloudClient.from('tochka_documents').update({deleted_at:null,updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',owner);return toast('Не удалось удалить файл. Повторите позже.');}await cloudClient.from('tochka_documents').delete().eq('id',id).eq('user_id',owner);documents=documents.filter(x=>x.id!==id);renderNotes();toast('Документ удалён');}
 /* поиск за пределами заметок: события, расходы, доходы */
 function searchElsewhere(q, foundInNotes){
   const hit = t => String(t || '').toLowerCase().includes(q);
@@ -2915,7 +2986,6 @@ function renderMore(){
     fold('more-cloud','Мои данные',cloudUser?'облако подключено':'сохранение и копии',
       '<h3 style="font-size:16px;margin:0 0 10px">Облачное сохранение</h3>'+cloudBody+
       '<h3 style="font-size:16px;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line)">Резервная копия</h3>'+backupBody)+
-    card('<button class="btn ghost" onclick="openAssistantImport()">Встречи помощника</button>')+
     fold('more-reminders','Напоминания',S.settings.reminderMode==='three-and-hour'?'за 3 часа и за час':'о встречах за час',
       '<p>Настройте уведомления на этом устройстве и проверьте их получение.</p><button class="btn" onclick="openPushSheet()">Настроить напоминания</button>')+
     fold('more-set', 'Настройки приложения', 'оформление и разделы',
@@ -3224,6 +3294,10 @@ const SHEETS = {
 
   help: () => '<h3>Как пользоваться</h3><div style="white-space:pre-wrap">'+esc(NEW_USER_GUIDE)+'</div><button class="btn" style="margin-top:12px" onclick="closeSheet()">Понятно</button>',
 
+  documentUpload: () => '<h3>Новый документ</h3><p>Оригинал сохранится в закрытом облаке и будет доступен только в вашем аккаунте.</p><div class="fld"><label>Файл или фотография</label><input id="f-document-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.pdf,.doc,.docx" onchange="if(!val(\'f-document-title\')&&this.files[0])document.getElementById(\'f-document-title\').value=this.files[0].name.replace(/\\.[^.]+$/,\'\')"></div><div class="fld"><label>Название</label><input id="f-document-title" maxlength="160" placeholder="Например: Полис страхования"></div><div class="mut">Фотография, PDF или Word · не больше 20 МБ</div><button class="btn" id="document-upload-button" style="margin-top:12px" onclick="uploadDocument()">Загрузить</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
+  documentRename: id => {const d=documentById(id)||{};return '<h3>Название документа</h3><div class="fld"><label>Название</label><input id="f-document-title" maxlength="160" value="'+esc(d.title||d.original_name||'')+'"></div><button class="btn" onclick="renameDocument(\''+id+'\')">Сохранить</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';},
+  documentActions: id => {const d=documentById(id)||{};return '<h3>'+esc(d.title||d.original_name||'Документ')+'</h3><button class="btn" onclick="closeSheet();openDocument(\''+id+'\')">Открыть</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet();downloadDocument(\''+id+'\')">Скачать</button><button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'documentRename\',\''+id+'\')">Переименовать</button><button class="del" style="display:block;margin:16px auto 0" onclick="closeSheet();deleteDocument(\''+id+'\')">Удалить</button><button class="btn ghost" style="margin-top:12px" onclick="closeSheet()">Отмена</button>';},
+
   quick: () => '<h3>Что добавить?</h3>' +
 
     '<button class="btn" onclick="openSheet(\'voice\')">🎙 Рассказать голосом</button>' +
@@ -3233,6 +3307,7 @@ const SHEETS = {
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet();goScreen(\'s-notes\');setTimeout(()=>focusNote(\'task\'),120)">✓ Дело с галочкой</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet();goScreen(\'s-notes\');setTimeout(()=>focusNote(\'note\'),120)">✎ Заметка</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="openSheet(\'list\')">☑ Список по пунктам</button>' +
+    '<button class="btn ghost" style="margin-top:8px" onclick="openDocumentUpload()">▤ Документ или фотография</button>' +
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
   list: () => '<h3>Новый список</h3>' +
@@ -3912,8 +3987,5 @@ if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)){
 }
 
 </script>
-<script src="assistant-import.js"></script>
-<script src="assistant-panel.js"></script>
 </body>
 </html>
-

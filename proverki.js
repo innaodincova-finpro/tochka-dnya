@@ -709,7 +709,7 @@ async function run() {
     'списки лежат отдельно от заметок');
 
   const tabButtons = [...w.document.querySelectorAll('#s-notes .switch button')];
-  assert(tabButtons.length === 3 && tabButtons[0].textContent.includes('2'),
+  assert(tabButtons.length === 4 && tabButtons[0].textContent.includes('2') && tabButtons[3].textContent.includes('Документы'),
     'на вкладках видно, сколько невыполненного в каждой');
 
   w.eval("noteFind('аджика')");
@@ -1363,4 +1363,3 @@ run().catch(error => {
   console.error(error.stack || error);
   process.exit(1);
 });
-
