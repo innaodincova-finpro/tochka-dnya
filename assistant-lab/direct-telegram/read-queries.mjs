@@ -6,7 +6,7 @@ export function readIntent(text){
  const t=norm(text).replace(/[?!\.]+$/,'').trim();
  if(['/today','что сегодня','что у меня сегодня','план на сегодня','планы на сегодня'].includes(t))return {kind:'agenda',offset:0};
  if(['/tomorrow','что завтра','что у меня завтра','план на завтра','планы на завтра'].includes(t))return {kind:'agenda',offset:1};
- const expense=/^(?:сколько (?:я )?потратила?|расходы|сводка расходов)(?: на (.+?))? за (сегодня|вчера|неделю|месяц|\d{4}-\d{2}-\d{2} по \d{4}-\d{2}-\d{2})$/u.exec(t);
+ const expense=/^(?:сколько (?:я )?потратила?|расходы|сводка расходов)(?: на (.+?))? (?:за )?(сегодня|вчера|неделю|месяц|\d{4}-\d{2}-\d{2} по \d{4}-\d{2}-\d{2})$/u.exec(t);
  if(expense)return {kind:'expenses',category:expense[1]||null,period:expense[2]};
  const m=/^(?:\/search|найди заметку|найди заметки|поиск заметок)(?:\s+(?:про|о))?(?:\s+|:\s*)(.*)$/u.exec(t);
  if(m)return {kind:'search',query:m[1].trim()};

@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import worker from './src/index.mjs';
+const secret='s'.repeat(32);
+let seen;
+const env={TRANSCRIBE_SECRET:secret,AI:{run:async(model,input)=>{seen={model,input};return{text:'Пятёрочка пятьсот'};}}};
+const call=(body='OggSfake',key=secret)=>worker.fetch(new Request('https://voice.test',{method:'POST',headers:{'x-tochka-transcribe-secret':key,'content-type':'audio/ogg'},body}),env);
+assert.equal((await call('x','wrong')).status,401);
+assert.equal((await worker.fetch(new Request('https://voice.test'),env)).status,405);
+const response=await call();assert.equal(response.status,200);assert.deepEqual(await response.json(),{text:'Пятёрочка пятьсот',segments:[]});
+assert.equal(seen.model,'@cf/openai/whisper-large-v3-turbo');assert.equal(seen.input.language,'ru');assert.equal(seen.input.task,'transcribe');assert.equal(seen.input.vad_filter,true);
+console.log('PASS private Cloudflare Russian transcription worker');

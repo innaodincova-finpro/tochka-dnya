@@ -7,6 +7,7 @@ import {prepareDraft} from './deepseek.mjs';
 import {validateProposal} from './proposal.mjs';
 import {card,savedCard} from './conversation.mjs';
 import {transcribeVoice,voiceErrorText} from './voice.mjs';
+import {documentSearchIntent,saveIncomingDocument,findDocument} from './documents.mjs';
 export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=transcribeVoice){
  return async req=>{
   if(req.method!=='POST')return new Response('',{status:405});
@@ -53,6 +54,9 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    if(!hookInfo.allowed_updates?.includes('callback_query'))await s.tg('setWebhook',{url:env('SUPABASE_URL')+'/functions/v1/tochka-assistant-receiver',secret_token:secret,allowed_updates:['message','callback_query'],drop_pending_updates:false,max_connections:1});
    if(m.text==='/stop'){await s.db('tochka_assistant_pilot'+filter,'PATCH',{enabled:false,pending:null,pending_at:null});return new Response('ok');}
    if(await reminderCommand(m.text,s,uid,m.chat.id))return new Response('ok');
+   if(await saveIncomingDocument({message:m,s,uid,chat:m.chat.id,linked,env,request}))return new Response('ok');
+   const documentQuery=documentSearchIntent(m.text);
+   if(documentQuery){await findDocument(documentQuery,{s,uid,chat:m.chat.id,linked,env,request});return new Response('ok');}
    const action=actionIntent(m.text);
    if(action){await prepareAction(action,s,uid,m.chat.id,linked);return new Response('ok');}
    const query=readIntent(m.text);
