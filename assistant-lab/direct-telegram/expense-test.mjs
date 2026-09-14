@@ -7,7 +7,7 @@ const p=normalizeModelProposal(raw);assert.equal(p.amount,5000);assert.equal(p.c
 assert.throws(()=>validateProposal(raw));
 for(const bad of [{...raw,amount:'пять тысяч'},{...raw,date:'2026-02-30'},{...raw,amount:-10},{...raw,time:'10:00'},{...raw,unexpected:'data'}])assert.throws(()=>normalizeModelProposal(bad));
 for(const text of ['Сегодня продукты Пятёрочка магазин 5000 руб.','Магазин Пятёрочка продукты сегодня 5000 руб.']){
- const r=await prepareDraft({text,apiKey:'fake',now:new Date('2026-09-12T19:55:00Z'),fetchImpl:async(u,o)=>{const b=JSON.parse(o.body);assert.ok(b.messages[0].content.includes('2026-09-12'));return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(raw)}}]});}});
+ const r=await prepareDraft({text,apiKey:'fake',now:new Date('2026-09-12T19:55:00Z'),fetchImpl:async(u,o)=>{const b=JSON.parse(o.body);assert.ok(b.messages[0].content.includes('2026-09-12'));return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({mode:'create',intent:'expense',confidence:'high',proposal:raw})}}]});}});
  assert.equal(r.proposal.kind,'expense');assert.equal(r.needsClarification,false);
 }
 assert.deepEqual(normalizeModelProposal({kind:'note',title:'Идея',date:null}),{kind:'note',title:'Идея'});

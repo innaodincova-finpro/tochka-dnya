@@ -4,7 +4,7 @@ import {shortChange,expenseDefaults,editHint} from './defaults.mjs';
 const now=new Date('2026-09-12T21:10:00Z'); // Moscow already September 13.
 let calls=0;
 const base={kind:'expense',title:'Пятёрочка',amount:5000};
-async function run(text,raw=base,extras={}){return prepareDraft({text,apiKey:'fake',now,defaultCurrency:'KZT',fetchImpl:async()=>{calls++;return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify(raw)}}]});},...extras});}
+async function run(text,raw=base,extras={}){return prepareDraft({text,apiKey:'fake',now,defaultCurrency:'KZT',fetchImpl:async()=>{calls++;return Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({mode:'create',intent:raw.kind,confidence:'high',proposal:raw})}}]});},...extras});}
 let r=await run('Пятёрочка, пять тысяч');assert.equal(r.proposal.currency,'KZT');assert.equal(r.proposal.date,'2026-09-13');assert.equal(r.needsClarification,false);
 r=await run('Пятёрочка 5000',{...base,currency:'RUB'});assert.equal(r.proposal.currency,'KZT');
 r=await run('Пятёрочка вчера 5000 рублей',{...base,date:'2026-09-12',currency:'RUB'});assert.equal(r.proposal.currency,'RUB');assert.equal(r.proposal.date,'2026-09-12');
