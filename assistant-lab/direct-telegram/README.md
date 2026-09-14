@@ -15,7 +15,7 @@ Live confirmation from owner's next fresh message remains the acceptance step; n
 ## Voice messages
 
 Receiver supports Telegram `message.voice`, up to 60 seconds / 4 MiB.
-Uses Groq `whisper-large-v3-turbo`, Russian transcription, then the existing DeepSeek proposal and confirmation path. Server secret required: `TOCHKA_ASSISTANT_GROQ_API_KEY`. No fallback to unrelated project keys. Create a key in https://console.groq.com/keys and add it in Supabase Edge Function Secrets. No key is committed or sent in a chat. Audio is passed in memory, never persisted by this code. Groq receives the audio; DeepSeek receives the transcript. Provider retention is governed by provider settings/policy.
+Uses a private Cloudflare Worker with Workers AI `@cf/openai/whisper-large-v3-turbo`, Russian transcription, then the existing DeepSeek proposal and confirmation path. Supabase secrets required: `TOCHKA_ASSISTANT_TRANSCRIBE_URL` and `TOCHKA_ASSISTANT_TRANSCRIBE_SECRET`; the Worker holds the matching `TRANSCRIBE_SECRET` and an `AI` binding. No key is committed or sent in chat. Audio is passed in memory and never persisted by this code. Cloudflare receives the audio; DeepSeek receives only the transcript. Provider retention is governed by provider settings/policy.
 
 Quota/update reservation and owner verification precede transcription; one voice update uses one existing daily reservation. Duplicate Telegram updates use existing delivery deduplication. Errors leave previous pending proposal unchanged. Speech results are shown verbatim above the proposed record; no save occurs before the user presses Save. Files/photos/video notes are not transcribed. Speech recognition can make mistakes: confirmation is required.
 
