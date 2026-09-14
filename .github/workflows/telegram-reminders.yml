@@ -1,0 +1,19 @@
+name: Telegram reminder regression
+on:
+  push:
+    branches: [feature/telegram-reminders]
+    paths: ['assistant-lab/reminders/**', 'assistant-lab/direct-telegram/**', '.github/workflows/telegram-reminders.yml']
+  pull_request:
+    paths: ['assistant-lab/reminders/**', 'assistant-lab/direct-telegram/**', '.github/workflows/telegram-reminders.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: node --test assistant-lab/reminders/*.test.mjs assistant-lab/direct-telegram/*test.mjs

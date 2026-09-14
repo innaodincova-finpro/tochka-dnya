@@ -1,4 +1,4 @@
-import {validateProposal} from './proposal.mjs';
+import {validateProposal, CATEGORIES, inferCategory} from './proposal.mjs';
 export function currencyWord(text){
  const t=text.trim().toLowerCase().replace(/[.!]$/,'');
  return ({руб:'RUB',рубли:'RUB',рублей:'RUB',рублях:'RUB',рубля:'RUB',рубль:'RUB',rub:'RUB','₽':'RUB',тенге:'KZT',kzt:'KZT','₸':'KZT',манат:'AZN',манаты:'AZN',манатов:'AZN',azn:'AZN',доллары:'USD',долларов:'USD',usd:'USD',евро:'EUR',eur:'EUR'})[t]||null;
@@ -17,7 +17,10 @@ export function shortChange(text,pending,today){
   const d=new Date(today+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+({сегодня:0,вчера:-1,позавчера:-2,завтра:1,послезавтра:2})[t]);
   return validateProposal({...pending,date:d.toISOString().slice(0,10)});
  }
+ if(pending.kind==='event'&&/^(?:в\s+)?([01]?\d|2[0-3]):[0-5]\d$/.test(t)){const time=t.replace(/^в\s+/,'').padStart(5,'0');return validateProposal({...pending,time});}
  if(pending.kind==='expense'){
+  const category=CATEGORIES.find(c=>c.toLowerCase()===t.replace(/^категория\s*:?\s*/,''));
+  if(category)return validateProposal({...pending,category});
   const currency=currencyWord(t);if(currency)return validateProposal({...pending,currency});
   const amount=simpleAmount(t);if(amount)return validateProposal({...pending,amount});
  }
@@ -26,6 +29,7 @@ export function shortChange(text,pending,today){
 export function expenseDefaults(p,{today,defaultCurrency,text,inheritedCurrency,inheritedDate}){
  if(p.kind!=='expense')return p;
  const r={...p};
+ if(!r.category){const category=inferCategory(r.title);if(category)r.category=category;}
  // An unresolved explicit date/currency must not silently become today's/default values.
  const dateMention=hasDateMention(text);
  if(!dateMention)r.date=inheritedDate||today;
