@@ -10,6 +10,9 @@ else if(url.includes('tochka_assistant_links'))r=[{chat_id:123}];
 else if(url.includes('tochka_assistant_pilot')){if(o.method==='PATCH'){stored=JSON.parse(o.body);r=[stored];}else r=[{user_id:uid,enabled:true,enabled_at:new Date(now-5000).toISOString(),hook_hash:h,pending:null,pending_at:null}];}
 else r=[];return Response.json(r);};
 const handler=makeHandler(env,request,async()=>({proposal:{kind:'event',title:'test',date:'2026-09-15',time:'18:00'},text:'old draft'}));
+const healthHandler=makeHandler(env,request,undefined,undefined,'test-build');
+const health=await healthHandler(new Request('https://local',{method:'GET'}));
+assert.equal(health.status,200);assert.deepEqual(await health.json(),{service:'tochka-assistant-receiver',version:'test-build'});
 const message={message_id:10,date:Math.floor(now/1000),chat:{id:123,type:'private'},from:{id:123,is_bot:false},text:'test'};
 const send=b=>handler(new Request('https://local',{method:'POST',headers:{'x-telegram-bot-api-secret-token':secret,'content-type':'application/json'},body:JSON.stringify(b)}));
 assert.equal((await send({update_id:1,message})).status,200);const sent=calls.find(([u])=>u.endsWith('/sendMessage'))[1];assert.ok(sent.reply_markup.inline_keyboard[0][0].callback_data.startsWith('save:'));assert.equal(sent.text.includes('Черновик'),false);assert.ok(stored.pending_at);

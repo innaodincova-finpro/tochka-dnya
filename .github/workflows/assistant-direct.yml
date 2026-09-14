@@ -4,7 +4,7 @@ on:
     branches: [feature/assistant-lab, fix/assistant-reliable-input]
     paths: ['assistant-lab/direct-telegram/**', '.github/workflows/assistant-direct.yml']
   pull_request:
-    paths: ['assistant-lab/direct-telegram/**', '.github/workflows/assistant-direct.yml']
+    paths: ['assistant-lab/direct-telegram/**', 'supabase/config.toml', '.github/workflows/assistant-direct.yml', '.github/workflows/kalendar.yml']
 permissions:
   contents: read
 jobs:
