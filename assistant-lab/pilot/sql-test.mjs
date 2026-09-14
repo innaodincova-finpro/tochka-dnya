@@ -1,0 +1,11 @@
+import {PGlite} from '../../node_modules/@electric-sql/pglite/dist/index.js';import fs from 'node:fs';import assert from 'node:assert/strict';
+const db=new PGlite();await db.exec('create role anon;create role authenticated;create role service_role bypassrls;create table public.tochka_assistant_links(user_id uuid primary key);');await db.exec(fs.readFileSync(new URL('./pilot.sql',import.meta.url),'utf8'));
+const id='00000000-0000-0000-0000-000000000001';
+await db.query('insert into tochka_assistant_links values($1)',[id]);await db.query('insert into tochka_assistant_pilot(user_id,hook_hash,enabled) values($1,$2,true)',[id,'a'.repeat(64)]);
+const reserve=async n=>(await db.query('select public.tochka_assistant_reserve($1,$2) as result',[id,n])).rows[0].result;
+assert.equal(await reserve(1),'reserved');assert.equal(await reserve(1),'duplicate');
+for(let i=2;i<=20;i++)assert.equal(await reserve(i),'reserved');assert.equal(await reserve(21),'limit');
+await db.query('update tochka_assistant_pilot set enabled=false where user_id=$1',[id]);assert.equal(await reserve(22),'disabled');
+await db.exec('set role anon');await assert.rejects(db.query('select * from tochka_assistant_pilot'));await assert.rejects(reserve(23));await db.exec('reset role');
+await db.query('delete from tochka_assistant_links where user_id=$1',[id]);assert.equal((await db.query('select count(*)::int as n from tochka_assistant_pilot')).rows[0].n,0);
+await db.close();console.log('SQL: deduplication, quota, disable, anonymous denial and unlink cascade passed');

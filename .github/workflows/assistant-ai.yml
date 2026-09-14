@@ -1,0 +1,18 @@
+name: Assistant AI boundary
+on:
+  push:
+    branches: [feature/assistant-lab]
+    paths: ['assistant-lab/ai/**', '.github/workflows/assistant-ai.yml']
+  pull_request:
+    paths: ['assistant-lab/ai/**', '.github/workflows/assistant-ai.yml']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test assistant-lab/ai/*.test.mjs
