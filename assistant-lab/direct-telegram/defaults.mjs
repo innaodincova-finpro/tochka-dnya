@@ -26,14 +26,19 @@ export function shortChange(text,pending,today){
  }
  return null;
 }
-export function expenseDefaults(p,{today,defaultCurrency,text,inheritedCurrency,inheritedDate}){
- if(p.kind!=='expense')return p;
+export function proposalDefaults(p,{today,defaultCurrency,text,inheritedCurrency,inheritedDate}){
  const r={...p};
+ const dateMention=hasDateMention(text);
+
+ // A date omitted by the user means today.  This is a product rule, so it is
+ // enforced here after every parser (local or model) instead of being left to
+ // the model prompt.  An explicit but unresolved date must still be clarified.
+ if((r.kind==='event'||r.kind==='expense')&&!dateMention&&!r.date)r.date=inheritedDate||today;
+ if((r.kind==='event'||r.kind==='expense')&&!r.date&&/сегодня/iu.test(text))r.date=today;
+ if(r.kind!=='expense')return validateProposal(r);
+
  if(!r.category){const category=inferCategory(r.title);if(category)r.category=category;}
  // An unresolved explicit date/currency must not silently become today's/default values.
- const dateMention=hasDateMention(text);
- if(!dateMention)r.date=inheritedDate||today;
- if(!r.date&&/сегодня/iu.test(text))r.date=today;
  const currencyMention=/(руб|₽|тенге|₸|манат|доллар|евро|юан|фунт|лир|дирхам|[€$£¥]|\b(?:RUB|KZT|AZN|USD|EUR|CNY|GBP|TRY|AED)\b)/iu.test(text);
  if(!currencyMention){
   const c=inheritedCurrency||defaultCurrency;
@@ -41,6 +46,9 @@ export function expenseDefaults(p,{today,defaultCurrency,text,inheritedCurrency,
  }
  return validateProposal(r);
 }
+// Kept for modules outside the current receiver branch that still import the
+// old name.  The behavior is now shared by events and expenses.
+export const expenseDefaults=proposalDefaults;
 export function hasDateMention(text){
  // Standalone calendar words; decimal amounts such as 350.50 are not dates.
  return /(?:^|[^\p{L}])(?:сегодня|вчера|завтра|позавчера|послезавтра|понедельник\p{L}*|вторник\p{L}*|сред[ау]|четверг\p{L}*|пятниц\p{L}*|суббот\p{L}*|воскресень\p{L}*|январ\p{L}*|феврал\p{L}*|март\p{L}*|апрел\p{L}*|ма[йяе]|июн\p{L}*|июл\p{L}*|август\p{L}*|сентябр\p{L}*|октябр\p{L}*|ноябр\p{L}*|декабр\p{L}*|недел\p{L}*|месяц\p{L}*)(?=$|[^\p{L}])/iu.test(text)
