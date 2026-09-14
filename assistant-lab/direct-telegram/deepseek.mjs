@@ -1,4 +1,4 @@
-import {shortChange,expenseDefaults} from './defaults.mjs';
+import {shortChange,proposalDefaults} from './defaults.mjs';
 import {recurringDraft} from './local-draft.mjs';
 import {SYSTEM_PROMPT, validateProposal, formatProposal} from './proposal.mjs';
 import {normalizeIntentEnvelope,clarificationResult} from './intent.mjs';
@@ -16,9 +16,9 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
   } catch { throw error('invalid_time_context'); }
   if (pending !== null) pending = validateProposal(pending);
   const short=shortChange(text,pending,today);
-  if(short){const proposal=expenseDefaults(short,{today,defaultCurrency,text,inheritedCurrency:short.currency,inheritedDate:short.date});return {proposal,...formatProposal(proposal)};}
+  if(short){const proposal=proposalDefaults(short,{today,defaultCurrency,text,inheritedCurrency:short.currency,inheritedDate:short.date});return {proposal,...formatProposal(proposal)};}
   const recurring=recurringDraft(text,today);
-  if(recurring){const proposal=expenseDefaults(recurring,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
+  if(recurring){const proposal=proposalDefaults(recurring,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
   if (/(?:кажд(?:ый|ую|ое|ого|ые)|ежедневно|еженедельно|ежемесячно|ежегодно|по будням|по выходным)/iu.test(text)) throw error('recurrence_format');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /\s/.test(apiKey)) throw error('key_missing_or_invalid');
   const controller = new AbortController();
@@ -29,7 +29,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
       headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},
       body:JSON.stringify({model:'deepseek-flash',stream:false,thinking:{type:'disabled'},max_tokens:1200,
         response_format:{type:'json_object'},messages:[
-          {role:'system',content:SYSTEM_PROMPT+'\nТекущая дата: '+today+'; часовой пояс: '+timeZone+'. Если расход без даты — используй текущую дату. Если валюта не названа — пропусти currency: её подставит программа из настроек. Суммы словами переводи в числа.'},
+          {role:'system',content:SYSTEM_PROMPT+'\nТекущая дата: '+today+'; часовой пояс: '+timeZone+'. Если дата не названа, программа сама использует текущую дату. Если валюта не названа — пропусти currency: её подставит программа из настроек. Суммы словами переводи в числа.'},
           ...(pending ? [{role:'assistant',content:'Текущий неподтверждённый черновик: '+JSON.stringify(pending)}] : []),
           {role:'user',content:text}
         ]})
@@ -56,7 +56,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
     } catch {throw error('invalid_response');}
     if(envelope.mode==='unclear')return clarificationResult(envelope);
     let proposal=envelope.proposal;
-    proposal=expenseDefaults(proposal,{today,defaultCurrency,text,inheritedCurrency:envelope.mode==='amend'?pending?.currency:undefined,inheritedDate:envelope.mode==='amend'?pending?.date:undefined});
+    proposal=proposalDefaults(proposal,{today,defaultCurrency,text,inheritedCurrency:envelope.mode==='amend'?pending?.currency:undefined,inheritedDate:envelope.mode==='amend'?pending?.date:undefined});
     return {proposal,...formatProposal(proposal)};
   } catch(e) {
     if(e instanceof AssistantError) throw e;
