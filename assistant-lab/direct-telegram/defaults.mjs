@@ -10,12 +10,30 @@ export function simpleAmount(text){
  const m=/^(.*?)\s+тысяч(?:а|и)?$/.exec(t);if(m){const n=words[m[1]]||(/^\d+$/.test(m[1])?Number(m[1]):0);if(n)return n*1000;}
  return words[t]||null;
 }
+function calendarDate(text,today){
+ const t=text.trim().toLowerCase().replace(/\.$/,'').replace(/ё/g,'е');
+ let day,month,year;
+ const named=/^(?:на\s+)?([1-9]|[12]\d|3[01])(?:-го)?\s+(январ\p{L}*|феврал\p{L}*|март\p{L}*|апрел\p{L}*|ма[йя]|июн\p{L}*|июл\p{L}*|август\p{L}*|сентябр\p{L}*|октябр\p{L}*|ноябр\p{L}*|декабр\p{L}*)(?:\s+(\d{4}))?$/u.exec(t);
+ const numeric=/^(?:на\s+)?([1-9]|[12]\d|3[01])[./](0?[1-9]|1[0-2])(?:[./](\d{4}))?$/u.exec(t);
+ if(named){
+  day=Number(named[1]);year=Number(named[3]||today.slice(0,4));
+  month=['январ','феврал','март','апрел','ма','июн','июл','август','сентябр','октябр','ноябр','декабр'].findIndex(stem=>named[2].startsWith(stem))+1;
+ }else if(numeric){day=Number(numeric[1]);month=Number(numeric[2]);year=Number(numeric[3]||today.slice(0,4));}
+ else return null;
+ const date=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+ const d=new Date(date+'T12:00:00Z');
+ return Number.isFinite(+d)&&d.toISOString().slice(0,10)===date?date:null;
+}
 export function shortChange(text,pending,today){
  if(!pending)return null;
  const t=text.trim().toLowerCase().replace(/[.!]$/,'');
  if(['сегодня','вчера','позавчера','завтра','послезавтра'].includes(t)&&pending.kind!=='note'){
   const d=new Date(today+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+({сегодня:0,вчера:-1,позавчера:-2,завтра:1,послезавтра:2})[t]);
   return validateProposal({...pending,date:d.toISOString().slice(0,10)});
+ }
+ if(pending.kind!=='note'){
+  const date=calendarDate(text,today);
+  if(date)return validateProposal({...pending,date});
  }
  if(pending.kind==='event'&&/^(?:в\s+)?([01]?\d|2[0-3]):[0-5]\d$/.test(t)){const time=t.replace(/^в\s+/,'').padStart(5,'0');return validateProposal({...pending,time});}
  if(pending.kind==='expense'){
