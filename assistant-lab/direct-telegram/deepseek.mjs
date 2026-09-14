@@ -1,4 +1,4 @@
-import {shortChange,expenseDefaults} from './defaults.mjs';
+import {shortChange,proposalDefaults} from './defaults.mjs';
 import {localDraft} from './local-draft.mjs';
 import {SYSTEM_PROMPT, validateProposal, formatProposal, normalizeModelProposal} from './proposal.mjs';
 export class AssistantError extends Error { constructor(code) { super(code); this.name='AssistantError'; } }
@@ -24,9 +24,9 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
   } catch { throw error('invalid_time_context'); }
   if (pending !== null) pending = validateProposal(pending);
   const short=shortChange(text,pending,today);
-  if(short){const proposal=expenseDefaults(short,{today,defaultCurrency,text,inheritedCurrency:short.currency,inheritedDate:short.date});return {proposal,...formatProposal(proposal)};}
+  if(short){const proposal=proposalDefaults(short,{today,defaultCurrency,text,inheritedCurrency:short.currency,inheritedDate:short.date});return {proposal,...formatProposal(proposal)};}
   const local=localDraft(text,today);
-  if(local){const proposal=expenseDefaults(local,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
+  if(local){const proposal=proposalDefaults(local,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
   if (/(?:кажд(?:ый|ую|ое|ого|ые)|ежедневно|еженедельно|ежемесячно|ежегодно|по будням|по выходным)/iu.test(text)) throw error('recurrence_format');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /\s/.test(apiKey)) throw error('key_missing_or_invalid');
   pending = contextFor(text, pending);
@@ -38,7 +38,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
       headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},
       body:JSON.stringify({model:'deepseek-flash',stream:false,thinking:{type:'disabled'},max_tokens:1200,
         response_format:{type:'json_object'},messages:[
-          {role:'system',content:SYSTEM_PROMPT+'\nПример JSON: {"kind":"event","title":"Врач","date":"2026-09-15","time":"10:15"}. Пример не содержит данных пользователя.\nТекущая дата: '+today+'; часовой пояс: '+timeZone+'. Если расход без даты — используй текущую дату. Если валюта не названа — пропусти currency: её подставит программа из настроек. Суммы словами переводи в числа. Название магазина и сумма без глагола означают расход.'},
+          {role:'system',content:SYSTEM_PROMPT+'\nПример JSON: {"kind":"event","title":"Врач","date":"2026-09-15","time":"10:15"}. Пример не содержит данных пользователя.\nТекущая дата: '+today+'; часовой пояс: '+timeZone+'. Если дата не названа, программа сама использует текущую дату. Если валюта не названа — пропусти currency: её подставит программа из настроек. Суммы словами переводи в числа. Название магазина и сумма без глагола означают расход.'},
           ...(pending ? [{role:'assistant',content:JSON.stringify(pending)}] : []),
           {role:'user',content:text}
         ]})
@@ -72,7 +72,7 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
       if (proposal.kind !== 'event' || !proposal.time) throw error('invalid_response');
       proposal=validateProposal({...pending,...(/(?:сегодня|завтра|послезавтра)/iu.test(text)&&proposal.date?{date:proposal.date}:{}),time:proposal.time});
     }
-    proposal=expenseDefaults(proposal,{today,defaultCurrency,text,inheritedCurrency:pending?.currency,inheritedDate:pending?.date});
+    proposal=proposalDefaults(proposal,{today,defaultCurrency,text,inheritedCurrency:pending?.currency,inheritedDate:pending?.date});
     return {proposal,...formatProposal(proposal)};
   } catch(e) {
     if(e instanceof AssistantError) throw e;
