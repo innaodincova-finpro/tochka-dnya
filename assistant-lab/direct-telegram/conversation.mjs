@@ -18,4 +18,4 @@ export function card(raw,version){
  keyboard.push([{text:'Изменить',callback_data:'edit:'+version},{text:'Отмена',callback_data:'cancel:'+version}]);
  return {text:lines.join('\n'),reply_markup:{inline_keyboard:keyboard}};
 }
-export const savedCard=kind=>({text:(({event:'Встреча сохранена в «План». Напоминания — по вашим настройкам.',expense:'Расход сохранён в «Финансы».',note:'Заметка сохранена в «Заметки».'})[kind]||'Уже сохранено в «Точку дня».')+'\nЗапись доступна и в приложении с экрана «Домой».',reply_markup:{inline_keyboard:[[{text:'Открыть сайт',url:'https://innaodincova-finpro.github.io/tochka-dnya/'}]]}});
+export const savedCard=(kind,version,repeat)=>({text:(({event:'Встреча сохранена в «План». Напоминания — по вашим настройкам.',expense:'Расход сохранён в «Финансы».',note:'Заметка сохранена в «Заметки».'})[kind]||'Уже сохранено в «Точку дня».')+'\nЗапись доступна и в приложении с экрана «Домой».',reply_markup:{inline_keyboard:[...(version?[[{text:repeat?'Отменить сохранение всей серии (30 мин)':'Отменить сохранение (30 мин)',callback_data:'undo:'+version}]]:[]),[{text:'Открыть сайт',url:'https://innaodincova-finpro.github.io/tochka-dnya/'}]]}});

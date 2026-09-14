@@ -15,7 +15,7 @@ Live confirmation from owner's next fresh message remains the acceptance step; n
 ## Voice messages
 
 Receiver supports Telegram `message.voice`, up to 60 seconds / 4 MiB.
-Uses Groq `whisper-large-v3-turbo`, Russian transcription, then the existing DeepSeek proposal and confirmation path. Server secret required: `TOCHKA_ASSISTANT_GROQ_API_KEY`. No fallback to unrelated project keys. Create a key in https://console.groq.com/keys and add it in Supabase Edge Function Secrets. No key is committed or sent in a chat. Audio is passed in memory, never persisted by this code. Groq receives the audio; DeepSeek receives the transcript. Provider retention is governed by provider settings/policy.
+Uses a private Cloudflare Worker with Workers AI `@cf/openai/whisper-large-v3-turbo`, Russian transcription, then the existing DeepSeek proposal and confirmation path. Supabase secrets required: `TOCHKA_ASSISTANT_TRANSCRIBE_URL` and `TOCHKA_ASSISTANT_TRANSCRIBE_SECRET`; the Worker holds the matching `TRANSCRIBE_SECRET` and an `AI` binding. No key is committed or sent in chat. Audio is passed in memory and never persisted by this code. Cloudflare receives the audio; DeepSeek receives only the transcript. Provider retention is governed by provider settings/policy.
 
 Quota/update reservation and owner verification precede transcription; one voice update uses one existing daily reservation. Duplicate Telegram updates use existing delivery deduplication. Errors leave previous pending proposal unchanged. Speech results are shown verbatim above the proposed record; no save occurs before the user presses Save. Files/photos/video notes are not transcribed. Speech recognition can make mistakes: confirmation is required.
 
@@ -36,6 +36,12 @@ Simple purchases (including `Магазин Пятёрочка пять тыся
 Text cancellation uses the same version-checked confirmation RPC as the Cancel button before the paid reservation, so it remains available at the daily limit. It cancels only pending drafts, not saved records. Relative-date detection uses word boundaries and distinguishes decimal amounts from calendar dates.
 
 Run `node --test assistant-lab/direct-telegram/*test.mjs` from the repository root. The SQL test also loads the actual app and validates all three saved record formats. CI now covers direct Telegram code explicitly. These are isolated checks, not evidence of a message received on the owner's phone.
+
+## Documents v1 (local implementation)
+
+The linked owner can send a PDF, Word, JPG, PNG, WEBP or iPhone photo up to 20 MB. The receiver validates identity and active membership before downloading, uploads the original bytes with the service role to the private `tochka-documents` bucket, and writes owner-scoped metadata to `public.tochka_documents`. Browser access remains owner-only through RLS. If metadata insertion fails, the newly uploaded object is removed best-effort.
+
+`Найди документ <название>` is deterministic and does not call DeepSeek or reserve daily AI quota. A single or unique exact match is returned as a Telegram document; ambiguous matches produce a short numbered list and ask for a narrower title. Apply `documents.sql` only after review, then deploy the receiver and perform owner-phone acceptance. This branch does not create the bucket/table or deploy anything by itself.
 
 ## Agenda and note search (receiver v13)
 
