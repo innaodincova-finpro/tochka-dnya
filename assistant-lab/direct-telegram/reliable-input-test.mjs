@@ -17,6 +17,8 @@ assert.equal(expenseDefaults({kind:'expense',title:'Первомайский',am
 assert.equal(expenseDefaults({kind:'expense',title:'Кофе',amount:350},{text:'Кофе 12.09 350',today,defaultCurrency:'RUB'}).date,undefined);
 assert.equal((await prepareDraft({text:'Пятёрочка 5000 рублей',now,defaultCurrency:'KZT',fetchImpl:noNetwork})).proposal.currency,'RUB');
 assert.deepEqual((await prepareDraft({text:'Запиши идею: подготовить материалы к уроку',now,fetchImpl:noNetwork})).proposal,{kind:'note',title:'подготовить материалы к уроку'});
+const pharmacy=await prepareDraft({text:'Зайти в аптеку в 19.00.',now,defaultCurrency:'RUB',fetchImpl:noNetwork});
+assert.deepEqual(pharmacy.proposal,{kind:'event',title:'Зайти в аптеку',time:'19:00'});assert.equal(pharmacy.needsClarification,true);assert.match(pharmacy.text,/Уточните дату/);
 for(const text of ['Встреча завтра в 15:00','Зарплата 5000','Пятёрочка вчера 5000','Кофе 300 и такси 500','Врач 15:00','Пятёрочка -500','Пятёрочка 5000 юаней','Запланируй покупку 5000'])assert.equal(localDraft(text),null,text);
 
 // Full receiver cancellation at the quota limit, using version-checked RPC.
@@ -39,4 +41,4 @@ const handler=makeHandler(env,request,noNetwork);
 const send=()=>handler(new Request('https://local',{method:'POST',headers:{'x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:1,message:{date:Math.floor(Date.now()/1000),message_id:1,chat:{id:123,type:'private'},from:{id:123,is_bot:false},text:'Отмена'}})}));
 assert.equal((await send()).status,200);assert.equal(state.pending,null);assert.ok(!calls.some(([u])=>u.includes('reserve')));assert.match(calls.find(([u])=>u.endsWith('/sendMessage'))[1].text,/отменён/);
 calls=[];revoked=true;await send();assert.ok(!calls.some(([u])=>u.includes('confirm')||u.includes('api.telegram.org')));
-console.log('PASS exact purchase and note without AI/key, grouped/decimal amounts, explicit currency/date, ambiguous input fallback, cancellation at quota, disabled owner');
+console.log('PASS exact purchase, note and timed action without AI/key, grouped/decimal amounts, explicit currency/date, ambiguous input fallback, cancellation at quota, disabled owner');
