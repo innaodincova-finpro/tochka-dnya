@@ -14,8 +14,11 @@ r=await run('вчера',base,{pending});assert.equal(r.proposal.date,'2026-09-1
 r=await run('рубли',base,{pending:{...pending,currency:'KZT'}});assert.equal(r.proposal.currency,'RUB');assert.equal(calls,before);
 r=await run('Кофе 200',{kind:'expense',title:'Кофе',amount:200},{pending});assert.equal(r.proposal.currency,'KZT');assert.equal(r.proposal.title,'Кофе');
 r=await run('Встреча с Анной',{kind:'event',title:'Встреча с Анной'});assert.equal(r.proposal.date,undefined);assert.equal(r.needsClarification,true);
+const pharmacy={kind:'event',title:'Зайти в аптеку',time:'19:00'};const beforeDateChange=calls;
+r=await run('14 сентября',base,{pending:pharmacy});assert.deepEqual(r.proposal,{...pharmacy,date:'2026-09-14'});assert.equal(calls,beforeDateChange);
+r=await run('29.02.2025',base,{pending:pharmacy});assert.notEqual(r.proposal.date,'2025-02-29');
 r=await run('Идея отпуска',{kind:'note',title:'Идея отпуска'});assert.deepEqual(r.proposal,{kind:'note',title:'Идея отпуска'});
 assert.equal(expenseDefaults(base,{today:'2026-09-13',defaultCurrency:'RUB',text:'Пятёрочка в пятницу 5000 евро'}).date,undefined);
 assert.equal(expenseDefaults(base,{today:'2026-09-13',defaultCurrency:'RUB',text:'Пятёрочка 5000 евро'}).currency,undefined);
 assert.ok(!editHint(base).includes('адрес'));assert.ok(editHint({kind:'note'}).includes('текст'));
-console.log('PASS currency preference/override, Moscow date, short replies preserve record, new expense isolation, event/note behavior, unresolved explicit values');
+console.log('PASS currency preference/override, Moscow date, short date replies preserve event, new expense isolation, event/note behavior, unresolved explicit values');
