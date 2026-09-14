@@ -31,7 +31,9 @@ Receiver reads only `payload.settings.cur` from the linked owner's cloud row via
 
 ## Reliable input follow-up
 
-Simple purchases (including `Магазин Пятёрочка пять тысяч`, grouped digits and decimal amounts) and explicit notes (`Запиши идею: ...`) now use conservative local parsing. Ambiguous input still goes through the existing provider. Local parsing and short amendments do not require a provider key; the existing 20-message daily reservation remains unchanged. No budget limit was removed or reset.
+New free-form records use one semantic intent boundary for events, expenses and notes. The model must return a strict envelope with create/amend mode, intent and confidence before any proposal is accepted. Low-confidence or ambiguous input cannot produce a save button and receives one specific question; uncertainty is never silently stored as a note. Exact short amendments and supported recurrence remain deterministic. The existing 20-message daily reservation remains unchanged. No budget limit was removed or reset.
+
+The acceptance corpus lives in `semantic-corpus.mjs` and includes paraphrases plus speech-recognition variants that omit words such as `напомни`. It is a regression specification, not a growing trigger-word dictionary.
 
 Text cancellation uses the same version-checked confirmation RPC as the Cancel button before the paid reservation, so it remains available at the daily limit. It cancels only pending drafts, not saved records. Relative-date detection uses word boundaries and distinguishes decimal amounts from calendar dates.
 

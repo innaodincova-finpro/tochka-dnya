@@ -1,17 +1,9 @@
 import {shortChange,expenseDefaults} from './defaults.mjs';
-import {localDraft} from './local-draft.mjs';
-import {SYSTEM_PROMPT, validateProposal, formatProposal, normalizeModelProposal} from './proposal.mjs';
+import {recurringDraft} from './local-draft.mjs';
+import {SYSTEM_PROMPT, validateProposal, formatProposal} from './proposal.mjs';
+import {normalizeIntentEnvelope,clarificationResult} from './intent.mjs';
 export class AssistantError extends Error { constructor(code) { super(code); this.name='AssistantError'; } }
 const error = code => new AssistantError(code);
-// Only explicit amendments and short temporal answers inherit the active draft.
-export function contextFor(text, pending) {
-  if (!pending) return null;
-  if (/^\s*(?:сегодня|завтра|послезавтра)\s+.*(?:потрат|купил|купила|расход|встреч|замет)/iu.test(text)) return null;
-  const amendment = /^\s*(?:(?:завтра|послезавтра|сегодня|перенеси|измени|поменяй|исправь|нет|точнее)(?=\s|[,.:!?]|$)|(?:в|на)\s+|\d{1,2}[:.]\d{2}(?=\s|$))/iu.test(text);
-  return amendment ? validateProposal(pending) : null;
-}
-const temporalOnly = /^\s*(?:(?:перенеси\s+на|на)\s+)?(?:(?:сегодня|завтра|послезавтра)(?:\s+в)?\s*)?(?:в\s*)?\d{1,2}:\d{2}[.!]?\s*$/iu;
-
 // Server-side only. Caller must authenticate owner and reserve daily quota BEFORE calling.
 export async function prepareDraft({text, apiKey, now = new Date(), timeZone = 'Europe/Moscow', pending = null, defaultCurrency = null, fetchImpl = fetch}) {
   if (typeof text !== 'string' || !text.trim() || text.length > 1500) throw error('invalid_input');
@@ -25,11 +17,10 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
   if (pending !== null) pending = validateProposal(pending);
   const short=shortChange(text,pending,today);
   if(short){const proposal=expenseDefaults(short,{today,defaultCurrency,text,inheritedCurrency:short.currency,inheritedDate:short.date});return {proposal,...formatProposal(proposal)};}
-  const local=localDraft(text,today);
-  if(local){const proposal=expenseDefaults(local,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
+  const recurring=recurringDraft(text,today);
+  if(recurring){const proposal=expenseDefaults(recurring,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
   if (/(?:кажд(?:ый|ую|ое|ого|ые)|ежедневно|еженедельно|ежемесячно|ежегодно|по будням|по выходным)/iu.test(text)) throw error('recurrence_format');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /\s/.test(apiKey)) throw error('key_missing_or_invalid');
-  pending = contextFor(text, pending);
   const controller = new AbortController();
   const timer = setTimeout(()=>controller.abort(),25000);
   try {
@@ -38,8 +29,8 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
       headers:{'Content-Type':'application/json',Authorization:'Bearer '+apiKey},
       body:JSON.stringify({model:'deepseek-flash',stream:false,thinking:{type:'disabled'},max_tokens:1200,
         response_format:{type:'json_object'},messages:[
-          {role:'system',content:SYSTEM_PROMPT+'\nПример JSON: {"kind":"event","title":"Врач","date":"2026-09-15","time":"10:15"}. Пример не содержит данных пользователя.\nТекущая дата: '+today+'; часовой пояс: '+timeZone+'. Если расход без даты — используй текущую дату. Если валюта не названа — пропусти currency: её подставит программа из настроек. Суммы словами переводи в числа. Название магазина и сумма без глагола означают расход.'},
-          ...(pending ? [{role:'assistant',content:JSON.stringify(pending)}] : []),
+          {role:'system',content:SYSTEM_PROMPT+'\nТекущая дата: '+today+'; часовой пояс: '+timeZone+'. Если расход без даты — используй текущую дату. Если валюта не названа — пропусти currency: её подставит программа из настроек. Суммы словами переводи в числа.'},
+          ...(pending ? [{role:'assistant',content:'Текущий неподтверждённый черновик: '+JSON.stringify(pending)}] : []),
           {role:'user',content:text}
         ]})
     });
@@ -57,22 +48,15 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
       body+=decoder.decode(value,{stream:true});
     }
     body+=decoder.decode();
-    let proposal;
+    let envelope;
     try {
       const result=JSON.parse(body),choice=result.choices?.[0];
       if(choice?.finish_reason!=='stop' || choice.message?.tool_calls?.length || typeof choice.message?.content!=='string') throw 0;
-      proposal=normalizeModelProposal(JSON.parse(choice.message.content));
+      envelope=normalizeIntentEnvelope(JSON.parse(choice.message.content),{pending});
     } catch {throw error('invalid_response');}
-    // Guard explicit scheduling requests against the observed model fallback to a note.
-    if (proposal.kind === 'note' && /^\s*(?:пожалуйста[,\s]+)?(?:запланируй|назначь|организуй)\s+(?:мне\s+)?встречу(?=\s|[.!?]|$)/iu.test(text)) {
-      return {proposal:validateProposal({kind:'event',title:text.trim()}),needsClarification:true,text:'На какую дату и время запланировать встречу? Можно ответить коротко, например: завтра в 15:00.\nВ «Точку дня» ничего не сохранено.'};
-    }
-    if (pending?.kind === 'event' && temporalOnly.test(text)) {
-      // The time-only message cannot rename the meeting or remove its location.
-      if (proposal.kind !== 'event' || !proposal.time) throw error('invalid_response');
-      proposal=validateProposal({...pending,...(/(?:сегодня|завтра|послезавтра)/iu.test(text)&&proposal.date?{date:proposal.date}:{}),time:proposal.time});
-    }
-    proposal=expenseDefaults(proposal,{today,defaultCurrency,text,inheritedCurrency:pending?.currency,inheritedDate:pending?.date});
+    if(envelope.mode==='unclear')return clarificationResult(envelope);
+    let proposal=envelope.proposal;
+    proposal=expenseDefaults(proposal,{today,defaultCurrency,text,inheritedCurrency:envelope.mode==='amend'?pending?.currency:undefined,inheritedDate:envelope.mode==='amend'?pending?.date:undefined});
     return {proposal,...formatProposal(proposal)};
   } catch(e) {
     if(e instanceof AssistantError) throw e;

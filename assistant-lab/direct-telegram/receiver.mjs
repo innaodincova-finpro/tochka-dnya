@@ -95,7 +95,7 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
     try {
      const settings=await s.db('user_app_data'+filter+'&select=currency:payload->settings->>cur');
      const defaultCurrency=settings[0]?.currency;
-     const result=await draft({text:m.text,pending,defaultCurrency,apiKey:env('TOCHKA_ASSISTANT_DEEPSEEK_API_KEY'),fetchImpl:request});text=result.text;pendingChange=result.proposal?validateProposal(result.proposal):null;}
+     const result=await draft({text:m.text,pending,defaultCurrency,apiKey:env('TOCHKA_ASSISTANT_DEEPSEEK_API_KEY'),fetchImpl:request});text=result.text;if(result.proposal)pendingChange=validateProposal(result.proposal);}
     catch(e){text=({recurrence_format:'Уточните повтор: «Каждый понедельник зарядка в 09:00», «Каждого 10 числа оплатить интернет в 09:00» или «Каждый год 15.09 поздравить Ольгу в 09:00». Ежедневные повторы пока не поддерживаются.',balance_required:'На счёте DeepSeek недостаточно средств.',key_rejected:'Нужно проверить API-ключ DeepSeek.',key_missing_or_invalid:'Нужно проверить API-ключ DeepSeek.',provider_busy:'DeepSeek сейчас перегружен. Попробуйте позже.',provider_timeout:'DeepSeek не успел ответить. Попробуйте позже.',invalid_response:'Не удалось разобрать запись. Попробуйте сформулировать одно задание: покупку с суммой, встречу или заметку.'})[e.message]||'Не удалось подготовить черновик. Попробуйте позже.';text+=' В «Точку дня» ничего не сохранено.';}
    }
    if(await linked()){

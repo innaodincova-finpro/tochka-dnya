@@ -6,18 +6,19 @@ import {makeHandler} from './receiver.mjs';
 import {hash} from './common.mjs';
 const today='2026-09-13',now=new Date('2026-09-12T21:10:00Z');
 const noNetwork=()=>{throw new Error('Unexpected paid request');};
+const classified=(proposal,mode='create')=>async()=>Response.json({choices:[{finish_reason:'stop',message:{content:JSON.stringify({mode,intent:proposal.kind,confidence:'high',proposal})}}]});
 for(const text of ['Пятёрочка, пять тысяч','Магазин Пятёрочка пять тысяч','Пятёрочка 5 000','Пятёрочка 5\u00a0000']){
- const {proposal:p}=await prepareDraft({text,now,defaultCurrency:'KZT',fetchImpl:noNetwork});
+ const {proposal:p}=await prepareDraft({text,apiKey:'fake',now,defaultCurrency:'KZT',fetchImpl:classified({kind:'expense',title:'Пятёрочка',amount:5000})});
  assert.equal(p.kind,'expense');assert.equal(p.amount,5000);assert.equal(p.currency,'KZT');assert.equal(p.date,today);
 }
 const pending={kind:'expense',title:'Пятёрочка',amount:350,date:today,currency:'RUB'};
 for(const text of ['5 000','5 тысяч'])assert.equal((await prepareDraft({text,pending,now,fetchImpl:noNetwork})).proposal.amount,5000);
-assert.equal((await prepareDraft({text:'Кофе 350.50',now,defaultCurrency:'RUB',fetchImpl:noNetwork})).proposal.amount,350.5);
+assert.equal((await prepareDraft({text:'Кофе 350.50',apiKey:'fake',now,defaultCurrency:'RUB',fetchImpl:classified({kind:'expense',title:'Кофе',amount:350.5})})).proposal.amount,350.5);
 assert.equal(expenseDefaults({kind:'expense',title:'Первомайский',amount:350.5},{text:'Первомайский 350.50',today,defaultCurrency:'RUB'}).date,today);
 assert.equal(expenseDefaults({kind:'expense',title:'Кофе',amount:350},{text:'Кофе 12.09 350',today,defaultCurrency:'RUB'}).date,undefined);
-assert.equal((await prepareDraft({text:'Пятёрочка 5000 рублей',now,defaultCurrency:'KZT',fetchImpl:noNetwork})).proposal.currency,'RUB');
-assert.deepEqual((await prepareDraft({text:'Запиши идею: подготовить материалы к уроку',now,fetchImpl:noNetwork})).proposal,{kind:'note',title:'подготовить материалы к уроку'});
-const pharmacy=await prepareDraft({text:'Зайти в аптеку в 19.00.',now,defaultCurrency:'RUB',fetchImpl:noNetwork});
+assert.equal((await prepareDraft({text:'Пятёрочка 5000 рублей',apiKey:'fake',now,defaultCurrency:'KZT',fetchImpl:classified({kind:'expense',title:'Пятёрочка',amount:5000,currency:'RUB'})})).proposal.currency,'RUB');
+assert.deepEqual((await prepareDraft({text:'Запиши идею: подготовить материалы к уроку',apiKey:'fake',now,fetchImpl:classified({kind:'note',title:'подготовить материалы к уроку'})})).proposal,{kind:'note',title:'подготовить материалы к уроку'});
+const pharmacy=await prepareDraft({text:'Зайти в аптеку в 19.00.',apiKey:'fake',now,defaultCurrency:'RUB',fetchImpl:classified({kind:'event',title:'Зайти в аптеку',time:'19:00'})});
 assert.deepEqual(pharmacy.proposal,{kind:'event',title:'Зайти в аптеку',time:'19:00'});assert.equal(pharmacy.needsClarification,true);assert.match(pharmacy.text,/Уточните дату/);
 for(const text of ['Встреча завтра в 15:00','Зарплата 5000','Пятёрочка вчера 5000','Кофе 300 и такси 500','Врач 15:00','Пятёрочка -500','Пятёрочка 5000 юаней','Запланируй покупку 5000'])assert.equal(localDraft(text),null,text);
 
@@ -41,4 +42,4 @@ const handler=makeHandler(env,request,noNetwork);
 const send=()=>handler(new Request('https://local',{method:'POST',headers:{'x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:1,message:{date:Math.floor(Date.now()/1000),message_id:1,chat:{id:123,type:'private'},from:{id:123,is_bot:false},text:'Отмена'}})}));
 assert.equal((await send()).status,200);assert.equal(state.pending,null);assert.ok(!calls.some(([u])=>u.includes('reserve')));assert.match(calls.find(([u])=>u.endsWith('/sendMessage'))[1].text,/отменён/);
 calls=[];revoked=true;await send();assert.ok(!calls.some(([u])=>u.includes('confirm')||u.includes('api.telegram.org')));
-console.log('PASS exact purchase, note and timed action without AI/key, grouped/decimal amounts, explicit currency/date, ambiguous input fallback, cancellation at quota, disabled owner');
+console.log('PASS classified purchase, note and timed action, grouped/decimal amounts, explicit currency/date, safe cancellation at quota, disabled owner');
