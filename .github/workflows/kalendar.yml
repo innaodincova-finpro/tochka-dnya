@@ -32,6 +32,19 @@ jobs:
           if [ ! -f supabase/config.toml ] && [ -f config.toml ]; then
             cp config.toml supabase/config.toml
           fi
+
+          # Telegram receiver is developed and tested in assistant-lab. Assemble
+          # the exact production bundle here so every merge really deploys it.
+          receiver_dir="supabase/functions/tochka-assistant-receiver"
+          mkdir -p "$receiver_dir"
+          cp assistant-lab/direct-telegram/index.ts "$receiver_dir/index.ts"
+          find assistant-lab/direct-telegram -maxdepth 1 -type f -name '*.mjs' ! -name '*-test.mjs' -exec cp {} "$receiver_dir/" \;
+          sed -i "s/__BUILD_VERSION__/${GITHUB_SHA}/g" "$receiver_dir/build-info.mjs"
+          test -f "$receiver_dir/receiver.mjs"
+          test -f "$receiver_dir/build-info.mjs"
+          if grep -R '__BUILD_VERSION__' "$receiver_dir"; then
+            echo "Версия сборки Telegram-бота не подставлена"; exit 1
+          fi
           ls -R supabase
 
       - uses: supabase/setup-cli@v1
@@ -47,3 +60,9 @@ jobs:
             echo "выкладываю $name"
             supabase functions deploy "$name" --project-ref dcpthwmuiodrjepifzsd
           done
+
+      - name: Проверить версию Telegram-бота на сервере
+        run: |
+          response=$(curl --fail --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 \
+            "https://dcpthwmuiodrjepifzsd.supabase.co/functions/v1/tochka-assistant-receiver")
+          echo "$response" | grep -F "\"version\":\"${GITHUB_SHA}\""

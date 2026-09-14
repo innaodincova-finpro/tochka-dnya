@@ -16,3 +16,8 @@ verify_jwt = false
 [functions.push]
 # Auth is checked against /auth/v1/user; cron uses a private random token.
 verify_jwt = false
+
+[functions.tochka-assistant-receiver]
+# Telegram authenticates webhook calls with its private secret header.
+# The receiver validates that header and the linked private chat itself.
+verify_jwt = false

@@ -8,8 +8,9 @@ import {validateProposal} from './proposal.mjs';
 import {card,savedCard} from './conversation.mjs';
 import {transcribeVoice,voiceErrorText} from './voice.mjs';
 import {documentSearchIntent,saveIncomingDocument,findDocument} from './documents.mjs';
-export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=transcribeVoice){
+export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=transcribeVoice,buildVersion='development'){
  return async req=>{
+  if(req.method==='GET')return Response.json({service:'tochka-assistant-receiver',version:buildVersion});
   if(req.method!=='POST')return new Response('',{status:405});
   const secret=req.headers.get('x-telegram-bot-api-secret-token')||'';
   if(!/^[a-f0-9]{64}$/.test(secret))return new Response('',{status:401});
