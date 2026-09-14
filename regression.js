@@ -41,9 +41,11 @@ async function main(){
  run('resetFeed()');
  ok(run('!feedReady()'),'смена ссылки требует нового сохранения');
  run('clearTimeout(cloudTimer);cloudReady=false;cloudUser=null;');
- for(const raw of [{exp:[{id:'bad',sum:100}]},{exp:[{id:'bad',sum:100,date:'2026-02-31'}]},{notes:[{id:'bad',date:'2026-09-07',items:[null]}]}]){
+ for(const raw of [{exp:[{id:'bad',sum:100}]},{notes:[{id:'bad',date:'2026-09-07',items:[null]}]}]){
   let failed=false;try{w.normalize(raw);}catch{failed=true;}ok(failed,'некорректная запись отвергается до замены данных');
  }
+ const repaired=w.normalize({exp:[{id:'bad-date',title:'Ошибочная дата',sum:100,date:'2026-02-31'}]});
+ ok(repaired.exp.length===0&&repaired.dateErrors.length===1,'невозможная дата изолируется без блокировки остальных данных');
  run(`S=blank();S.settings.onboarded=1;S.settings.hi=1;S.savedAt='2026-01-01T00:00:00Z';renderAll();saveQuiet();`);
  const snapshot=run('JSON.stringify(S)');
  for(let i=0;i<20;i++)w.dispatchEvent(new w.StorageEvent('storage',{key:run('KEY'),newValue:snapshot}));
@@ -58,4 +60,3 @@ async function main(){
  console.log('Регрессии: '+checks+' проверок пройдено.');
 }
 main().then(()=>dom.window.close()).catch(e=>{console.error(e);dom.window.close();process.exitCode=1;});
-
