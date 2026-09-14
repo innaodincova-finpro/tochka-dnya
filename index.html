@@ -680,8 +680,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.9.6';
-const APP_UPDATED = new Date('2026-09-14T14:10:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
+const APP_VERSION = '5.9.7';
+const APP_UPDATED = new Date('2026-09-14T18:30:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -695,11 +695,12 @@ function sign(){ return cur()[1]; }
 function notable(){ return cur()[3] || 1000; }
 
 let S = null, storageOk = true, loadBlocked = false;
+let dateRecoveryNotice = [];
 
 function blank(){
   return {
     settings:{cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, theme:'light', reminderMode:'hour', onboarded:0, hi:1},
-    exp:[], inc:[], ev:[], notes:[], day:{}, del:[], savedAt:null, backupAt:null, firstDataAt:null
+    exp:[], inc:[], ev:[], notes:[], day:{}, del:[], dateErrors:[], savedAt:null, backupAt:null, firstDataAt:null
   };
 }
 
@@ -708,9 +709,46 @@ function blank(){
    поэтому запись старого образца из облака или из копии роняла экран.
    Теперь любые данные проходят здесь. */
 const DEL_KEEP_DAYS = 180;
+function validDateValue(v){
+  if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v))return false;
+  const d=new Date(v+'T12:00:00Z');
+  return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===v;
+}
+/* Одна невозможная дата не имеет права закрывать все записи. Повреждённую
+   запись убираем из рабочих разделов, но сохраняем целиком в dateErrors:
+   она остаётся в облаке и резервной копии, а пользователь видит её название. */
+function recoverInvalidDates(raw){
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))return raw;
+  const d=JSON.parse(JSON.stringify(raw)), found=[];
+  const old=Array.isArray(d.dateErrors)?d.dateErrors.filter(x=>x&&typeof x==='object'):[];
+  for(const section of ['exp','inc','ev','notes']){
+    if(!Array.isArray(d[section]))continue;
+    d[section]=d[section].filter(record=>{
+      if(!record||typeof record!=='object'||validDateValue(record.date))return true;
+      /* Восстанавливаем только узнаваемую календарную дату. Отсутствующее
+         или произвольное поле остаётся структурной ошибкой и не скрывается. */
+      if(typeof record.date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(record.date))return true;
+      found.push({section,id:typeof record.id==='string'?record.id:'',title:String(record.title||record.text||'Запись').slice(0,160),date:String(record.date||''),record});
+      return false;
+    }).map(record=>{
+      if(section==='notes'&&record&&typeof record.due==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(record.due)&&!validDateValue(record.due)){
+        found.push({section:'notes.due',id:typeof record.id==='string'?record.id:'',title:String(record.title||record.text||'Запись').slice(0,160),date:String(record.due),record:{...record}});
+        const clean={...record};delete clean.due;return clean;
+      }
+      return record;
+    });
+  }
+  if(d.day&&typeof d.day==='object'&&!Array.isArray(d.day))for(const key of Object.keys(d.day))if(!validDateValue(key)){
+    found.push({section:'day',id:'',title:'Отметка календаря',date:key,record:d.day[key]});delete d.day[key];
+  }
+  const key=x=>x.section+'|'+x.id+'|'+x.date;
+  d.dateErrors=[...new Map([...old,...found].map(x=>[key(x),x])).values()].slice(-50);
+  if(d.dateErrors.length)dateRecoveryNotice=d.dateErrors;
+  return d;
+}
 function validateData(raw){
   const obj = v => v && typeof v === 'object' && !Array.isArray(v);
-  const date = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && !isNaN(Date.parse(v+'T12:00:00Z')) && new Date(v+'T12:00:00Z').toISOString().slice(0,10) === v;
+  const date = validDateValue;
   if (!obj(raw)) throw new Error('Некорректная структура копии');
   for (const k of ['exp','inc','ev','notes']) {
     if (raw[k] === undefined) continue;
@@ -744,7 +782,12 @@ function mergeDeletionMarks(left,right){
   }
   return [...marks.values()].sort((a,b)=>a.id.localeCompare(b.id));
 }
+function mergeDateErrors(left,right){
+  const key=x=>x.section+'|'+(x.id||'')+'|'+x.date;
+  return [...new Map([...(left||[]),...(right||[])].filter(x=>x&&typeof x==='object').map(x=>[key(x),x])).values()].slice(-50);
+}
 function normalize(raw){
+  if (raw != null) raw=recoverInvalidDates(raw);
   if (raw != null) validateData(raw);
   const b = blank();
   const d = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? JSON.parse(JSON.stringify(raw)) : {};
@@ -802,6 +845,7 @@ function mergeThree(base, local, remote, choice){
   const object=x=>x&&typeof x==='object'&&!Array.isArray(x);
   function merge(b,l,r,path){
     if(path==='del')return mergeDeletionMarks(l,r);
+    if(path==='dateErrors')return mergeDateErrors(l,r);
     if(eq(l,r))return l;
     if(eq(l,b))return r;
     if(eq(r,b))return l;
@@ -823,6 +867,7 @@ function mergeThree(base, local, remote, choice){
   }
   const out=cloneState(merge(base,local,remote,''));
   out.del=mergeDeletionMarks(local.del,remote.del).filter(x=>!revived.has(x.id));
+  out.dateErrors=mergeDateErrors(local.dateErrors,remote.dateErrors);
   const dead=new Set(out.del.map(x=>x.id));
   for(const k of ['exp','inc','ev','notes'])out[k]=(out[k]||[]).filter(x=>!dead.has(x.id));
   return normalize(out);
@@ -863,6 +908,7 @@ function mergeStates(local, remote){
   const dead = {};
   [].concat(older.del||[], newer.del||[]).forEach(x => { if(x&&x.id) dead[x.id]=x; });
   out.del = Object.keys(dead).sort().map(id => dead[id]);
+  out.dateErrors = mergeDateErrors(older.dateErrors,newer.dateErrors);
 
   ['exp','inc','ev','notes'].forEach(k => {
     const by = {}, old = {};
@@ -1595,7 +1641,9 @@ function parseDate(text){
       const now = new Date();
       let y = now.getFullYear();
       const cand = y + '-' + String(mi+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
-      return cand < today() ? (y+1) + cand.slice(4) : cand;
+      if(!validDateValue(cand))return null;
+      const next=cand < today() ? (y+1) + cand.slice(4) : cand;
+      return validDateValue(next)?next:null;
     }
   }
   for (const w in WDAY_WORDS){
@@ -1607,6 +1655,10 @@ function parseDate(text){
     }
   }
   return today();
+}
+function impossibleSpokenDate(text){
+  const low=String(text).toLowerCase();
+  return MONTH_GEN.some(m=>low.includes(m))&&parseDate(text)===null;
 }
 function pickCat(text){
   const low = text.toLowerCase();
@@ -1716,6 +1768,7 @@ function makeNote(text){
 }
 function parseSpeech(text){
   const out = {exp:[], inc:[], ev:[], notes:[], rest:[]};
+  if(impossibleSpokenDate(text)){out.invalidDate=true;return out;}
   let receipt = null;   // открытый чек: следующие «товар — сумма» станут его составом
   let lastDate = null;  // дата из предыдущей фразы: «через неделю улетаю… вылет в десять»
   let pending = null;   // «завтра в десять ноль ноль» без дела — ждём следующего куска
@@ -3028,6 +3081,7 @@ function renderMore(){
     '<input type="file" id="restore" accept="application/json,.json" hidden onchange="restoreFile(this)">';
   document.getElementById('s-more').innerHTML =
     (loadBlocked?card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены. Скачайте их для восстановления.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>'):'')+
+    (dateRecoveryNotice.length?card('<b>Пропущена запись с невозможной датой</b><p>'+esc(dateRecoveryNotice.map(x=>'«'+x.title+'» — '+x.date).join('; '))+'. Остальные записи загружены. Исходная запись сохранена в резервной копии данных.</p>'):'')+
     (cloudConflict?card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>'):'')+
     fold('more-cloud','Мои данные',cloudUser?'облако подключено':'сохранение и копии',
       '<h3 style="font-size:16px;margin:0 0 10px">Облачное сохранение</h3>'+cloudBody+
@@ -3729,6 +3783,7 @@ function validTime(t){ return !t || /^([01]\d|2[0-3]):[0-5]\d$/.test(t); }
 function saveEv(){
   const raw = val('f-title');
   if (!raw){ toast('Впишите, что за событие'); return; }
+  if(impossibleSpokenDate(raw)){toast('Такой даты не существует. Проверьте число и месяц.');return;}
   const timeEl = document.getElementById('f-time');
   if (timeEl) fixTime(timeEl);
   if (!validTime(val('f-time'))){ toast('Проверьте время: например 10:15'); return; }
@@ -3754,6 +3809,11 @@ function doParse(){
   parsed = looksPasted(text)
     ? {exp:[], inc:[], ev:[], notes:[], rest:[text.trim()]}
     : parseSpeech(text);
+  if(parsed.invalidDate){
+    parsed=null;
+    document.getElementById('sheet-in').innerHTML='<h3>Проверьте дату</h3><div class="mut">Такой даты не существует. Исправьте число или месяц — ничего не сохранено.</div><button class="btn ghost" style="margin-top:12px" onclick="openSheet(\'voice\')">Исправить фразу</button>';
+    return;
+  }
   // Preview and save must use exactly the same single residual note.
   if (!parsed.exp.length && !parsed.inc.length && !parsed.ev.length && !parsed.notes.length){
     parsed.rest = [text.trim()];
