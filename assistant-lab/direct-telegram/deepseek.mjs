@@ -25,8 +25,9 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
   if (pending !== null) pending = validateProposal(pending);
   const short=shortChange(text,pending,today);
   if(short){const proposal=expenseDefaults(short,{today,defaultCurrency,text,inheritedCurrency:short.currency,inheritedDate:short.date});return {proposal,...formatProposal(proposal)};}
-  const local=localDraft(text);
+  const local=localDraft(text,today);
   if(local){const proposal=expenseDefaults(local,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
+  if (/(?:кажд(?:ый|ую|ое|ого|ые)|ежедневно|еженедельно|ежемесячно|ежегодно|по будням|по выходным)/iu.test(text)) throw error('recurrence_format');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /\s/.test(apiKey)) throw error('key_missing_or_invalid');
   pending = contextFor(text, pending);
   const controller = new AbortController();

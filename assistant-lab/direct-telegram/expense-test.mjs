@@ -3,7 +3,7 @@ import {normalizeModelProposal,validateProposal} from './proposal.mjs';
 import {prepareDraft} from './deepseek.mjs';
 import {card} from './conversation.mjs';
 const raw={kind:'expense',title:'Продукты',date:'2026-09-12',amount:'5000',currency:'руб.',place:'Пятёрочка',time:''};
-const p=normalizeModelProposal(raw);assert.equal(p.amount,5000);assert.equal(p.currency,'RUB');assert.ok(p.title.includes('Пятёрочка'));assert.equal(p.time,undefined);assert.ok(card(p,Date.now()).reply_markup.inline_keyboard[0][0].callback_data.startsWith('save:'));
+const p=normalizeModelProposal(raw);assert.equal(p.amount,5000);assert.equal(p.currency,'RUB');assert.ok(p.title.includes('Пятёрочка'));assert.equal(p.time,undefined);assert.ok(card({...p,category:'Продукты'},Date.now()).reply_markup.inline_keyboard[0][0].callback_data.startsWith('save:'));
 assert.throws(()=>validateProposal(raw));
 for(const bad of [{...raw,amount:'пять тысяч'},{...raw,date:'2026-02-30'},{...raw,amount:-10},{...raw,time:'10:00'},{...raw,unexpected:'data'}])assert.throws(()=>normalizeModelProposal(bad));
 for(const text of ['Сегодня продукты Пятёрочка магазин 5000 руб.','Магазин Пятёрочка продукты сегодня 5000 руб.']){
