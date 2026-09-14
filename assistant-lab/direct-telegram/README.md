@@ -15,7 +15,7 @@ Live confirmation from owner's next fresh message remains the acceptance step; n
 ## Voice messages
 
 Receiver supports Telegram `message.voice`, up to 60 seconds / 4 MiB.
-Uses Groq `whisper-large-v3-turbo`, Russian transcription, then the existing DeepSeek proposal and confirmation path. Server secret required: `TOCHKA_ASSISTANT_GROQ_API_KEY`. No fallback to unrelated project keys. Create a key in https://console.groq.com/keys and add it in Supabase Edge Function Secrets. No key is committed or sent in a chat. Audio is passed in memory, never persisted by this code. Groq receives the audio; DeepSeek receives the transcript. Provider retention is governed by provider settings/policy.
+Uses a private Cloudflare Worker with Workers AI `@cf/openai/whisper-large-v3-turbo`, Russian transcription, then the existing DeepSeek proposal and confirmation path. Supabase secrets required: `TOCHKA_ASSISTANT_TRANSCRIBE_URL` and `TOCHKA_ASSISTANT_TRANSCRIBE_SECRET`; the Worker holds the matching `TRANSCRIBE_SECRET` and an `AI` binding. No key is committed or sent in chat. Audio is passed in memory and never persisted by this code. Cloudflare receives the audio; DeepSeek receives only the transcript. Provider retention is governed by provider settings/policy.
 
 Quota/update reservation and owner verification precede transcription; one voice update uses one existing daily reservation. Duplicate Telegram updates use existing delivery deduplication. Errors leave previous pending proposal unchanged. Speech results are shown verbatim above the proposed record; no save occurs before the user presses Save. Files/photos/video notes are not transcribed. Speech recognition can make mistakes: confirmation is required.
 
@@ -37,6 +37,12 @@ Text cancellation uses the same version-checked confirmation RPC as the Cancel b
 
 Run `node --test assistant-lab/direct-telegram/*test.mjs` from the repository root. The SQL test also loads the actual app and validates all three saved record formats. CI now covers direct Telegram code explicitly. These are isolated checks, not evidence of a message received on the owner's phone.
 
+## Documents v1 (local implementation)
+
+The linked owner can send a PDF, Word, JPG, PNG, WEBP or iPhone photo up to 20 MB. The receiver validates identity and active membership before downloading, uploads the original bytes with the service role to the private `tochka-documents` bucket, and writes owner-scoped metadata to `public.tochka_documents`. Browser access remains owner-only through RLS. If metadata insertion fails, the newly uploaded object is removed best-effort.
+
+`Найди документ <название>` is deterministic and does not call DeepSeek or reserve daily AI quota. A single or unique exact match is returned as a Telegram document; ambiguous matches produce a short numbered list and ask for a narrower title. Apply `documents.sql` only after review, then deploy the receiver and perform owner-phone acceptance. This branch does not create the bucket/table or deploy anything by itself.
+
 ## Agenda and note search (receiver v13)
 
 Text queries: `Что сегодня?`, `Что у меня сегодня?`, `План на сегодня`, `/today`; corresponding tomorrow variants and `/tomorrow`; `Найди заметку про документы`, `Найди заметки ...`, `Поиск заметок ...`, `/search ...`.
@@ -46,3 +52,15 @@ Replies read the linked owner's latest cloud row, never invoke the model, never 
 Agenda includes up to 8 meetings (recurrence and completed status) and 6 unfinished dated tasks; today includes overdue tasks. Larger counts are shown explicitly and the user is directed to the app for the full list. Search matches all query words as case-insensitive substrings (е/ё normalised) against note title, text, theme and list items. It is not semantic search. Up to 8 excerpts of 300 characters are returned; query length is 2–120 characters. All replies are bounded below Telegram's message limit. Existing notes marked done remain searchable. Deleted records are excluded. Commands must be sent as text; spoken queries are not implemented in this stage.
 
 Verification: `node --test assistant-lab/direct-telegram/*test.mjs assistant-lab/reminders/*.test.mjs` — 9 files pass, including full mocked webhook queries, no quota/write/provider requests, owner/revocation/relink rejection, cloud errors, Moscow date boundary and bounded results. No synthetic query was sent to the owner's phone.
+
+## Confirmed record actions (receiver v14, 13 September 2026)
+
+Supported text examples: `Перенеси встречу Врач на завтра в 15:00`, `Заверши задачу Документы`, `Удали расход Кофе`, `Удали заметку Идея`. Delete supports event/note/task/expense; complete supports one-off event and plain task/note. Move supports one-off events, explicit YYYY-MM-DD or DD.MM.YYYY dates, today/tomorrow/day-after and named weekdays, with HH:mm (Moscow). Match uses title/text substrings, normalising е/ё and quotation marks. No AI or daily quota is consumed. Existing unsaved creation drafts are left alone.
+
+Up to 5 matching records each receive a clearly labelled confirmation card with their current contents, amount/currency where relevant and the new date/time for moves. More matches require a narrower query. The generated service-only action UUID binds the owner, original record and intended action. Nothing in user_app_data is changed until a confirmation callback. Confirmation expires after 15 minutes; cancel is terminal; a repeated applied UUID returns applied without performing the mutation again. SQL checks current owner/pilot, chat binding, active membership and unchanged record under locks, and writes the receipt/snapshot and app data in one transaction. Modified or removed records reject the old confirmation.
+
+Deletes write the application's deletion mark; moves preserve record identity and clear the old completion mark; completion uses the app's ordinary task/day representation. Independent arrays, settings and other records are preserved. Before-payload snapshots are service-only. The existing global savedAt merge model still applies; this is not a redesign of offline conflict resolution.
+
+Recurring event move/completion and checklist completion are deliberately rejected with guidance to use the app. Deleting a recurring record is labelled `Удалить всю серию`. Undoing an already-applied change from Telegram, editing expense amount/note text and changing an individual recurring occurrence are not implemented here. General free-form editing and voice commands are also not supported in this stage.
+
+Deployment: migration `tochka_confirmed_record_actions`, receiver v14; 12 published files reread and matched. No actual user records were modified during implementation. Local verification: all 10 test files passed, with real PGlite SQL for actions, unchanged unrelated data, stale snapshots, duplicates, cancellation, wrong-chat/role, expiration, and the app's real validation/merge code in JSDOM. Production client read/write/RPC privileges checked false; advisor only reports intentional service-only RLS without client policies. Actual Telegram confirmation on the owner's phone remains unverified.

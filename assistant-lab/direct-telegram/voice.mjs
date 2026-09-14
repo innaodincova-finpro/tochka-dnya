@@ -5,7 +5,7 @@ export const voiceErrorText=e=>({
  voice_too_large:'Голосовое слишком большое. Запишите короткое сообщение до 60 секунд.',
  voice_empty:'Не удалось разобрать речь. Запишите сообщение ещё раз или отправьте текст.',
  voice_text_long:'В голосовом слишком много текста. Отправьте одно короткое задание.',
- voice_key:'Сервис распознавания отклонил ключ. Пока отправьте задание текстом.',
+ voice_key:'Сервис распознавания отклонил защищённое подключение. Пока отправьте задание текстом.',
  voice_busy:'Сервис распознавания временно недоступен. Попробуйте позже или отправьте текст.'
 })[e.message]||'Не удалось распознать голосовое. Попробуйте ещё раз или отправьте текст.';
 const fail=code=>{throw new Error(code);};
@@ -24,7 +24,9 @@ async function bounded(r,max){
 // Called only after owner verification and update/quota reservation. Never log audio, tokens or transcripts.
 export async function transcribeVoice({voice,env,tg,request=fetch}){
  checkVoice(voice);
- const key=env('TOCHKA_ASSISTANT_GROQ_API_KEY');if(!key||/\s/.test(key))fail('voice_not_configured');
+ const endpoint=env('TOCHKA_ASSISTANT_TRANSCRIBE_URL');
+ const key=env('TOCHKA_ASSISTANT_TRANSCRIBE_SECRET');
+ if(!endpoint||!/^https:\/\/[A-Za-z0-9.-]+(?:\/[^\s]*)?$/.test(endpoint)||!key||key.length<32||/\s/.test(key))fail('voice_not_configured');
  const file=await tg('getFile',{file_id:voice.file_id});
  const path=file?.file_path;
  if(typeof path!=='string'||!/^voice\/[A-Za-z0-9_.-]+\.(?:oga|ogg|opus|mp3|m4a)$/i.test(path))fail('voice_empty');
@@ -32,10 +34,8 @@ export async function transcribeVoice({voice,env,tg,request=fetch}){
  const r=await request('https://api.telegram.org/file/bot'+env('TOCHKA_ASSISTANT_BOT_TOKEN')+'/'+path,{signal:AbortSignal.timeout(15000),redirect:'error'});
  if(!r.ok){await r.body?.cancel();fail('voice_busy');}
  const audio=await bounded(r,MAX_BYTES);if(!audio.size)fail('voice_empty');
- const form=new FormData();form.append('file',audio,'voice.'+(path.endsWith('.oga')?'ogg':path.split('.').pop()));
- form.append('model','whisper-large-v3-turbo');form.append('language','ru');form.append('response_format','verbose_json');form.append('temperature','0');
- const response=await request('https://api.groq.com/openai/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+key},body:form,signal:AbortSignal.timeout(25000),redirect:'error'});
- if(!response.ok){await response.body?.cancel();fail(response.status===401?'voice_key':'voice_busy');}
+ const response=await request(endpoint,{method:'POST',headers:{'content-type':audio.type||'audio/ogg','x-tochka-transcribe-secret':key},body:audio,signal:AbortSignal.timeout(25000),redirect:'error'});
+ if(!response.ok){await response.body?.cancel();fail([401,403].includes(response.status)?'voice_key':'voice_busy');}
  const data=JSON.parse(await (await bounded(response,65536)).text());
  const segments=data.segments;
  if(Array.isArray(segments)&&segments.length&&segments.every(s=>s.no_speech_prob>0.6))fail('voice_empty');
