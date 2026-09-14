@@ -9,6 +9,6 @@ assert.match(html, /option value="berry"[^>]*>Сиренево-ягодная<\/
 assert.match(html, /\[data-theme="light"\]\{/, 'Светлая палитра не отделена');
 assert.match(html, /selected === 'dark' \|\| selected === 'berry'/, 'Дополнительная тема не применяется');
 assert.match(html, /theme === 'berry' \? '#7052A5'/, 'Цвет панели телефона не меняется вместе с темой');
-assert.match(html, /const APP_VERSION = '5\.9\.8'/, 'Не обновлена версия приложения');
+assert.match(html, /const APP_VERSION = '5\.9\.9'/, 'Не обновлена версия приложения');
 
 console.log('✓ Доступны светлая, тёмная и сиренево-ягодная темы');
