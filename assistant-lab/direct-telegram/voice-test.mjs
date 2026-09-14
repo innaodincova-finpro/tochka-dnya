@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import {transcribeVoice} from './voice.mjs';
 const voice={file_id:'file',duration:10,file_size:8};
-const env=n=>n==='TOCHKA_ASSISTANT_GROQ_API_KEY'?'fake-groq':'fake-token';
+const env=n=>({TOCHKA_ASSISTANT_TRANSCRIBE_URL:'https://voice.example.workers.dev',TOCHKA_ASSISTANT_TRANSCRIBE_SECRET:'a'.repeat(32),TOCHKA_ASSISTANT_BOT_TOKEN:'fake-token'})[n];
 let calls=[];
 const tg=async()=>({file_path:'voice/file_1.oga',file_size:8});
-const request=async(url,o)=>{calls.push(url);if(url.includes('/file/bot'))return new Response('OggSfake');assert.ok(o.body instanceof FormData);assert.equal(o.body.get('file').name,'voice.ogg');assert.equal(o.body.get('language'),'ru');assert.equal(o.body.get('model'),'whisper-large-v3-turbo');return Response.json({text:'Завтра в 18:00 встреча',segments:[{no_speech_prob:0.01}]});};
+const request=async(url,o)=>{calls.push(url);if(url.includes('/file/bot'))return new Response('OggSfake',{headers:{'content-type':'audio/ogg'}});assert.equal(url,'https://voice.example.workers.dev');assert.equal(o.headers['x-tochka-transcribe-secret'],'a'.repeat(32));assert.ok(o.body instanceof Blob);return Response.json({text:'Завтра в 18:00 встреча',segments:[{no_speech_prob:0.01}]});};
 assert.equal(await transcribeVoice({voice,env,tg,request}),'Завтра в 18:00 встреча');
 assert.equal(calls.length,2);
 await assert.rejects(transcribeVoice({voice,env:()=>undefined,tg,request}),/voice_not_configured/);
