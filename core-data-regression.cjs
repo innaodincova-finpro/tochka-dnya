@@ -18,6 +18,21 @@ try{
  });
  test('merge does not mutate any input, including equal-input shortcut',()=>{const b=w.blank();b.notes=[{id:'n',text:'base',date:'2026-09-09'}];b.del=[{id:'n',at:recent}];const before=JSON.stringify(b);w.mergeThree(b,b,b);assert.equal(JSON.stringify(b),before)});
  test('1500 records and independent edits survive merge',()=>{const b=w.blank();b.notes=Array.from({length:1500},(_,i)=>({id:'n'+i,date:'2026-09-09',text:'note'}));const l=copy(b),r=copy(b);l.notes[0].text='local';r.notes[1499].text='remote';const before=JSON.stringify([b,l,r]);const m=w.mergeThree(b,l,r);assert.equal(m.notes.length,1500);assert.equal(m.notes.find(n=>n.id==='n0').text,'local');assert.equal(m.notes.find(n=>n.id==='n1499').text,'remote');assert.equal(JSON.stringify([b,l,r]),before)});
+ test('service-only changes from two devices merge without a false conflict',()=>{
+  const b=w.blank();b.settings.notesTab='task';b.settings.obs={off:0,lastAt:null,seen:{tip:1},muted:{}};b.day['2026-09-14']={done:['a'],doneAt:{a:'2026-09-14'}};
+  const l=copy(b),r=copy(b);l.settings.notesTab='list';l.settings.obs.seen.tip=2;l.day['2026-09-14'].done.push('b');r.settings.notesTab='note';r.settings.obs.seen.tip=3;r.day['2026-09-14'].done.push('c');
+  const m=w.mergeThree(b,l,r);assert.equal(m.settings.notesTab,'list');assert.equal(m.settings.obs.seen.tip,3);assert.deepEqual([...m.day['2026-09-14'].done].sort(),['a','b','c']);
+ });
+ test('parallel checklist changes keep new items and completion marks',()=>{
+  const b=w.blank();b.notes=[{id:'n',date:'2026-09-14',text:'Список',items:[{t:'Хлеб',done:false}]}];const l=copy(b),r=copy(b);
+  l.notes[0].items[0].done=true;l.notes[0].items.push({t:'Молоко',done:false});r.notes[0].items.push({t:'Сыр',done:false});
+  const m=w.mergeThree(b,l,r);assert.equal(m.notes[0].items.map(x=>x.t).join('|'),'Хлеб|Молоко|Сыр');assert.equal(m.notes[0].items[0].done,true);
+ });
+ test('recovery snapshots are bounded',()=>{
+  for(let i=0;i<8;i++){w.localStorage.setItem('tochka-dnya-v3:conflict:u:'+String(i).padStart(2,'0'),'x');w.localStorage.setItem('tochka-dnya-v3:before-restore:'+String(i).padStart(2,'0'),'x');}
+  w.pruneRecoveryCopies();const keys=Object.keys(w.localStorage);assert.equal(keys.filter(k=>k.includes(':conflict:')).length,2);assert.equal(keys.filter(k=>k.includes(':before-restore:')).length,2);
+ });
+ test('editing a list has no hidden 40-item truncation',()=>{assert.equal(/lines\.slice\(0,\s*40\)/.test(fs.readFileSync('index.html','utf8')),false)});
  test('corrupted local deletion list is preserved, saving blocked',()=>{w.eval("localStorage.setItem(KEY,JSON.stringify({del:'broken'}));load();saveQuiet();save()");assert.equal(w.eval('loadBlocked'),true);assert.equal(w.eval('JSON.parse(localStorage.getItem(KEY)).del'),'broken')});
  console.log(count+' core data scenarios passed');
 }finally{dom.window.close()}

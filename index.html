@@ -680,8 +680,8 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.9.7';
-const APP_UPDATED = new Date('2026-09-14T18:30:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
+const APP_VERSION = '5.9.8';
+const APP_UPDATED = new Date('2026-09-14T19:15:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -814,14 +814,34 @@ function load(){
   try{ S = normalize(raw ? JSON.parse(raw) : null); }
   catch(e){ S = blank(); storageOk = false; loadBlocked = true; }
 }
-function saveQuiet(){ if(loadBlocked)return; dropIndex(); try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){ storageOk = false; } }
+/* Аварийные снимки нужны только для отката последней операции. Раньше они
+   копились без границы и в конце занимали всю память браузера. */
+function pruneRecoveryCopies(conflictKeep=2,restoreKeep=2){
+  try{
+    const keys=[];
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k)keys.push(k);}
+    const trim=(mark,keep)=>keys.filter(k=>k.startsWith(KEY+mark)).sort().slice(0,-keep).forEach(k=>localStorage.removeItem(k));
+    trim(':conflict:',conflictKeep);trim(':before-restore:',restoreKeep);
+  }catch(e){}
+}
+function storeLocal(key,value){
+  pruneRecoveryCopies();
+  try{localStorage.setItem(key,value);pruneRecoveryCopies();storageOk=true;}
+  catch(first){
+    /* Если лимит уже достигнут, оставляем по одному последнему снимку и
+       повторяем запись один раз. Рабочие данные и копии аккаунтов не удаляем. */
+    pruneRecoveryCopies(1,1);
+    localStorage.setItem(key,value);storageOk=true;
+  }
+}
+function saveQuiet(){ if(loadBlocked)return; dropIndex(); try{ storeLocal(KEY, JSON.stringify(S)); }catch(e){ storageOk = false; } }
 function save(){
   if(loadBlocked){toast('Сохранение остановлено: исходные данные повреждены. Сначала восстановите корректную копию.');return;}
   const hasData = S.exp.length || S.inc.length || S.ev.length || S.notes.length || Object.keys(S.day || {}).length;
   if (hasData && !S.firstDataAt) S.firstDataAt = new Date().toISOString();
   S.savedAt = new Date().toISOString();
   dropIndex();
-  try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+  try{ storeLocal(KEY, JSON.stringify(S)); }
   catch(e){ storageOk = false; }
   renderAll(); scheduleCloudSync();
 }
@@ -838,6 +858,28 @@ function stable(x){
   if(x && typeof x==='object')return '{'+Object.keys(x).sort().map(k=>JSON.stringify(k)+':'+stable(x[k])).join(',')+'}';
   return JSON.stringify(x);
 }
+function mergeSetChanges(base,left,right){
+  const b=new Set(base||[]),l=new Set(left||[]),r=new Set(right||[]),out=new Set(b);
+  for(const x of l)if(!b.has(x))out.add(x);
+  for(const x of r)if(!b.has(x))out.add(x);
+  for(const x of b)if(!l.has(x)||!r.has(x))out.delete(x);
+  return [...out];
+}
+function mergeListItems(base,left,right){
+  const key=x=>String(x&&x.t||'').trim().toLowerCase();
+  const map=a=>new Map((a||[]).filter(x=>key(x)).map(x=>[key(x),x]));
+  const bm=map(base),lm=map(left),rm=map(right),out=[];
+  const order=[...(left||[]),...(right||[])].map(key).filter((x,i,a)=>x&&a.indexOf(x)===i);
+  for(const id of order){
+    const b=bm.get(id),l=lm.get(id),r=rm.get(id);
+    if(b&&(!l||!r))continue;
+    if(l&&r){
+      const done=l.done===r.done?l.done:(b&&l.done===b.done?r.done:b&&r.done===b.done?l.done:(l.done||r.done));
+      out.push({...r,...l,done:!!done});
+    }else out.push(l||r);
+  }
+  return out;
+}
 function mergeThree(base, local, remote, choice){
   [base,local,remote].forEach(validateData);
   const revived=new Set();
@@ -849,6 +891,14 @@ function mergeThree(base, local, remote, choice){
     if(eq(l,r))return l;
     if(eq(l,b))return r;
     if(eq(r,b))return l;
+    if(path==='settings.notesTab')return l;
+    if(path==='settings.hi')return Math.max(Number(l)||0,Number(r)||0);
+    if(/^settings\.obs\.seen\./.test(path))return Math.max(Number(l)||0,Number(r)||0);
+    if(/^settings\.obs\.muted\./.test(path)||/^settings\.hidden\./.test(path))return l||r;
+    if(path==='settings.obs.lastAt')return [l,r].filter(Boolean).sort().pop()||null;
+    if(path==='firstDataAt')return [l,r].filter(Boolean).sort().shift()||null;
+    if(/^day\.[^.]+\.done$/.test(path))return mergeSetChanges(b,l,r);
+    if(/^notes\.[^.]+\.items$/.test(path))return mergeListItems(b,l,r);
     if(['exp','inc','ev','notes'].includes(path)){
       const map=a=>Object.fromEntries((a||[]).map(x=>[x.id,x]));
       const bm=map(b),lm=map(l),rm=map(r);
@@ -873,13 +923,13 @@ function mergeThree(base, local, remote, choice){
   return normalize(out);
 }
 function rememberBase(data){
-  localStorage.setItem(KEY+':base:'+cloudUser.id,JSON.stringify(data));
+  storeLocal(KEY+':base:'+cloudUser.id,JSON.stringify(data));
   cloudBase=cloneState(data);
 }
 function resolveCloudConflict(choice){
   if(!cloudConflict || !cloudUser || cloudConflict.user!==cloudUser.id)return;
   try{
-    localStorage.setItem(KEY+':conflict:'+cloudUser.id+':'+Date.now(),JSON.stringify({local:S,remote:cloudConflict.remote}));
+    storeLocal(KEY+':conflict:'+cloudUser.id+':'+Date.now(),JSON.stringify({local:S,remote:cloudConflict.remote}));
     S=mergeThree(cloudConflict.base,S,cloudConflict.remote,choice);
     rememberBase(cloudConflict.remote);cloudConflict=null;save();closeSheet();
   }catch(e){toast('Не удалось сохранить обе версии. Сделайте резервную копию перед повтором.');}
@@ -1059,7 +1109,7 @@ async function connectCloudUser(user){
     remote.settings.cloudOwner=user.id;
     const foreign=S.settings.cloudOwner&&S.settings.cloudOwner!==user.id;
     if(foreign){
-      localStorage.setItem(KEY+':account:'+S.settings.cloudOwner,JSON.stringify(S));
+      storeLocal(KEY+':account:'+S.settings.cloudOwner,JSON.stringify(S));
       const own=localStorage.getItem(KEY+':account:'+user.id);
       S=own?normalize(JSON.parse(own)):cloneState(remote);
     }
@@ -2897,7 +2947,7 @@ function saveNoteEdit(){
     if (!lines.length){ toast('В списке должен остаться хотя бы один пункт'); return; }
     const was = {};
     (n.items || []).forEach(i => { was[i.t.toLowerCase()] = i.done; });
-    n.items = lines.slice(0,40).map(t => ({t: t.charAt(0).toUpperCase() + t.slice(1), done: !!was[t.toLowerCase()]}));
+    n.items = lines.map(t => ({t: t.charAt(0).toUpperCase() + t.slice(1), done: !!was[t.toLowerCase()]}));
     n.title = tidy(txt) || 'Список'; n.text = n.title;
     const wh = val('f-where');
     if (wh) n.where = wh; else delete n.where;
@@ -3893,7 +3943,7 @@ function restoreFile(input){
       const now = normalize(d);
       if (hasUserData(S) && !window.confirm(
         'Заменить всё, что сейчас в приложении, записями из копии? Текущие записи будут стёрты.')) return;
-      localStorage.setItem(KEY+':before-restore:'+Date.now(),loadBlocked ? localStorage.getItem(KEY) : JSON.stringify(S));
+      storeLocal(KEY+':before-restore:'+Date.now(),loadBlocked ? localStorage.getItem(KEY) : JSON.stringify(S));
       loadBlocked=false;storageOk=true;
       const missing=[];for(const k of ['exp','inc','ev','notes'])for(const r of S[k])if(!now[k].some(x=>x.id===r.id))missing.push({id:r.id,at:new Date().toISOString()});
       now.del=Array.from(new Map([...(S.del||[]),...(now.del||[]),...missing].map(x=>[x.id,x])).values());
