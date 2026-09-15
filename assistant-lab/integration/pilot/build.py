@@ -2,6 +2,7 @@ from pathlib import Path
 import re
 root=Path.cwd()
 out=root/'pilot'
+out.mkdir(parents=True,exist_ok=True)
 s=(root/'index.html').read_text()
 s=s.replace("const KEY = 'tochka-dnya-v3';", "const KEY = 'tochka-dnya-owner-pilot-v1';")
 s=s.replace('<script src="supabase.js"></script>', '<script src="/tochka-dnya/supabase.js"></script><script src="pilot-gate.js"></script>')

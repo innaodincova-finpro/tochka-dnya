@@ -13,6 +13,6 @@ Owner acceptance:
 
 Real user backup, live two-device acceptance and reminder delivery remain unverified until owner opens and tests. No final production release claimed.
 
-Build from repository root: python assistant-lab/integration/pilot/build.py (outputs pilot/; place pilot-gate.js in output before deployment). Tests: node assistant-lab/integration/pilot/gate-test.cjs with generated index in same folder, or copy test and gate beside generated output. Source snapshot of published pilot is included here for exact review.
+Build from repository root: python assistant-lab/integration/pilot/build.py (outputs the untracked local folder pilot/; place pilot-gate.js in output only for an explicitly approved private test). Tests: node assistant-lab/integration/pilot/gate-test.cjs. A generated application snapshot is intentionally not committed or published.
 
 Rollback: return to ordinary /tochka-dnya/ URL. Already confirmed entries remain normal cloud events; returning does not undo data. Preserve baseline and assistantImports ledger. Main stays at ca04694eae174596e6f613f1fd0464f77d6a6dd1.
