@@ -1,0 +1,35 @@
+-- These tables are internal implementation details of Edge Functions and
+-- scheduled database jobs. RLS is defense in depth; browser roles receive no
+-- table privileges, so an empty policy list is intentional.
+revoke all on table
+  public.push_configuration,
+  public.push_deliveries,
+  public.push_subscriptions,
+  public.studkab_gen_attempts,
+  public.studkab_gen_budget,
+  public.studkab_gen_jobs,
+  public.studkab_gen_limits,
+  public.studkab_gen_parts,
+  public.studkab_gen_policy,
+  public.studkab_gen_pricing,
+  public.studkab_gen_reconciliations,
+  public.studkab_gen_recoveries,
+  public.studkab_push_configuration,
+  public.studkab_push_deliveries,
+  public.studkab_push_subscriptions,
+  public.studkab_request_config,
+  public.studkab_requests,
+  public.studkab_requirement_passports,
+  public.studkab_result_reviews,
+  public.studkab_result_versions,
+  public.studkab_results,
+  public.studkab_telegram_setup,
+  public.tochka_assistant_actions,
+  public.tochka_assistant_confirmed,
+  public.tochka_assistant_deliveries,
+  public.tochka_assistant_links,
+  public.tochka_assistant_pilot,
+  public.tochka_assistant_sandbox,
+  public.tochka_telegram_reminder_config,
+  public.tochka_telegram_reminder_deliveries
+from public, anon, authenticated;
