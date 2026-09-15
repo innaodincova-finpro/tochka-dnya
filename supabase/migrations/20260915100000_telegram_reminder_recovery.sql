@@ -1,31 +1,11 @@
--- Additive, service-only reminder state. No writes to application records.
-create table public.tochka_telegram_reminder_config (
- id integer primary key check(id=1),
- owner_id uuid references public.tochka_assistant_pilot(user_id) on delete cascade,
- enabled boolean not null default false,
- cron_token text not null default (gen_random_uuid()::text||gen_random_uuid()::text),
- last_run_at timestamptz,
- last_result jsonb
-);
-insert into public.tochka_telegram_reminder_config(id) values(1);
-create table public.tochka_telegram_reminder_deliveries (
- user_id uuid not null references public.tochka_assistant_pilot(user_id) on delete cascade,
- key text not null,
- claim_id uuid not null default gen_random_uuid(),
- state text not null default 'claimed' check(state in ('claimed','sent','retry','unknown','alerted','skipped')),
- attempts integer not null default 1 check(attempts between 1 and 3),
- created_at timestamptz not null default clock_timestamp(),
- retry_at timestamptz,
- sent_at timestamptz,
- primary key(user_id,key)
-);
-alter table public.tochka_telegram_reminder_config enable row level security;
-alter table public.tochka_telegram_reminder_deliveries enable row level security;
-revoke all on public.tochka_telegram_reminder_config,public.tochka_telegram_reminder_deliveries from public,anon,authenticated;
-grant select,update on public.tochka_telegram_reminder_config to service_role;
-grant select,insert,update on public.tochka_telegram_reminder_deliveries to service_role;
+-- Keep reminders recoverable after short outages and make uncertain deliveries visible.
+alter table public.tochka_telegram_reminder_deliveries
+ drop constraint if exists tochka_telegram_reminder_deliveries_state_check;
+alter table public.tochka_telegram_reminder_deliveries
+ add constraint tochka_telegram_reminder_deliveries_state_check
+ check(state in ('claimed','sent','retry','unknown','alerted','skipped'));
 
-create function public.tochka_claim_telegram_reminder(p_user uuid,p_chat bigint,p_key text,p_event jsonb,p_date text)
+create or replace function public.tochka_claim_telegram_reminder(p_user uuid,p_chat bigint,p_key text,p_event jsonb,p_date text)
 returns uuid language plpgsql security invoker set search_path='' as $$
 declare current_payload jsonb; token uuid; at_time timestamptz;
 begin
@@ -42,7 +22,6 @@ begin
  if not exists(select 1 from jsonb_array_elements(current_payload->'ev') e where e=p_event) then return null; end if;
  if exists(select 1 from jsonb_array_elements(coalesce(current_payload->'del','[]')) e where e->>'id'=p_event->>'id') then return null; end if;
  if coalesce(current_payload->'day'->p_date->'done','[]') ? (p_event->>'id') then return null; end if;
- -- The RPC rechecks time and recurrence; caller cannot reserve stale/incorrect keys.
  if p_date !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' or coalesce(p_event->>'time','') !~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' then return null; end if;
  if p_date < p_event->>'date' then return null; end if;
  if p_date <> p_event->>'date' and not coalesce(case p_event->>'repeat'

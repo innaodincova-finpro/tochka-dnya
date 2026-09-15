@@ -43,6 +43,7 @@ const request=async(url,o={})=>{
  assert.ok(url.endsWith('/sendMessage'));sent.push(JSON.parse(o.body));
  if(outcome==='timeout')throw new Error('timeout');
  if(outcome==='429')return Response.json({ok:false,error_code:429,parameters:{retry_after:1}},{status:429});
+ if(outcome==='500')return Response.json({ok:false,error_code:500},{status:500});
  return Response.json({ok:true,result:{message_id:123}});
 };
 const handler=makeReminderHandler(env,request);
@@ -53,8 +54,9 @@ try{
  assert.equal((await run()).status,200);assert.equal(sent.length,1);assert.equal(sent[0].chat_id,chat);assert.match(sent[0].text,/Тестовый адрес/);
  await run();assert.equal(sent.length,1);assert.deepEqual((await db.query('select payload from user_app_data')).rows[0].payload,original);
  await reset();mutateAfterClaim=true;await run();assert.equal(sent.length,0);
- await reset();outcome='timeout';await run();await run();assert.equal(sent.length,1);assert.equal((await db.query('select state from tochka_telegram_reminder_deliveries')).rows[0].state,'unknown');
+ await reset();outcome='timeout';await run();assert.equal(sent.length,1);assert.equal((await db.query('select state from tochka_telegram_reminder_deliveries')).rows[0].state,'unknown');outcome='ok';await run();assert.equal(sent.length,2);assert.match(sent[1].text,/Не удалось подтвердить доставку/);assert.equal((await db.query('select state from tochka_telegram_reminder_deliveries')).rows[0].state,'alerted');
  await reset();outcome='429';await run();await run();assert.equal(sent.length,1);await db.exec("update tochka_telegram_reminder_deliveries set retry_at=now()-interval '1 second'");outcome='ok';await run();assert.equal(sent.length,2);assert.equal((await db.query('select attempts from tochka_telegram_reminder_deliveries')).rows[0].attempts,2);
+ await reset();outcome='500';await run();assert.equal((await db.query('select state from tochka_telegram_reminder_deliveries')).rows[0].state,'retry');await db.exec("update tochka_telegram_reminder_deliveries set retry_at=now()-interval '1 second'");outcome='ok';await run();assert.equal(sent.length,2);assert.equal((await db.query('select state from tochka_telegram_reminder_deliveries')).rows[0].state,'sent');
  await reset();await db.exec('update tochka_members set revoked_at=now()');await run();assert.equal(sent.length,0);
  await reset();await db.exec('update tochka_assistant_pilot set enabled=false');await run();assert.equal(sent.length,0);
  await reset();await db.query('update user_app_data set payload=$1',[{...original,day:{[event.date]:{done:[event.id]}}}]);await run();assert.equal(sent.length,0);
@@ -63,5 +65,5 @@ try{
  assert.equal(await reminderCommand('Отключи напоминания',service,uid,chat),true);await run();assert.equal(sent.length,0);
  assert.equal(await reminderCommand('Включи напоминания',service,uid,chat),true);await run();assert.equal(sent.length,1);
  await db.exec('set role authenticated');await assert.rejects(db.query('select * from tochka_telegram_reminder_config'));await assert.rejects(db.query('select * from tochka_telegram_reminder_deliveries'));await assert.rejects(db.query('select tochka_claim_telegram_reminder($1,$2,$3,$4,$5)',[uid,chat,'x',event,event.date]));await db.exec('reset role');
- console.log('PASS worker + real claim SQL: dedupe, delete after claim, timeout no resend, explicit 429 retry, membership/stop, done, 12-event batch, controls, role restrictions, unchanged app data');
+ console.log('PASS worker + real claim SQL: dedupe, delete after claim, timeout warning, 429/5xx retry, membership/stop, done, 12-event batch, controls, role restrictions, unchanged app data');
 }finally{await db.close();}
