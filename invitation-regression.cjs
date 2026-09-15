@@ -24,9 +24,8 @@ const request=(body,auth=true)=>new Request('https://test.invalid/kabinet',{meth
  const dom=new JSDOM(fs.readFileSync('activate.html','utf8'),{url:'https://test.invalid/activate.html#token=valid&email=new@example.com',runScripts:'dangerously',beforeParse(w){w.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),verifyOtp:async p=>{verify++;assert.equal(p.type,'invite');return fail?{error:{message:'expired'}}:{data:{}};},updateUser:async()=>{update++;return {error:{message:'network'}};}}})};}});
  const w=dom.window,doc=w.document;const submit=async()=>{doc.getElementById('activate').dispatchEvent(new w.Event('submit',{cancelable:true}));await new Promise(r=>setTimeout(r,5));};
  assert.equal(verify,0,'Opening link must not consume invitation');
- doc.getElementById('password').value='test-password';doc.getElementById('repeat').value='mismatch';await submit();assert.equal(verify,0);
- doc.getElementById('repeat').value='test-password';await submit();assert.equal(verify,1);assert.equal(update,0);assert(doc.getElementById('status').textContent.includes('истекла'));
+ doc.getElementById('password').value='Strong-test-2026!';doc.getElementById('repeat').value='mismatch';await submit();assert.equal(verify,0);
+ doc.getElementById('repeat').value='Strong-test-2026!';await submit();assert.equal(verify,1);assert.equal(update,0);assert(doc.getElementById('status').textContent.includes('истекла'));
  fail=false;await submit();assert.equal(verify,2);assert.equal(update,1);assert.equal(w.location.hash,'');await submit();assert.equal(verify,2,'Password retry must not consume token again');assert.equal(update,2);w.close();
  console.log('PASS invitations: authorization, validation, existing-account protection, 201 users, errors, secret fragment, activation and retry.');
 })().catch(e=>{console.error(e);process.exitCode=1});
-
