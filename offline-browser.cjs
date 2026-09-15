@@ -34,7 +34,7 @@ const server=http.createServer((req,res)=>{
     await page.getByPlaceholder('Например: Анастасия').fill('Офлайн-тест');
     await page.getByRole('button',{name:'Начать'}).click();
     await page.locator('#dock-btn').click();
-    await page.getByRole('button',{name:/Заметка$/}).click();
+    await page.locator('button[onclick*="focusNote"]').click();
     await page.getByPlaceholder('Например: рецепт, адрес, мысль').waitFor();
 
     await context.setOffline(true);
