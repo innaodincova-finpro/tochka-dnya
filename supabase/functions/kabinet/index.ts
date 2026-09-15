@@ -7,7 +7,7 @@
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const ADMIN = (Deno.env.get('ADMIN_EMAIL') || 'inna_odincova@mail.ru').toLowerCase();
+const ADMIN = (Deno.env.get('ADMIN_EMAIL') || '').trim().toLowerCase();
 
 const CORS = {
   'access-control-allow-origin': '*',
@@ -63,6 +63,8 @@ function digest(payload: any) {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+
+  if (!ADMIN) return json({ error: 'Кабинет временно не настроен' }, 503);
 
   const email = await whoAsks(req);
   if (!email) return json({ error: 'Нужен вход в аккаунт' }, 401);
@@ -133,9 +135,11 @@ Deno.serve(async (req: Request) => {
   const list = users.filter((u:any)=>membership.has(u.id)).map((u: any) => {
     const member:any=membership.get(u.id);
     const row = byId[u.id];
+    const owner = String(u.email||'').toLowerCase()===ADMIN;
     return {
       id: u.id,
-      mozhno_udalit: String(u.email||'').toLowerCase()!==ADMIN,
+      eto_vladelets: owner,
+      mozhno_udalit: !owner,
       poslednee_priglashenie: member.invited_at || null,
       pochta: u.email,
       priglashen: member.invited_at || null,

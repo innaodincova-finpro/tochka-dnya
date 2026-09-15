@@ -1320,15 +1320,15 @@ async function run() {
     'функция регистрации убрана вместе с кнопкой');
   w.eval('closeSheet();');
 
-  // ---- кабинет виден только администратору ----
+  // ---- ссылка на кабинет видна после входа; доступ проверяет сервер ----
   w.eval("S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; foldOpen = {}; cloudUser = null; renderAll(); goScreen('s-more');");
   const moreHas = () => w.document.getElementById('s-more').textContent.includes('Реестр пользователей');
 
   assert(!moreHas(), 'без входа кабинета нет');
   w.eval("cloudUser = {id:'u', email:'anastasia@mail.ru'}; renderMore();");
-  assert(!moreHas(), 'обычному пользователю кабинет не показывается');
+  assert(moreHas() && w.isAdmin(), 'после входа ссылка видна без публичного списка администраторов');
   w.eval("cloudUser = {id:'u', email:'Inna_Odincova@Mail.ru'}; renderMore();");
-  assert(moreHas() && w.isAdmin(), 'администратору кабинет виден, регистр почты не мешает');
+  assert(moreHas() && w.isAdmin(), 'ссылка не зависит от адреса почты в браузере');
 
   w.eval(`adminData = {vsego:2, voshli:1, ne_voshli:1, s_zapisyami:1, lyudi:[
       {pochta:'a@b.ru', zahodil:new Date().toISOString(), sinhronizaciya:new Date().toISOString(),

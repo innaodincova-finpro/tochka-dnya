@@ -14,7 +14,7 @@ async function config(){
  return c;
 }
 async function send(sub:any,message:any,c:any){
- const details=webpush.generateRequestDetails(sub.subscription,JSON.stringify(message),{TTL:300,urgency:'high',contentEncoding:'aes128gcm',vapidDetails:{subject:'mailto:inna_odincova@mail.ru',publicKey:c.vapid.publicKey,privateKey:c.vapid.privateKey}});
+ const details=webpush.generateRequestDetails(sub.subscription,JSON.stringify(message),{TTL:300,urgency:'high',contentEncoding:'aes128gcm',vapidDetails:{subject:'https://innaodincova-finpro.github.io/tochka-dnya/',publicKey:c.vapid.publicKey,privateKey:c.vapid.privateKey}});
  const res=await fetch(details.endpoint,{method:'POST',headers:details.headers,body:new Uint8Array(details.body),redirect:'error',signal:AbortSignal.timeout(10000)});
  if(res.status===404||res.status===410)await db('push_subscriptions?id=eq.'+sub.id,'PATCH',{enabled:false,last_error:'Разрешение истекло. Включите уведомления снова.'});
  if(!res.ok)throw new Error('push '+res.status);
