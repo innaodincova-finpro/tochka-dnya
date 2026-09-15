@@ -153,7 +153,7 @@ Deno.serve(async (req: Request) => {
   return new Response(buildCalendar(payload, name), {
     headers: {
       'content-type': 'text/calendar; charset=utf-8',
-      'cache-control': 'public, max-age=1800',
+      'cache-control': 'private, no-store, max-age=0',
       'content-disposition': 'inline; filename="tochka-dnya.ics"',
     },
   });
