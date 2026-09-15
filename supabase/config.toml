@@ -21,3 +21,10 @@ verify_jwt = false
 # Telegram authenticates webhook calls with its private secret header.
 # The receiver validates that header and the linked private chat itself.
 verify_jwt = false
+
+[functions.tochka-assistant-control]
+verify_jwt = true
+
+[functions.tochka-telegram-reminders]
+# Cron authenticates with the private token checked by the function itself.
+verify_jwt = false
