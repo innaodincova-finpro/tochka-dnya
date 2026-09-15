@@ -3,6 +3,7 @@
   "version": "5.9.9",
   "private": true,
   "scripts": {
+    "test:recovery": "node recovery-rehearsal.cjs",
     "test:finance-category": "node finance-category-regression.cjs",
     "test:finance-browser": "node finance-category-browser.cjs",
     "test": "node audit-closure-regression.cjs && node performance-audit-regression.cjs && node password-policy-regression.cjs && node server-table-access-regression.cjs && node audit-privileged-functions-regression.cjs && node audit-privacy-regression.cjs && node audit-public-surface-regression.cjs && node theme-regression.cjs && node save-status-regression.cjs && node calendar-colors-regression.cjs && node documents-regression.cjs && node core-data-regression.cjs && node invalid-date-regression.cjs && node audit-stage3-regression.cjs && node rebuild-regression.cjs && node audit-minor-regression.cjs && node --test assistant-lab/reminders/*.test.mjs && node reminder-mode.cjs && node activation-errors.cjs && node access-test.cjs && node access-api-test.cjs && node access-ui-test.cjs && node compact-notes-regression.cjs && node swipe-regression.cjs && node note-reader-regression.cjs && node parse-preview-regression.cjs && node proverki.js && node regression.js && node sdk-regression.cjs && node sql-regression.cjs && node ssylki.js && node invitation-regression.cjs && node push-regression.cjs && node push-handler-regression.cjs && node registry-regression.cjs"
