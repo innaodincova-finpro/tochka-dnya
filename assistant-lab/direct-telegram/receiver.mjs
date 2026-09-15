@@ -14,13 +14,14 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
   if(req.method!=='POST')return new Response('',{status:405});
   const secret=req.headers.get('x-telegram-bot-api-secret-token')||'';
   if(!/^[a-f0-9]{64}$/.test(secret))return new Response('',{status:401});
-  const s=services(env,request);let reserved=false,uid,update;
+  const s=services(env,request);let reserved=false,answered=false,uid,update,chat;
   try{
    const rows=await s.db('tochka_assistant_pilot?hook_hash=eq.'+await hash(secret)+'&select=user_id,enabled,enabled_at');
    const pilot=rows[0];if(!pilot)return new Response('',{status:401});
    if(!pilot.enabled)return new Response('ok');
    const body=await readJSON(req),cb=body?.callback_query;const m=cb?{...cb.message,from:cb.from}:body?.message;update=body?.update_id;uid=pilot.user_id;
    if(!Number.isSafeInteger(update)||update<0||m?.chat?.type!=='private'||!Number.isSafeInteger(m.chat.id)||m.chat.id<=0||m.from?.id!==m.chat.id||m.from?.is_bot!==false)return new Response('ok');
+   chat=m.chat.id;
    // The pilot processes only new messages, never earlier pairing codes or backlog.
    if(!Number.isFinite(m.date)||m.date*1000<Date.parse(pilot.enabled_at))return new Response('ok');
    const filter='?user_id=eq.'+encodeURIComponent(uid);
@@ -100,15 +101,20 @@ export function makeHandler(env,request=fetch,draft=prepareDraft,transcribe=tran
    }
    if(await linked()){
     await s.user(null,uid);
-    if(pendingChange!==undefined){const changed=await s.db('tochka_assistant_pilot'+filter+'&enabled=eq.true&current_update=eq.'+update,'PATCH',{pending:pendingChange,pending_at:pendingChange?new Date(Math.max(Date.now(),(Date.parse(context?.pending_at)||0)+1)).toISOString():null});if(!changed.length)return new Response('ok');if(pendingChange)presentation=card(pendingChange,Date.parse(changed[0].pending_at));}
+    if(pendingChange!==undefined){const changed=await s.db('tochka_assistant_pilot'+filter+'&enabled=eq.true&current_update=eq.'+update,'PATCH',{pending:pendingChange,pending_at:pendingChange?new Date(Math.max(Date.now(),(Date.parse(context?.pending_at)||0)+1)).toISOString():null});if(!changed.length){await s.tg('sendMessage',{chat_id:chat,text:'Не удалось подготовить запись: состояние изменилось во время обработки. Отправьте сообщение ещё раз. В «Точку дня» ничего не сохранено.'});answered=true;return new Response('ok');}if(pendingChange)presentation=card(pendingChange,Date.parse(changed[0].pending_at));}
     if(presentation&&transcript)presentation.text='Я услышал: «'+transcript+'»\n\n'+presentation.text;
-    await s.tg('sendMessage',{chat_id:m.chat.id,...(presentation||{text}),link_preview_options:{is_disabled:true}});
+    await s.tg('sendMessage',{chat_id:m.chat.id,...(presentation||{text}),link_preview_options:{is_disabled:true}});answered=true;
     await s.db('tochka_assistant_deliveries?update_id=eq.'+update+'&user_id=eq.'+encodeURIComponent(uid),'PATCH',{state:'sent'});
    }
    return new Response('ok');
   }catch{
-   // After reservation, never retry potentially delivered messages or paid inference.
-   if(reserved){try{await s.db('tochka_assistant_deliveries?update_id=eq.'+update+'&user_id=eq.'+encodeURIComponent(uid),'PATCH',{state:'failed'});}catch{}return new Response('ok');}
+   // После списания обращения человек обязан получить итог. Повторный вызов
+   // модели автоматически не делаем: это защищает лимит от двойной оплаты.
+   if(reserved){
+    try{await s.db('tochka_assistant_deliveries?update_id=eq.'+update+'&user_id=eq.'+encodeURIComponent(uid),'PATCH',{state:'failed'});}catch{}
+    if(!answered&&chat)try{await s.tg('sendMessage',{chat_id:chat,text:'Не удалось обработать сообщение из-за внутреннего сбоя. Отправьте его ещё раз. В «Точку дня» ничего не сохранено.'});}catch{}
+    return new Response('ok');
+   }
    return new Response('',{status:503});
   }
  };
