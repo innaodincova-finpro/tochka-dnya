@@ -7,7 +7,7 @@ vm.runInNewContext(stripTypeScriptTypes(fs.readFileSync('supabase/functions/kabi
  if(url.includes('/auth/v1/admin/users?'))return Response.json({users:people});
  if(url.includes('/user_app_data?'))return Response.json([]);
  if(url.includes('/tochka_members?'))return Response.json([{user_id:'owner'},{user_id:'member',last_seen_at:'2026-09-08'}]);
- if(url.endsWith('/tochka_manage_access')){assert.equal(opt.headers.Authorization,'Bearer owner-token');granted.push(JSON.parse(opt.body));return Response.json(true);}
+ if(url.endsWith('/tochka_manage_access')){assert.equal(opt.headers.Authorization,'Bearer service');granted.push(JSON.parse(opt.body));return Response.json(true);}
  if(url.endsWith('/generate_link'))return Response.json({id:'new',hashed_token:'test-token',verification_type:'invite'});
  throw Error(url);
 }});

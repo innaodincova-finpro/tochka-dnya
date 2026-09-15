@@ -94,7 +94,7 @@ Deno.serve(async (req: Request) => {
 
     async function manage(id:string, action:string){
       const result=await fetch(SUPABASE_URL+'/rest/v1/rpc/tochka_manage_access',{
-        method:'POST',headers:{apikey:SERVICE_KEY,Authorization:req.headers.get('authorization')!,'Content-Type':'application/json'},
+        method:'POST',headers:{apikey:SERVICE_KEY,Authorization:'Bearer '+SERVICE_KEY,'Content-Type':'application/json'},
         body:JSON.stringify({p_user_id:id,p_email:target,p_action:action})
       });
       return result.ok;
