@@ -4,7 +4,9 @@ name: Выкладка серверных функций
 # Перед выкладкой нужная структура собирается здесь сама.
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Проверка приложения"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 
@@ -13,9 +15,12 @@ permissions:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Собрать структуру для Supabase
         run: |
@@ -45,6 +50,18 @@ jobs:
           if grep -R '__BUILD_VERSION__' "$receiver_dir"; then
             echo "Версия сборки Telegram-бота не подставлена"; exit 1
           fi
+
+          # Управление ботом раньше выкладывалось вручную.
+          control_dir="supabase/functions/tochka-assistant-control"
+          mkdir -p "$control_dir"
+          cp assistant-lab/pilot/control.mjs assistant-lab/pilot/common.mjs "$control_dir/"
+          cp assistant-lab/pilot/control-index.ts "$control_dir/index.ts"
+
+          # Функция напоминаний раньше выкладывалась вручную.
+          reminders_dir="supabase/functions/tochka-telegram-reminders"
+          mkdir -p "$reminders_dir"
+          cp assistant-lab/reminders/index.ts "$reminders_dir/index.ts"
+          find assistant-lab/reminders -maxdepth 1 -type f -name '*.mjs' -exec cp {} "$reminders_dir/" \;
           ls -R supabase
 
       - uses: supabase/setup-cli@v1
