@@ -3952,8 +3952,8 @@ function restoreFile(input){
       const d = o && o.data ? o.data : o;
       if (!d || !Array.isArray(d.exp)) throw 0;
       const now = normalize(d);
-      if (hasUserData(S) && !window.confirm(
-        'Заменить всё, что сейчас в приложении, записями из копии? Текущие записи будут стёрты.')) return;
+      if ((hasUserData(S) || cloudUser) && !window.confirm(
+        'Заменить все записи данными из этой копии? Текущие записи будут удалены на этом устройстве, в облаке и на других подключённых устройствах. Это действие нельзя отменить.')) return;
       storeLocal(KEY+':before-restore:'+Date.now(),loadBlocked ? localStorage.getItem(KEY) : JSON.stringify(S));
       loadBlocked=false;storageOk=true;
       const missing=[];for(const k of ['exp','inc','ev','notes'])for(const r of S[k])if(!now[k].some(x=>x.id===r.id))missing.push({id:r.id,at:new Date().toISOString()});
