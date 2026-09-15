@@ -33,9 +33,9 @@ const server=http.createServer((req,res)=>{
 
     await page.getByPlaceholder('Например: Анастасия').fill('Офлайн-тест');
     await page.getByRole('button',{name:'Начать'}).click();
-    await page.getByRole('tab',{name:'Заметки'}).click();
-    await page.getByRole('tab',{name:'Заметки'}).nth(1).click();
-    await page.getByText('Новая заметка',{exact:true}).click();
+    await page.locator('#dock-btn').click();
+    await page.getByRole('button',{name:/Заметка$/}).click();
+    await page.getByPlaceholder('Например: рецепт, адрес, мысль').waitFor();
 
     await context.setOffline(true);
     assert.equal(await page.evaluate(()=>navigator.onLine),false);
@@ -46,8 +46,7 @@ const server=http.createServer((req,res)=>{
     await page.close();
     page=await context.newPage();
     await page.goto(origin+'/',{waitUntil:'domcontentloaded'});
-    await page.getByRole('tab',{name:'Заметки'}).click();
-    await page.getByRole('tab',{name:'Заметки'}).nth(1).click();
+    await page.locator('#tab-notes').click();
     assert.equal(await page.locator('body').getByText('Запись создана без интернета',{exact:true}).count(),1);
 
     await context.setOffline(false);
