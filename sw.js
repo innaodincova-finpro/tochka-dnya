@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.9.9-voice-dates-repeats';
+const CACHE = 'tochka-dnya-v5.9.9-audit-registry';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
@@ -8,13 +8,7 @@ const APP_SHELL = [
   './supabase.js',
   './icon-180-v3.png',
   './icon-192-v3.png',
-  './icon-512-v3.png',
-  './reestr.html',
-  './registry.js',
-  './registry.webmanifest',
-  './registry-icon-180.png',
-  './registry-icon-192.png',
-  './registry-icon-512.png'
+  './icon-512-v3.png'
 ];
 
 self.addEventListener('install', event => {
