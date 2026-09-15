@@ -1338,12 +1338,11 @@ function pushSheet(){
   (pushStatus?.error?'<p>'+esc(pushStatus.error)+'</p>':'');
 }
 
-/* Кабинет виден только администратору. Числа считает сервер и отдаёт только их —
-   содержимое чужих записей сюда не приходит. */
-const ADMIN_EMAIL = 'inna_odincova@mail.ru';
+/* Ссылка видна после входа, но доступ к кабинету проверяет только сервер.
+   Браузер не хранит адрес владельца и не принимает решений о правах. */
 let adminData = null, adminBusy = false, adminInviteBusy = false, adminInvitation = null;
 function isAdmin(){
-  return !!(cloudUser && String(cloudUser.email || '').toLowerCase() === ADMIN_EMAIL);
+  return !!cloudUser;
 }
 async function loadAdmin(){
   if (adminBusy) return;

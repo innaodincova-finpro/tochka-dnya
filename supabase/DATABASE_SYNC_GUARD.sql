@@ -9,7 +9,7 @@ as $$
 begin
   if current_user = 'authenticated' and
      coalesce(nullif(current_setting('request.headers', true), '')::jsonb ->> 'x-client-info', '') <> 'tochka-dnya/5.6.1' then
-    raise exception 'Обновите Точку дня до версии 5.6.1 перед синхронизацией' using errcode = 'P0001';
+    raise exception 'Эта копия приложения больше не поддерживает облачную синхронизацию. Закройте её и откройте актуальную «Точку дня»' using errcode = 'P0001';
   end if;
   return new;
 end;
