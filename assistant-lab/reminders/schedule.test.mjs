@@ -5,7 +5,9 @@ const event={id:'a',date:'2026-09-13',time:'15:00',title:'Стоматолог',
 const payload={ev:[event],day:{},del:[]};
 const c=candidates(payload,now)[0];assert.ok(c);assert.match(reminderText(c,now),/Через час/);assert.match(reminderText(c,now),/Улица 1/);
 assert.match(reminderText(c,now+120000),/58 мин/);
-assert.equal(candidates(payload,now-1).length,0);assert.equal(candidates(payload,now+300000).length,0);
+assert.equal(candidates(payload,now-1).length,0);
+const recovered=candidates(payload,now+10*60000)[0];assert.ok(recovered);assert.match(reminderText(recovered,now+70*60000),/Пропущенное напоминание/);
+assert.equal(candidates(payload,now+6*3600000).length,0);
 assert.equal(candidates({...payload,ev:[]},now).length,0);
 assert.equal(candidates({...payload,del:[{id:'a'}]},now).length,0);
 assert.equal(candidates({...payload,day:{'2026-09-13':{done:['a']}}},now).length,0);
@@ -18,4 +20,4 @@ assert.equal(candidates({ev:[{...event,date:'2026-09-06',repeat:'week'}]},now).l
 assert.equal(candidates({ev:[{...event,date:'2026-08-13',repeat:'month'}]},now).length,1);
 assert.equal(candidates({ev:[{...event,date:'2025-09-13',repeat:'year'}]},now).length,1);
 assert.equal(candidates({ev:[{...event,date:'2026-09-14',time:'00:30'}]},Date.parse('2026-09-13T20:30:00Z')).length,1);
-console.log('PASS due window, exact timing, Moscow midnight, move/delete/done, recurrence, invalid dates, address');
+console.log('PASS recovery window, exact timing, Moscow midnight, move/delete/done, recurrence, invalid dates, address');

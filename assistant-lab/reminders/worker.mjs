@@ -29,6 +29,15 @@ export function makeReminderHandler(env,request=fetch,clock=()=>Date.now()){
    }
    const initial=await current();
    if(initial){
+    const unknownPath='tochka_telegram_reminder_deliveries'+filter+'&state=eq.unknown&select=key';
+    const unknown=await s.db(unknownPath);
+    if(unknown.length){
+     try{
+      const warning=await request('https://api.telegram.org/bot'+env('TOCHKA_ASSISTANT_BOT_TOKEN')+'/sendMessage',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:initial.chat,text:'Не удалось подтвердить доставку '+unknown.length+' напоминани'+(unknown.length===1?'я':'й')+'. Проверьте ближайшие планы в «Точке дня».',link_preview_options:{is_disabled:true}}),signal:AbortSignal.timeout(8000),redirect:'error'});
+      const answer=await warning.json();
+      if(warning.ok&&answer.ok===true)await s.db('tochka_telegram_reminder_deliveries'+filter+'&state=eq.unknown','PATCH',{state:'alerted'});
+     }catch{/* Запись остаётся unknown, предупреждение повторится в следующий запуск. */}
+    }
     const started=clock();
     const list=candidates(initial.payload,clock());result.checked=list.length;
     if(list.length){const me=await s.tg('getMe');if(me.is_bot!==true||me.username?.toLowerCase()!=='inna_assis_bot')throw new Error('wrong_bot');}
@@ -52,7 +61,7 @@ export function makeReminderHandler(env,request=fetch,clock=()=>Date.now()){
       const response=await request('https://api.telegram.org/bot'+env('TOCHKA_ASSISTANT_BOT_TOKEN')+'/sendMessage',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({chat_id:finalState.chat,text:reminderText(final,clock()),link_preview_options:{is_disabled:true},reply_markup:{inline_keyboard:[[{text:'Открыть сайт',url:'https://innaodincova-finpro.github.io/tochka-dnya/'}]]}}),signal:AbortSignal.timeout(8000),redirect:'error'});
       const answer=await response.json();
       if(response.ok&&answer.ok===true)state='sent';
-      else if(answer.ok===false&&answer.error_code===429){state='retry';retry_at=new Date(clock()+Math.max(60,Number(answer.parameters?.retry_after)||60)*1000).toISOString();}
+      else if(answer.ok===false&&(answer.error_code===429||response.status>=500)){state='retry';retry_at=new Date(clock()+Math.max(60,Number(answer.parameters?.retry_after)||60)*1000).toISOString();}
       else if(answer.ok===false)state='skipped';
      }catch{/* Unknown delivery outcome must not trigger a duplicate message. */}
      result[state]++;
