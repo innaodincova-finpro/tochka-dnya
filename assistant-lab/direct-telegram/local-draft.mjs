@@ -10,7 +10,7 @@ export function localDraft(text,today){
  const timedAction=/^((?:зайти|пойти|прийти|сходить|заехать|позвонить|встретиться)(?=\s).+?)\s+в\s+([01]?\d|2[0-3])[.:]([0-5]\d)[.!]?$/iu.exec(t);
  if(timedAction)return validateProposal({kind:'event',title:timedAction[1].trim(),time:timedAction[2].padStart(2,'0')+':'+timedAction[3]});
  if(/(?:кажд(?:ый|ую|ое|ого|ые)|ежедневно|еженедельно|ежемесячно|ежегодно|по будням|по выходным)/iu.test(t))return null;
- if(hasDateMention(t)||/\d\s*[:/]\s*\d|(?:встреч|врач|стоматолог|напомни|перенеси|измени|исправь|доход|зарплат|получил|вернул|возврат|план|задач|замет|иде[яю])/iu.test(t))return null;
+ if(hasDateMention(t)||/(?:^|\s)(?:[01]?\d|2[0-3])[.:][0-5]\d(?:\s|$)|(?:встреч|врач|стоматолог|напомни|перенеси|измени|исправь|доход|зарплат|получил|вернул|возврат|план|задач|замет|иде[яю])/iu.test(t))return null;
  // Require a letter-only description followed by one unambiguous positive amount.
  for(const separator of t.matchAll(/[,\s]+/gu)){
  const title=t.slice(0,separator.index).trim();

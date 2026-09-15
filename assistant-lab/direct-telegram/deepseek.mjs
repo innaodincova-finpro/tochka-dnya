@@ -1,5 +1,5 @@
 import {shortChange,proposalDefaults} from './defaults.mjs';
-import {recurringDraft} from './local-draft.mjs';
+import {localDraft} from './local-draft.mjs';
 import {SYSTEM_PROMPT, validateProposal, formatProposal} from './proposal.mjs';
 import {normalizeIntentEnvelope,clarificationResult} from './intent.mjs';
 export class AssistantError extends Error { constructor(code) { super(code); this.name='AssistantError'; } }
@@ -17,8 +17,11 @@ export async function prepareDraft({text, apiKey, now = new Date(), timeZone = '
   if (pending !== null) pending = validateProposal(pending);
   const short=shortChange(text,pending,today);
   if(short){const proposal=proposalDefaults(short,{today,defaultCurrency,text,inheritedCurrency:short.currency,inheritedDate:short.date});return {proposal,...formatProposal(proposal)};}
-  const recurring=recurringDraft(text,today);
-  if(recurring){const proposal=proposalDefaults(recurring,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
+  /* Понятные фразы разбираются локально. Это не запасной разбор после сбоя
+     модели, а обязательная первая линия: она не позволяет превратить действие
+     со временем в расход и не тратит платный запрос на простую покупку. */
+  const local=localDraft(text,today);
+  if(local){const proposal=proposalDefaults(local,{today,defaultCurrency,text});return {proposal,...formatProposal(proposal)};}
   if (/(?:кажд(?:ый|ую|ое|ого|ые)|ежедневно|еженедельно|ежемесячно|ежегодно|по будням|по выходным)/iu.test(text)) throw error('recurrence_format');
   if (typeof apiKey !== 'string' || !apiKey.trim() || /\s/.test(apiKey)) throw error('key_missing_or_invalid');
   const controller = new AbortController();
