@@ -50,10 +50,10 @@ async function main(){
  const snapshot=run('JSON.stringify(S)');
  for(let i=0;i<20;i++)w.dispatchEvent(new w.StorageEvent('storage',{key:run('KEY'),newValue:snapshot}));
  ok(run('JSON.stringify(S)')===snapshot,'повторные события вкладок не изменяют время и содержимое');
- run(`globalThis.password=null;cloudClient={auth:{updateUser:async data=>{password=data.password;return {};}}};openSheet('cloudPassword');document.getElementById('new-password').value='new-secure-password';document.getElementById('repeat-password').value='mismatch';`);await run('cloudSetPassword()');
+ run(`globalThis.password=null;cloudClient={auth:{updateUser:async data=>{password=data.password;return {};}}};openSheet('cloudPassword');document.getElementById('new-password').value='Strong-secure-2026!';document.getElementById('repeat-password').value='mismatch';`);await run('cloudSetPassword()');
  ok(run('password===null'),'разные пароли не отправляются');
- run("document.getElementById('repeat-password').value='new-secure-password'");await run('cloudSetPassword()');
- ok(run("password==='new-secure-password'"),'новый пароль отправляется и форма закрывается');
+ run("document.getElementById('repeat-password').value='Strong-secure-2026!'");await run('cloudSetPassword()');
+ ok(run("password==='Strong-secure-2026!'"),'новый пароль отправляется и форма закрывается');
  run(`localStorage.setItem(KEY,'{"exp":[{"id":"broken"}]}');load();saveQuiet();save();`);
  ok(run("loadBlocked&&localStorage.getItem(KEY)==='{"+'"exp":[{"id":"broken"}]}'+"'"),'повреждённая локальная база остаётся в исходном виде');
  ok(fs.readFileSync('supabase/functions/kalendar/index.ts','utf8').includes('TRIGGER:-PT15H'),'напоминание без времени назначено за 15 часов');
