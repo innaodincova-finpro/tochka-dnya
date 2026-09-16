@@ -7,7 +7,7 @@ const entrypoint=readFileSync('assistant-lab/direct-telegram/index.ts','utf8');
 
 assert.match(workflow,/assistant-lab\/direct-telegram/);
 assert.match(workflow,/tochka-assistant-receiver/);
-assert.match(workflow,/GITHUB_SHA/);
+assert.match(workflow,/DEPLOY_SHA/);
 assert.match(workflow,/functions deploy "\$name"/);
 assert.match(workflow,/curl[\s\S]*?tochka-assistant-receiver/);
 assert.match(workflow,/workflow_run:[\s\S]*?workflows: \["Проверка приложения"\]/);

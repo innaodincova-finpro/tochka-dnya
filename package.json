@@ -3,6 +3,8 @@
   "version": "5.9.9",
   "private": true,
   "scripts": {
+    "pretest": "node deployment-security-regression.cjs",
+    "test:deployment-security": "node deployment-security-regression.cjs",
     "test:recovery": "node recovery-rehearsal.cjs",
     "test:finance-category": "node finance-category-regression.cjs",
     "test:finance-browser": "node finance-category-browser.cjs",
