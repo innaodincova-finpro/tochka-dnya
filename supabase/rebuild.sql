@@ -30,3 +30,17 @@
 -- Документы и исправления доступа/отвязки из аудита.
 \ir migrations/20260913150000_documents_storage_v1.sql
 \ir migrations/20260915090000_audit_stage_5_access_and_unlink.sql
+
+-- Исправления, применённые после первичного сценария восстановления.
+\ir migrations/20260915100000_telegram_reminder_recovery.sql
+\ir migrations/20260915110000_sync_guard_message_privacy.sql
+\ir migrations/20260915120000_harden_privileged_tochka_functions.sql
+-- Tochka-only extracts of the two shared-project migrations. The historical
+-- migration files remain in migrations/ but are unsafe in an empty Tochka-only
+-- project because they also depend on Studkab/public.app_data objects.
+\ir recovery/20260915133000_reaffirm_server_only_table_access_tochka_only.sql
+\ir recovery/20260915140000_optimize_rls_and_foreign_keys_tochka_only.sql
+
+-- Минимальные клиентские права применяются последними, после создания всех
+-- таблиц, политик и recovery-индексов.
+\ir migrations/20260917110000_minimize_tochka_client_grants.sql
