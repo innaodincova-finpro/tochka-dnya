@@ -25,6 +25,18 @@ verify_jwt = false
 [functions.tochka-assistant-control]
 verify_jwt = true
 
+[functions.tochka-assistant-setup]
+verify_jwt = true
+
+[functions.tochka-assistant-link]
+verify_jwt = true
+
+[functions.tochka-assistant-sandbox]
+verify_jwt = true
+
+[functions.tochka-assistant-calendar]
+verify_jwt = true
+
 [functions.tochka-telegram-reminders]
 # Cron authenticates with the private token checked by the function itself.
 verify_jwt = false
