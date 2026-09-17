@@ -12,8 +12,10 @@ async function denied(action, message) {
 async function main() {
   assert(!/public\.app_data\b/i.test(migration), 'shared app_data is outside the Tochka-only scope');
   assert(!/studkab_/i.test(migration), 'Studkab is outside the Tochka-only scope');
-  assert(guide.includes('d4e13b4'), 'integration order after the recovery commit is not documented');
-  assert(guide.includes('integration-ветке'), 'final manifest ownership is not documented');
+  assert(guide.includes('включён последним'), 'final rebuild order is not documented');
+  assert(guide.includes('53ebb1e307338858b5dd51d7571e354c3e813e3ac0a6f7cab4d408d0df206ff8'), 'migration hash is not documented');
+  assert(guide.includes('Production-применение') && guide.includes('остаётся заблокированным'), 'production gate is not documented');
+  assert(guide.includes('Прямой запуск через `psql -f` не'), 'unsafe direct production execution is not prohibited');
   assert(guide.includes('Leaked Password Protection'), 'deferred Auth setting is not documented');
   assert(guide.includes('Откат'), 'rollback procedure is not documented');
 

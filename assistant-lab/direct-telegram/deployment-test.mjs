@@ -15,8 +15,11 @@ assert.match(workflow,/functions deploy "\$name"/);
 assert.doesNotMatch(workflow,/supabase\/functions\/\*\//);
 assert.match(workflow,/curl[\s\S]*?tochka-assistant-receiver/);
 assert.match(workflow,/grep -Fq "\\"version\\":\\"\$\{DEPLOY_SHA\}\\""/);
-assert.match(workflow,/workflow_run:[\s\S]*?workflows: \["Проверка приложения"\]/);
-assert.match(workflow,/workflow_run\.conclusion == 'success'/);
+assert.match(workflow,/workflow_dispatch:/);
+assert.doesNotMatch(workflow,/workflow_run:/);
+assert.match(workflow,/test "\$GITHUB_REF" = "refs\/heads\/main"/);
+assert.match(workflow,/test "\$CONFIRMATION" = "DEPLOY"/);
+assert.match(workflow,/DEPLOY_SHA: \$\{\{ github\.sha \}\}/);
 assert.match(workflow,/tochka-assistant-control/);
 assert.match(workflow,/assistant-lab\/pilot\/control-index\.ts/);
 assert.match(workflow,/request_status OPTIONS tochka-assistant-calendar "200 401"/);
@@ -51,7 +54,7 @@ while(pending.length){
 }
 assert.ok(!runtime.has('semantic-corpus.mjs'));
 const deployCopyCandidates=readdirSync(sourceDir)
- .filter(name=>name==='index.ts'||(name.endsWith('.mjs')&&!name.endsWith('-test.mjs')&&name!=='semantic-corpus.mjs'))
+ .filter(name=>name==='index.ts'||(name.endsWith('.mjs')&&!name.endsWith('-test.mjs')&&!name.endsWith('.test.mjs')&&name!=='semantic-corpus.mjs'))
  .sort();
 assert.deepEqual([...runtime].sort(),deployCopyCandidates,'deploy copy must equal the receiver runtime dependency closure');
 const snapshotFiles=readdirSync(snapshotDir).sort();

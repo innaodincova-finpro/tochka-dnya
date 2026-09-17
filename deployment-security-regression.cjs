@@ -22,15 +22,19 @@ for (const file of workflowFiles) {
 }
 
 const deployment = readFileSync(join(workflowsDir, 'kalendar.yml'), 'utf8');
-assert.doesNotMatch(deployment, /^\s*workflow_dispatch\s*:/m);
-assert.match(deployment, /workflow_run:[\s\S]*?workflows:\s*\["Проверка приложения"\]/);
-assert.match(deployment, /github\.event\.workflow_run\.event\s*==\s*'push'/);
-assert.match(deployment, /github\.event\.workflow_run\.head_branch\s*==\s*'main'/);
-assert.match(deployment, /github\.event\.workflow_run\.head_repository\.full_name\s*==\s*github\.repository/);
-assert.match(deployment, /github\.event\.workflow_run\.conclusion\s*==\s*'success'/);
-assert.match(deployment, /ref:\s*\$\{\{\s*github\.event\.workflow_run\.head_sha\s*\}\}/);
+assert.match(deployment, /^\s*workflow_dispatch\s*:/m);
+assert.doesNotMatch(deployment, /workflow_run:/);
+assert.match(deployment, /test "\$GITHUB_REF" = "refs\/heads\/main"/);
+assert.match(deployment, /test "\$CONFIRMATION" = "DEPLOY"/);
+assert.match(deployment, /ref:\s*\$\{\{\s*github\.sha\s*\}\}/);
+assert.match(deployment, /DEPLOY_SHA:\s*\$\{\{\s*github\.sha\s*\}\}/);
+assert.match(deployment, /npm test/);
+assert.match(deployment, /npm run test:recovery/);
 assert.doesNotMatch(deployment, /version:\s*latest/);
 assert.match(deployment, /environment:\s*production/);
+assert.match(deployment, /! -name '\*-test\.mjs'/);
+assert.match(deployment, /! -name '\*\.test\.mjs'/);
+assert.match(deployment, /find supabase\/functions -type f[\s\S]*?Тестовый файл попал в runtime bundle/);
 
 const allowlistMatch = deployment.match(/deploy_functions=\(\s*([\s\S]*?)\s*\)/);
 assert.ok(allowlistMatch, 'должен быть явный список разрешённых к выкладке функций');
@@ -74,4 +78,9 @@ assert.match(deployment, /Выкладка не атомарна/);
 assert.match(deployment, /Автоматический откат не выполнялся/);
 assert.match(deployment, /deployed\+=\("\$name"\)/);
 
-console.log('PASS рабочая выкладка принимает только успешно проверенный код основной линии');
+assert.ok(
+  !workflowFiles.includes('production-database-migration.yml'),
+  'production-миграция не должна быть исполняемой до отдельной Supabase-репетиции',
+);
+
+console.log('PASS production-выпуск требует ручного подтверждения и повторных тестов; неподтверждённая DB-миграция заблокирована');

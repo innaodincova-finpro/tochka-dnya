@@ -45,4 +45,13 @@ Supabase Advisor сообщает, что **Leaked Password Protection** отк�
 
 ## Порядок интеграции
 
-Эта узкая ветка намеренно не изменяет общий `supabase/rebuild.sql`: полнота восстановления ведётся отдельно. После включения recovery-коммита `d4e13b4` миграцию `20260917110000_minimize_tochka_client_grants.sql` необходимо добавить последней в итоговый manifest уже на integration-ветке. До этого объединять hardening-ветку с production нельзя.
+Recovery-комплект уже согласован с этой миграцией: файл
+`20260917110000_minimize_tochka_client_grants.sql` включён последним в
+`supabase/rebuild.sql`, а его SHA-256
+`53ebb1e307338858b5dd51d7571e354c3e813e3ac0a6f7cab4d408d0df206ff8`
+зафиксирован в manifest.
+
+Это подтверждает только полноту репозиторного комплекта. Production-применение
+остаётся заблокированным до изолированной Supabase-репетиции, сверки реального
+RLS и migration history общего проекта. Прямой запуск через `psql -f` не
+разрешён: он обошёл бы штатный журнал миграций Supabase.

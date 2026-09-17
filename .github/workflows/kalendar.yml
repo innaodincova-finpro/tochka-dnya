@@ -4,32 +4,62 @@ name: Выкладка серверных функций
 # Перед выкладкой нужная структура собирается здесь сама.
 
 on:
-  workflow_run:
-    workflows: ["Проверка приложения"]
-    types: [completed]
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: 'Для ручной production-выкладки введите DEPLOY'
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Проверить явное подтверждение и основную ветку
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "Production-выкладка разрешена только из main" >&2
+            exit 1
+          }
+          test "$CONFIRMATION" = "DEPLOY" || {
+            echo "Для production-выкладки требуется точное подтверждение DEPLOY" >&2
+            exit 1
+          }
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Повторно проверить выбранный production-коммит
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+          npm run test:recovery
+
   deploy:
-    if: >-
-      github.event.workflow_run.event == 'push' &&
-      github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository &&
-      github.event.workflow_run.conclusion == 'success'
+    needs: validate
     runs-on: ubuntu-latest
     environment: production
     concurrency:
       group: production-supabase-functions
       cancel-in-progress: false
     env:
-      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+      DEPLOY_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
 
       - name: Собрать структуру для Supabase
@@ -49,13 +79,14 @@ jobs:
           fi
 
           # Telegram receiver is developed and tested in assistant-lab. Assemble
-          # the exact production bundle here so every merge really deploys it.
+          # the exact runtime bundle for this explicitly approved release.
           receiver_dir="supabase/functions/tochka-assistant-receiver"
           mkdir -p "$receiver_dir"
           cp assistant-lab/direct-telegram/index.ts "$receiver_dir/index.ts"
           # semantic-corpus.mjs — только тестовый корпус; runtime receiver его не импортирует.
           find assistant-lab/direct-telegram -maxdepth 1 -type f -name '*.mjs' \
-            ! -name '*-test.mjs' ! -name 'semantic-corpus.mjs' -exec cp {} "$receiver_dir/" \;
+            ! -name '*-test.mjs' ! -name '*.test.mjs' \
+            ! -name 'semantic-corpus.mjs' -exec cp {} "$receiver_dir/" \;
           sed -i "s/__BUILD_VERSION__/${DEPLOY_SHA}/g" "$receiver_dir/build-info.mjs"
           test -f "$receiver_dir/receiver.mjs"
           test -f "$receiver_dir/build-info.mjs"
@@ -73,7 +104,9 @@ jobs:
           reminders_dir="supabase/functions/tochka-telegram-reminders"
           mkdir -p "$reminders_dir"
           cp assistant-lab/reminders/index.ts "$reminders_dir/index.ts"
-          find assistant-lab/reminders -maxdepth 1 -type f -name '*.mjs' -exec cp {} "$reminders_dir/" \;
+          find assistant-lab/reminders -maxdepth 1 -type f -name '*.mjs' \
+            ! -name '*-test.mjs' ! -name '*.test.mjs' \
+            -exec cp {} "$reminders_dir/" \;
           ls -R supabase
 
       - name: Проверить точный набор функций
@@ -108,6 +141,14 @@ jobs:
               exit 1
             }
           done
+          mapfile -t test_files < <(
+            find supabase/functions -type f \
+              \( -name '*-test.*' -o -name '*.test.*' -o -name 'test.*' \) -print
+          )
+          if ((${#test_files[@]})); then
+            printf 'Тестовый файл попал в runtime bundle: %s\n' "${test_files[@]}" >&2
+            exit 1
+          fi
           printf '%s\n' "${deploy_functions[@]}" > "$RUNNER_TEMP/tochka-deploy-functions.txt"
 
       - uses: supabase/setup-cli@b60b5899c73b63a2d2d651b1e90db8d4c9392f51 # v1.6.0
