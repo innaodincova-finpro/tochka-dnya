@@ -13,6 +13,10 @@ try{
   const spokenNote=w.parseSpeech('ПРИЁМКА 18.09 — заметка');
   assert.equal(spokenNote.exp.length,0);
   assert.deepEqual([...spokenNote.notes],['ПРИЁМКА 18.09 — заметка']);
+  w.eval("S=blank();parsed=parseSpeech('ПРИЁМКА 18.09 — заметка');applyParse()");
+  assert.equal(w.eval('S.notes.length'),1);
+  assert.equal(w.eval('S.notes[0].kind'),'note');
+  assert.equal(w.eval('S.notes[0].text'),'ПРИЁМКА 18.09 — заметка');
   const numericEvent=w.parseSpeech('встреча с врачом 18.09');
   assert.equal(numericEvent.exp.length,0);
   assert.equal(numericEvent.ev.length,1);
@@ -23,5 +27,5 @@ try{
   assert.equal(w.occursOn(monthly,'2026-04-30'),true);
   assert.equal(w.occursOn(monthly,'2026-02-27'),false);
   assert.match(w.noteDue('позвонить 5 мая')||'',/-05-05$/);
-  console.log('PASS audit stage 3: voice dates, exact number words, monthly clamp, 5 мая');
+  console.log('PASS audit stage 3: voice dates, saved note kind, exact number words, monthly clamp, 5 мая');
 }finally{dom.window.close();}

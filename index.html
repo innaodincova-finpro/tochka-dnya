@@ -1887,8 +1887,8 @@ function noteDue(text){
   return (d && d > today()) ? d : null;
 }
 /* единая сборка заметки: сама решает, список это или мысль */
-function makeNote(text){
-  const rec = {id:uid(), date:today(), text:tidy(stripFiller(text)), kind:'task', done:false};
+function makeNote(text, kind){
+  const rec = {id:uid(), date:today(), text:tidy(stripFiller(text)), kind:kind === 'note' ? 'note' : 'task', done:false};
   if (isShoppingList(text) && BUY_RE.test(text)){
     const it = listItems(text);
     if (it.length){ rec.items = it; rec.where = shopOf(text); }
@@ -4005,7 +4005,7 @@ function applyParse(){
   parsed.exp.forEach(e => S.exp.push(Object.assign({id:uid(), date:today(), cur:S.settings.cur}, e)));
   parsed.inc.forEach(e => S.inc.push(Object.assign({id:uid(), date:today(), cur:S.settings.cur}, e)));
   parsed.ev.forEach(e => S.ev.push(Object.assign({id:uid()}, e)));
-  parsed.notes.forEach(t => S.notes.push(makeNote(t)));
+  parsed.notes.forEach(t => S.notes.push(makeNote(t, 'note')));
   parsed.rest.forEach(t => S.notes.push({id:uid(), date:today(), text:t, kind:'note', done:false}));
   save(); closeSheet(); toast('Записано');
   parsed = null;
