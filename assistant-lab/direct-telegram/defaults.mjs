@@ -6,9 +6,22 @@ export function currencyWord(text){
 export function simpleAmount(text){
  const t=text.trim().toLowerCase().replace(/[.!]$/,'');
  if(/^(?:\d+|\d{1,3}(?:[ \u00a0\u202f]\d{3})+)(?:[.,]\d{1,2})?$/.test(t))return Number(t.replace(/[ \u00a0\u202f]/g,'').replace(',','.'));
- const words={один:1,одна:1,два:2,две:2,три:3,четыре:4,пять:5,шесть:6,семь:7,восемь:8,девять:9,десять:10,двадцать:20,тридцать:30,сорок:40,пятьдесят:50,сто:100,двести:200,триста:300,четыреста:400,пятьсот:500};
- const m=/^(.*?)\s+тысяч(?:а|и)?$/.exec(t);if(m){const n=words[m[1]]||(/^\d+$/.test(m[1])?Number(m[1]):0);if(n)return n*1000;}
- return words[t]||null;
+ const units={один:1,одна:1,два:2,две:2,три:3,четыре:4,пять:5,шесть:6,семь:7,восемь:8,девять:9};
+ const teens={десять:10,одиннадцать:11,двенадцать:12,тринадцать:13,четырнадцать:14,пятнадцать:15,шестнадцать:16,семнадцать:17,восемнадцать:18,девятнадцать:19};
+ const tens={двадцать:20,тридцать:30,сорок:40,пятьдесят:50,шестьдесят:60,семьдесят:70,восемьдесят:80,девяносто:90};
+ const hundreds={сто:100,двести:200,триста:300,четыреста:400,пятьсот:500,шестьсот:600,семьсот:700,восемьсот:800,девятьсот:900};
+ const wordNumber=value=>{
+  const parts=value.trim().split(/\s+/u);let i=0,total=0;
+  if(hundreds[parts[i]])total+=hundreds[parts[i++]];
+  if(teens[parts[i]])total+=teens[parts[i++]];
+  else{
+   if(tens[parts[i]])total+=tens[parts[i++]];
+   if(units[parts[i]])total+=units[parts[i++]];
+  }
+  return i===parts.length&&total>0?total:null;
+ };
+ const m=/^(.*?)\s+тысяч(?:а|и)?$/.exec(t);if(m){const n=wordNumber(m[1])||(/^\d+$/.test(m[1])?Number(m[1]):0);if(n)return n*1000;}
+ return wordNumber(t);
 }
 function calendarDate(text,today){
  const t=text.trim().toLowerCase().replace(/\.$/,'').replace(/ё/g,'е');

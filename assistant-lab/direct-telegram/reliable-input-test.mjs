@@ -20,6 +20,11 @@ assert.equal((await prepareDraft({text:'Пятёрочка 5000 рублей',ap
 assert.deepEqual((await prepareDraft({text:'Запиши идею: подготовить материалы к уроку',apiKey:'fake',now,fetchImpl:classified({kind:'note',title:'подготовить материалы к уроку'})})).proposal,{kind:'note',title:'подготовить материалы к уроку'});
 const pharmacy=await prepareDraft({text:'Зайти в аптеку в 19.00.',apiKey:'fake',now,defaultCurrency:'RUB',fetchImpl:classified({kind:'event',title:'Зайти в аптеку',time:'19:00'})});
 assert.deepEqual(pharmacy.proposal,{kind:'event',title:'Зайти в аптеку',date:today,time:'19:00'});assert.equal(pharmacy.needsClarification,false);assert.doesNotMatch(pharmacy.text,/Уточните дату/);
+assert.equal(localDraft('В семь',today),null,'«В семь» не должно становиться расходом');
+const coffeeWords=await prepareDraft({text:'Кофе триста пятьдесят рублей',apiKey:'fake',now,defaultCurrency:'RUB',fetchImpl:noNetwork});
+assert.deepEqual(coffeeWords.proposal,{kind:'expense',title:'Кофе',date:today,amount:350,currency:'RUB',category:'Кафе'});
+const tomorrowCall=await prepareDraft({text:'Позвонить маме завтра в 10:00',apiKey:'fake',now,defaultCurrency:'RUB',fetchImpl:noNetwork});
+assert.deepEqual(tomorrowCall.proposal,{kind:'event',title:'Позвонить маме',date:'2026-09-14',time:'10:00'});assert.equal(tomorrowCall.needsClarification,false);
 for(const text of ['Встреча завтра в 15:00','Зарплата 5000','Пятёрочка вчера 5000','Кофе 300 и такси 500','Врач 15:00','Пятёрочка -500','Пятёрочка 5000 юаней','Запланируй покупку 5000'])assert.equal(localDraft(text),null,text);
 
 // Full receiver cancellation at the quota limit, using version-checked RPC.

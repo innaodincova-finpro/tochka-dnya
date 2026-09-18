@@ -84,7 +84,7 @@ body{
 .tl-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mut)}
 .tl-what{font-size:14px;font-weight:500}
 .tl-sum{font-family:'IBM Plex Mono',monospace;font-size:13px}
-.now-mark{display:inline-block;background:var(--ochre);color:#fff;font-size:9px;letter-spacing:.14em;padding:2px 8px;border-radius:99px;font-weight:600;margin-bottom:6px}
+.now-mark{display:inline-block;background:var(--ochre);color:#fff;font-size:10px;letter-spacing:.14em;padding:2px 8px;border-radius:99px;font-weight:600;margin-bottom:6px}
 
 .stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
 .stat:last-child{border:0;padding-bottom:0}
@@ -160,10 +160,10 @@ body{
 /* Две строки, слова целиком. Перенос по слогам выключен: он давал «Гинеко-лог».
    Длинное слово не рвётся, а набирается мельче — так оно помещается целиком. */
 .continuous-cal .day-preview{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
-  margin-top:5px;font:500 9px/1.25 'Golos Text',sans-serif;color:var(--mut);
+  margin-top:5px;font:500 10px/1.25 'Golos Text',sans-serif;color:var(--mut);
   overflow:hidden;word-break:keep-all;overflow-wrap:normal;hyphens:none;letter-spacing:-.01em}
-.continuous-cal .day-preview.p-s{font-size:8px;letter-spacing:-.02em}
-.continuous-cal .day-preview.p-xs{font-size:7px;letter-spacing:-.03em}
+.continuous-cal .day-preview.p-s{font-size:10px;letter-spacing:-.02em}
+.continuous-cal .day-preview.p-xs{font-size:10px;letter-spacing:-.03em}
 .continuous-cal .day-preview:before{content:'●';display:inline-block;margin-right:3px;font-size:.82em;line-height:1;color:#7652A8}
 .continuous-cal .day-preview.type-event:before{color:#7652A8}
 .continuous-cal .day-preview.type-task:before{color:#D16991}
@@ -662,7 +662,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
     <button type="button" role="tab" id="tab-today" aria-controls="s-today" aria-selected="true" onclick="go(this,'s-today')"><i aria-hidden="true">✦</i>Сегодня</button>
     <button type="button" role="tab" id="tab-cal" aria-controls="s-cal" aria-selected="false" onclick="go(this,'s-cal')"><i aria-hidden="true">▦</i>План</button>
     <button type="button" role="tab" id="tab-notes" aria-controls="s-notes" aria-selected="false" onclick="go(this,'s-notes')"><i aria-hidden="true">✓</i>Заметки</button>
-    <button type="button" role="tab" id="tab-money" aria-controls="s-money" aria-selected="false" onclick="go(this,'s-money')"><i aria-hidden="true">₽</i>Финансы</button>
+    <button type="button" role="tab" id="tab-money" aria-controls="s-money" aria-selected="false" onclick="go(this,'s-money')"><i aria-hidden="true">¤</i>Финансы</button>
     <button type="button" role="tab" id="tab-more" aria-controls="s-more" aria-selected="false" onclick="go(this,'s-more')"><i aria-hidden="true">≡</i>Ещё</button>
   </nav>
 
@@ -681,7 +681,6 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
 
 const KEY = 'tochka-dnya-v3';
 const APP_VERSION = '5.9.9';
-const APP_UPDATED = new Date('2026-09-14T19:45:00.000Z').toLocaleString('ru-RU',{day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false})+' (время устройства)';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -1376,9 +1375,35 @@ async function createInvitation(){
   finally{adminInviteBusy=false;if(button){button.disabled=false;button.textContent='Создать ссылку';}}
 }
 const NEW_USER_GUIDE = "Здравствуйте! Приглашаю вас в мою «Точку дня» — приложение для встреч, дел, заметок и учёта расходов.\n\nЯ подготовила несколько простых шагов, чтобы вам было легче начать.\n\n1. Зайдите по моей ссылке\nОткройте ссылку из этого сообщения. Придумайте пароль от 12 символов — с большой и маленькой буквой, цифрой и знаком, затем введите его дважды и нажмите «Сохранить пароль и открыть приложение».\nЭто ваш новый пароль для «Точки дня». Пароль от почты вводить не нужно.\nЕсли ссылка не открывается или срок её действия закончился — напишите мне, я пришлю новую.\n\n2. Добавьте «Точку дня» на экран iPhone\nОткройте в Safari этот адрес:\nhttps://innaodincova-finpro.github.io/tochka-dnya/\nНажмите «Поделиться» → «На экран Домой» → «Добавить». Если увидите «Открыть как веб-приложение», включите этот пункт.\nНа экране телефона появится значок «Точки дня». Дальше открывайте приложение через него.\nЕсли оно попросит войти, откройте «Ещё» → «Мои данные» и введите почту из приглашения и пароль, который только что придумали.\nНа компьютере можно пользоваться тем же адресом в браузере.\n\n3. Включите напоминания о встречах\nВ приложении откройте «Ещё» → «Напоминания». Нажмите «Включить уведомления», затем «Разрешить».\nПосле этого нажмите «Проверить уведомление» и закройте приложение. Через 1–2 минуты должно прийти сообщение. Если не пришло — напишите мне, помогу разобраться.\nНа iPhone эта возможность работает начиная с iOS 16.4. Календарь Apple подключать не нужно.\n\n4. Запишите свою первую встречу\nВ разделе «План» нажмите «Добавить» и укажите название, дату и время встречи. Сохраните её и дождитесь надписи «сохранено в облаке».\nДобавляйте встречу заранее — больше чем за час до начала. Например, о встрече в 16:30 приложение напомнит в 15:30. Его можно закрыть, но телефон должен быть подключён к интернету.\nЕсли время встречи не указано, напоминания за час не будет.\n\n5. Осваивайтесь в своём темпе\nВ «Сегодня» можно посмотреть свой день, в «Плане» — встречи, в «Заметках» — записывать мысли, дела и списки, в «Финансах» — доходы и расходы.\nЧтобы прочитать заметку целиком, нажмите на неё. Расход можно внести за прошлый день — просто выберите нужную дату.\nЗаписи сохраняются автоматически. После важных изменений дождитесь отметки «сохранено в облаке».\n\nСохраните это сообщение, чтобы при необходимости вернуться к шагам. Ссылка для первого входа предназначена только вам — не пересылайте её другим людям.\n\nЕсли возникнут вопросы, напишите мне, что не получилось. Можно приложить снимок экрана, только без пароля и личной ссылки.\n\nИнна";
+const APP_ADDRESS = 'https://innaodincova-finpro.github.io/tochka-dnya/';
+const INVITATION_INSTALL_GUIDE = '2. Установите или откройте «Точку дня»\n'+
+  'iPhone или iPad: откройте '+APP_ADDRESS+' в Safari, нажмите «Поделиться» → «На экран Домой» → «Добавить».\n'+
+  'Android: откройте адрес в Chrome, нажмите меню ⋮ → «Установить приложение» или «Добавить на главный экран».\n'+
+  'На компьютере: откройте адрес в браузере; при желании используйте значок установки в адресной строке или меню браузера.\n'+
+  'Если приложение попросит войти, откройте «Ещё» → «Мои данные» и используйте почту из приглашения и созданный пароль.';
+function guideWithInstallSection(section){
+  const start=NEW_USER_GUIDE.indexOf('\n\n2. '),end=NEW_USER_GUIDE.indexOf('\n\n3. ');
+  return start<0||end<0?NEW_USER_GUIDE:NEW_USER_GUIDE.slice(0,start)+'\n\n'+section+NEW_USER_GUIDE.slice(end);
+}
+function appIsInstalled(){
+  return navigator.standalone===true||matchMedia('(display-mode: standalone)').matches;
+}
+function installGuideForCurrentDevice(){
+  if(appIsInstalled())return '2. «Точка дня» уже установлена\nОткрывайте приложение через его значок — повторная установка не нужна.';
+  if(isIOS())return '2. Добавьте «Точку дня» на экран iPhone или iPad\nОткройте '+APP_ADDRESS+' в Safari. Нажмите «Поделиться» → «На экран Домой» → «Добавить». Затем открывайте приложение через появившийся значок.';
+  if(/Android/i.test(navigator.userAgent))return '2. Установите «Точку дня» на Android\nОткройте '+APP_ADDRESS+' в Chrome. Нажмите меню ⋮ → «Установить приложение» или «Добавить на главный экран». Затем открывайте приложение через появившийся значок.';
+  return '2. Откройте «Точку дня» на компьютере\nПерейдите по адресу '+APP_ADDRESS+' в браузере. Чтобы установить приложение отдельно, нажмите значок установки в адресной строке или выберите установку в меню браузера.';
+}
+function userGuideForCurrentDevice(){return guideWithInstallSection(installGuideForCurrentDevice());}
+function installGuideSummary(){
+  if(appIsInstalled())return '«Точка дня» уже установлена на этом устройстве.';
+  if(isIOS())return 'Safari → «Поделиться» → «На экран Домой».';
+  if(/Android/i.test(navigator.userAgent))return 'Chrome → меню ⋮ → «Установить приложение».';
+  return 'Используйте значок установки или меню браузера.';
+}
 function invitationMessage(invitation){
   if(invitation?.existing)return 'Доступ к «Точке дня» открыт.\nПочта: '+invitation.email+'\nОткройте '+invitation.url+'\nВ разделе «Ещё» → «Мои данные» войдите с существующим паролем аккаунта. Если забыли пароль, нажмите «Забыли пароль».\nДанные других приложений сохраняются.';
-  return 'Я создала для вас доступ к «Точке дня».\nВаша почта для входа: '+(invitation?.email||'')+'\nВаша личная ссылка для первого входа:\n'+(invitation?.url||'')+'\n\n'+NEW_USER_GUIDE;
+  return 'Я создала для вас доступ к «Точке дня».\nВаша почта для входа: '+(invitation?.email||'')+'\nВаша личная ссылка для первого входа:\n'+(invitation?.url||'')+'\n\n'+guideWithInstallSection(INVITATION_INSTALL_GUIDE);
 }
 async function shareInvitation(){
   if(!isAdmin()||!adminInvitation)return;
@@ -1418,6 +1443,40 @@ async function cloudSignOut(){
   cloudReady=false;cloudEpoch++;clearTimeout(cloudTimer);
   const result=await cloudClient.auth.signOut({scope:'local'});if(result.error){setCloudState('error',result.error.message);toast('Не удалось выйти. Повторите при подключении к сети.');return;}cloudUser=null;cloudSavedAt=null;setCloudState('local');renderAll();toast('Вы вышли на этом устройстве. Записи на телефоне сохранены');
 }
+function localDeviceDataKeys(){
+  const keys=[];
+  for(let i=0;i<localStorage.length;i++){
+    const key=localStorage.key(i);
+    if(key&&(key===KEY||key.startsWith(KEY+':')))keys.push(key);
+  }
+  return keys;
+}
+async function deleteDeviceData(){
+  const connected=!!cloudUser;
+  const warning=connected
+    ? 'Удалить записи и настройки «Точки дня» только с этого устройства?\n\nСначала приложение проверит сохранение в облаке и выйдет из аккаунта. Облачная копия и другие устройства останутся без изменений.'
+    : 'Удалить записи и настройки «Точки дня» с этого устройства?\n\nОблачное сохранение сейчас не подключено. Локальные записи могут быть потеряны без возможности восстановления.';
+  if(!window.confirm(warning))return;
+  if(!connected&&!window.confirm('Подтвердите ещё раз: удалить локальные данные без проверки облачной копии?'))return;
+  if(connected){
+    if(!cloudReady){toast('Облако ещё не готово. Дождитесь завершения сохранения и повторите.');return;}
+    await pushCloud();
+    if(cloudState!=='synced'){toast('Данные не удалены: не удалось подтвердить облачную копию. Проверьте интернет и повторите.');return;}
+    try{await disablePush();}catch(e){toast('Данные не удалены: сначала нужно отключить уведомления. '+e.message);return;}
+    cloudReady=false;cloudEpoch++;clearTimeout(cloudTimer);
+    const result=await cloudClient.auth.signOut({scope:'local'});
+    if(result.error){setCloudState('error',result.error.message);toast('Данные не удалены: не удалось выйти из аккаунта. Повторите при подключении к сети.');return;}
+  }
+  try{
+    for(const key of localDeviceDataKeys())localStorage.removeItem(key);
+    if(localDeviceDataKeys().length)throw new Error('локальное хранилище не очистилось');
+  }catch(e){storageOk=false;toast('Не удалось удалить данные с устройства. Они оставлены на месте.');return;}
+  cloudUser=null;cloudSavedAt=null;cloudBase=null;cloudConflict=null;cloudReady=false;
+  adminData=null;adminInvitation=null;resetDocuments();
+  S=blank();loadBlocked=false;storageOk=true;dateRecoveryNotice=[];
+  setCloudState('local');renderAll();openSheet('welcome');
+  toast('Данные «Точки дня» удалены только с этого устройства. Облачная копия сохранена');
+}
 window.addEventListener('online',()=>scheduleCloudSync());
 window.addEventListener('offline',()=>{if(cloudUser)setCloudState('offline')});
 
@@ -1428,8 +1487,11 @@ function iso(d){ const x = d || new Date(); return new Date(x.getTime() - x.getT
 function today(){ return iso(new Date()); }
 function money(n, c){
   const s = c ? (CURR.find(x => x[0] === c) || CURR[0])[1] : sign();
-  return (Math.round(n) || 0).toLocaleString('ru-RU') + ' ' + s;
+  const value=Number(n);
+  return new Intl.NumberFormat('ru-RU',{maximumFractionDigits:2}).format(Number.isFinite(value)?value:0) + ' ' + s;
 }
+function currencySign(code){ return (CURR.find(x=>x[0]===code)||CURR[0])[1]; }
+function validMoneyAmount(value){ return Number.isFinite(value)&&value>0; }
 /* у каждой записи своя валюта. Рубли и манаты не складываются:
    курса приложение не знает и придумывать его не станет */
 function curOf(r){ return r.cur || S.settings.cur; }
@@ -2213,7 +2275,7 @@ function toggleDone(id){
 function hideHi(){ S.settings.hi = 1; save(); }
 
 /* ---------- План: непрерывный календарь ---------- */
-let selDay = today(), calendarMonthCount = 12;
+let selDay = today(), calendarMonthCount = 12, calendarPastMonthCount = 0;
 function nowHHMM(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function planDone(date,id){ return !!(S.day[date]&&S.day[date].done&&(S.day[date].done||[]).includes(id)); }
 function togglePlanDone(date,id){ const r=dayRec(date);r.done=r.done||[];r.doneAt=r.doneAt||{};const i=r.done.indexOf(id);if(i>=0){r.done.splice(i,1);delete r.doneAt[id];}else{r.done.push(id);r.doneAt[id]=today();}save(); }
@@ -2248,7 +2310,7 @@ function previewSize(title){
   if (longest.length <= 11) return 'p-s';
   return 'p-xs';
 }
-function monthCalendar(key){
+function monthCalendar(key, extra){
   const p=key.split('-').map(Number),y=p[0],mm=p[1];
   const heads='<div class="dw">пн</div><div class="dw">вт</div><div class="dw">ср</div><div class="dw">чт</div><div class="dw">пт</div><div class="dw">сб</div><div class="dw">вс</div>';
   let cells='',shift=(new Date(y,mm-1,1).getDay()+6)%7;
@@ -2259,7 +2321,7 @@ function monthCalendar(key){
     const st=dayState(ds,entries);
     cells+='<button type="button" class="d'+(ds===today()?' today':'')+(count?' has-plan':'')+(st?' '+st:'')+'" onclick="openDay(\''+ds+'\')" aria-label="'+(count?humanDate(ds)+', записей: '+count+dayStateWord(st,count):humanDate(ds))+'"><span class="day-num">'+i+'</span>'+preview+'</button>';
   }
-  return '<div class="month-card"><div class="month-title">'+MONTHS_N[mm-1]+' '+y+'</div><div class="cal continuous-cal">'+heads+cells+'</div></div>';
+  return '<div class="month-card"><div class="month-title">'+MONTHS_N[mm-1]+' '+y+'</div>'+(extra||'')+'<div class="cal continuous-cal">'+heads+cells+'</div></div>';
 }
 /* Календарь перестраивался при каждом сохранении, даже когда открыт другой
    экран. На 120 месяцах это 4000 клеток впустую после каждой записи.
@@ -2271,13 +2333,18 @@ function renderCal(force){
   if (!force && host.hidden){ calDirty = true; return; }
   calDirty = false;
   const scroll=host.scrollTop,start=monthOf(today());
-  let h='<div class="calendar-stream" id="cal-stream">' + monthsHtml(0, calendarMonthCount) + '</div>';
+  let h='<div class="calendar-stream" id="cal-stream">' + monthsHtml(-calendarPastMonthCount, calendarPastMonthCount+calendarMonthCount) + '</div>';
   host.innerHTML=h;host.scrollTop=scroll;
 }
 function monthsHtml(from, count){
   const start = monthOf(today());
   let h = '';
-  for (let i = from; i < from + count; i++) h += monthCalendar(addMonths(start, i));
+  for (let i = from; i < from + count; i++){
+    const history=i===0&&calendarPastMonthCount<120
+      ? '<button type="button" class="mini" style="margin:0 0 10px" onclick="showPreviousMonths()">Показать предыдущие 12 месяцев</button>'
+      : '';
+    h += monthCalendar(addMonths(start, i),history);
+  }
   return h;
 }
 function calendarScroll(el){
@@ -2288,6 +2355,14 @@ function calendarScroll(el){
     stream.insertAdjacentHTML('beforeend', monthsHtml(calendarMonthCount, 12));
     calendarMonthCount += 12;
   } else { calendarMonthCount += 12; renderCal(); }
+}
+function showPreviousMonths(){
+  const host=document.getElementById('s-cal');
+  if(!host||calendarPastMonthCount>=120)return;
+  const oldHeight=host.scrollHeight,oldTop=host.scrollTop;
+  calendarPastMonthCount=Math.min(120,calendarPastMonthCount+12);
+  renderCal(true);
+  host.scrollTop=oldTop+Math.max(0,host.scrollHeight-oldHeight);
 }
 function openDay(date){selDay=date;openSheet('day',date);}
 function togglePlanDoneInDay(date,id){togglePlanDone(date,id);openSheet('day',date);}
@@ -2320,6 +2395,7 @@ function financeCustom(k,v){ if (k === 'from') financeFrom=v; else financeTo=v; 
 function setCur(c){ S.settings.cur = c; save(); toast('Валюта: ' + cur()[2]); }
 function renderMoney(){
   const host = document.getElementById('s-money'); if (!host) return;
+  const tabIcon=document.querySelector('#tab-money i');if(tabIcon)tabIcon.textContent=sign();
   const range = financeDates(), from = range[0] <= range[1] ? range[0] : range[1], to = range[0] <= range[1] ? range[1] : range[0];
   const rows = inCur(S.exp.filter(e => e.date >= from && e.date <= to)).sort((a,b) => (b.date+b.id).localeCompare(a.date+a.id));
   /* Доходы вносились и исчезали: в «Финансах» их не было ни списком, ни в правке. */
@@ -2361,7 +2437,7 @@ function renderMoney(){
       visibleRows.length ? visibleRows.length + ' ' + plural(visibleRows.length,'запись','записи','записей') : 'пока нет',
       (financeCategory ? '<button type="button" class="mini" onclick="financeCategorySet(\'\')">Все категории</button><div class="mut">Итого: '+money(sum(visibleRows))+'</div>' : '') +
       (visibleRows.length ? visibleRows.map(e=>
-      '<div class="item"><div class="ic">₽</div><div class="txt"><b>'+esc(e.title)+'</b><small>'+esc(e.cat)+' · '+humanDate(e.date)+'</small></div>' +
+      '<div class="item"><div class="ic">'+esc(currencySign(curOf(e)))+'</div><div class="txt"><b>'+esc(e.title)+'</b><small>'+esc(e.cat)+' · '+humanDate(e.date)+'</small></div>' +
       '<div class="sum">−'+money(e.sum,curOf(e))+'</div><span style="display:flex;flex-direction:column;gap:4px">' +
       '<button class="mini" onclick="editExp(\''+e.id+'\')">изменить</button><button class="del" onclick="confirmDropExp(\''+e.id+'\')">удалить</button></span></div>').join('') :
       '<div class="empty">За выбранный период и категорию расходов нет.</div>') +
@@ -3139,13 +3215,16 @@ function renderMore(){
     '<button class="btn" onclick="openSheet(\'backup\')">Резервная копия</button>'+
     '<button class="btn ghost" style="margin-top:8px" onclick="document.getElementById(\'restore\').click()">Загрузить копию</button>'+
     '<input type="file" id="restore" accept="application/json,.json" hidden onchange="restoreFile(this)">';
+  const deviceDeleteBody = '<h3 style="font-size:16px;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line)">Это устройство</h3>'+
+    '<p class="mut">Удаляет записи и настройки только с этого устройства. Облачная копия и данные на других устройствах не удаляются.</p>'+
+    '<button class="del" style="display:block;margin:12px auto 0" onclick="deleteDeviceData()">Удалить данные с этого устройства</button>';
   document.getElementById('s-more').innerHTML =
     (loadBlocked?card('<b>Не удалось прочитать записи на устройстве</b><p>Исходные данные сохранены. Скачайте их для восстановления.</p><button class="btn" onclick="downloadBackup()">Скачать исходные данные</button>'):'')+
     (dateRecoveryNotice.length?card('<b>Пропущена запись с невозможной датой</b><p>'+esc(dateRecoveryNotice.map(x=>'«'+x.title+'» — '+x.date).join('; '))+'. Остальные записи загружены. Исходная запись сохранена в резервной копии данных.</p>'):'')+
     (cloudConflict?card('<p>Одна запись изменена в двух местах.</p><button class="btn" onclick="openSheet(\'cloudConflict\')">Выбрать версию</button>'):'')+
     fold('more-cloud','Мои данные',cloudUser?'облако подключено':'сохранение и копии',
       '<h3 style="font-size:16px;margin:0 0 10px">Облачное сохранение</h3>'+cloudBody+
-      '<h3 style="font-size:16px;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line)">Резервная копия</h3>'+backupBody)+
+      '<h3 style="font-size:16px;margin:20px 0 10px;padding-top:16px;border-top:1px solid var(--line)">Резервная копия</h3>'+backupBody+deviceDeleteBody)+
     fold('more-reminders','Напоминания',S.settings.reminderMode==='three-and-hour'?'за 3 часа и за час':'о встречах за час',
       '<p>Настройте уведомления на этом устройстве и проверьте их получение.</p><button class="btn" onclick="openPushSheet()">Настроить напоминания</button>')+
     fold('more-set', 'Настройки приложения', 'оформление и разделы',
@@ -3166,8 +3245,8 @@ function renderMore(){
     adminCard()+
     fold('more-help','Помощь и о приложении','инструкция и версия',
       '<button class="btn ghost" onclick="openSheet(\'help\')">Как пользоваться приложением</button>'+
-      '<div class="item" style="margin-top:10px"><div class="ic">📱</div><div class="txt"><b>Добавить на экран телефона</b><small>Откройте приложение в Safari → «Поделиться» → «На экран Домой».</small></div></div>'+
-      '<div class="mut" style="margin-top:12px">Версия '+APP_VERSION+' · обновлено '+APP_UPDATED+'.</div>'+
+      '<div class="item" style="margin-top:10px"><div class="ic">📱</div><div class="txt"><b>Установка на этом устройстве</b><small>'+esc(installGuideSummary())+'</small></div></div>'+
+      '<div class="mut" style="margin-top:12px">Версия '+APP_VERSION+'.</div>'+
       '<p class="mut" style="font-size:11px">Автор идеи и концепции приложения — Одинцова И. В. © 2026. Все права защищены.</p>');
 }
 function backupDue(){
@@ -3454,7 +3533,7 @@ const SHEETS = {
 
     '<button class="btn" style="margin-top:12px" onclick="finishWelcome()">Начать</button>',
 
-  help: () => '<h3>Как пользоваться</h3><div style="white-space:pre-wrap">'+esc(NEW_USER_GUIDE)+'</div><button class="btn" style="margin-top:12px" onclick="closeSheet()">Понятно</button>',
+  help: () => '<h3>Как пользоваться</h3><div style="white-space:pre-wrap">'+esc(userGuideForCurrentDevice())+'</div><button class="btn" style="margin-top:12px" onclick="closeSheet()">Понятно</button>',
 
   documentUpload: () => '<h3>Новый документ</h3><p>Оригинал сохранится в закрытом облаке и будет доступен только в вашем аккаунте.</p><div class="fld"><label>Файл или фотография</label><input id="f-document-file" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.pdf,.doc,.docx" onchange="if(!val(\'f-document-title\')&&this.files[0])document.getElementById(\'f-document-title\').value=this.files[0].name.replace(/\\.[^.]+$/,\'\')"></div><div class="fld"><label>Название</label><input id="f-document-title" maxlength="160" placeholder="Например: Полис страхования"></div><div class="mut">Фотография, PDF или Word · не больше 20 МБ</div><button class="btn" id="document-upload-button" style="margin-top:12px" onclick="uploadDocument()">Загрузить</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
   documentRename: id => {const d=documentById(id)||{};return '<h3>Название документа</h3><div class="fld"><label>Название</label><input id="f-document-title" maxlength="160" value="'+esc(d.title||d.original_name||'')+'"></div><button class="btn" onclick="renameDocument(\''+id+'\')">Сохранить</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';},
@@ -3496,7 +3575,7 @@ const SHEETS = {
     const e = S.exp.find(x => x.id === editId) || {};
     return '<h3>Изменить расход</h3>' +
       fldMic('Расход', expenseInput(e.title || ''), 'f-title', 'text', hintsBox('f-title','expense',e.title || '')) +
-      fldMic('Сумма, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" min="0" step="0.01" value="' + (e.sum || '') + '" placeholder="800">', 'f-sum', 'sum') +
+      fldMic('Сумма, ' + currencySign(curOf(e)), '<input id="f-sum" type="number" inputmode="decimal" min="0.01" step="0.01" value="' + (e.sum || '') + '" placeholder="800">', 'f-sum', 'sum') +
       '<div class="fld"><label>Категория</label><select id="f-cat">' +
         CATS.map(c => '<option' + (c === e.cat ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>' +
       '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (e.date || today()) + '"></div>' +
@@ -3509,7 +3588,7 @@ const SHEETS = {
     const e = S.inc.find(x => x.id === editId) || {};
     return '<h3>Изменить доход</h3>' +
       fldMic('Откуда', '<input id="f-title" value="' + esc(e.title || '') + '" placeholder="Например: зарплата">', 'f-title') +
-      fldMic('Сколько, ' + sign(), '<input id="f-sum" type="text" inputmode="decimal" value="' + (e.sum || '') + '" placeholder="Например: 100000" onblur="fixSum(this)">', 'f-sum', 'sum') +
+      fldMic('Сколько, ' + currencySign(curOf(e)), '<input id="f-sum" type="text" inputmode="decimal" value="' + (e.sum || '') + '" placeholder="Например: 100000" onblur="fixSum(this)">', 'f-sum', 'sum') +
       '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (e.date || today()) + '"></div>' +
       '<button class="btn ok" onclick="saveIncEdit()">Сохранить</button>' +
       '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>';
@@ -3517,7 +3596,7 @@ const SHEETS = {
 
   exp: () => '<h3>Расход</h3>' +
     fldMic('Расход', expenseInput(''), 'f-title', 'text', hintsBox('f-title','expense','')) +
-    fldMic('Сумма, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" min="0" step="0.01" placeholder="800">', 'f-sum', 'sum') +
+    fldMic('Сумма, ' + sign(), '<input id="f-sum" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="800">', 'f-sum', 'sum') +
     '<div class="fld"><label>Категория</label><select id="f-cat" onchange="catTouched=1">' +
       CATS.map(c => '<option' + (c === 'Прочее' ? ' selected' : '') + '>' + c + '</option>').join('') + '</select></div>' +
     '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + today() + '"></div>' +
@@ -3725,7 +3804,8 @@ function saveExpEdit(){
   const e = S.exp.find(x => x.id === editId);
   if (!e) return;
   const t = val('f-title'), sum = +val('f-sum');
-  if (!t || !sum){ toast('Заполните название и сумму'); return; }
+  if (!t){ toast('Заполните название'); return; }
+  if (!validMoneyAmount(sum)){ toast('Сумма должна быть больше нуля'); return; }
   e.title = tidy(t); e.sum = sum; e.cat = val('f-cat') || e.cat; e.date = val('f-date') || e.date;
   editId = null; save(); closeSheet(); toast('Изменено');
 }
@@ -3741,7 +3821,8 @@ function saveIncEdit(){
   const e = S.inc.find(x => x.id === editId);
   if (!e) return;
   const t = val('f-title'), sum = +val('f-sum');
-  if (!t || !sum){ toast('Заполните название и сумму'); return; }
+  if (!t){ toast('Заполните название'); return; }
+  if (!validMoneyAmount(sum)){ toast('Сумма должна быть больше нуля'); return; }
   e.title = tidy(t); e.sum = sum; e.date = val('f-date') || e.date;
   editId = null; save(); closeSheet(); toast('Изменено');
 }
@@ -3783,7 +3864,7 @@ function spillBeforeSave(){
 let catTouched = 0;
 function saveExp(){
   const s = +val('f-sum');
-  if (!s){ toast('Впишите сумму'); return; }
+  if (!validMoneyAmount(s)){ toast('Сумма должна быть больше нуля'); return; }
   const t = tidy(val('f-title'));
   if (!t){ toast('Укажите расход'); return; }
   // если категорию не трогали — подставляем по названию
@@ -3795,7 +3876,7 @@ function saveExp(){
 function saveInc(){
   spillBeforeSave();
   const s = +val('f-sum');
-  if (!s){ toast('Впишите сумму'); return; }
+  if (!validMoneyAmount(s)){ toast('Сумма должна быть больше нуля'); return; }
   addInc({title: tidy(val('f-title')) || 'Доход', sum: s, date: val('f-date') || today()});
   closeSheet(); toast('Доход записан');
 }
