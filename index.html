@@ -1650,6 +1650,8 @@ function parseSum(raw){
     ];
   }
   const text = DATE_WORDS_RE.reduce((t, re) => t.replace(re, ' '), String(raw))
+    // Числовая дата — не сумма: «18.09» не должна превращаться в 18 рублей.
+    .replace(/\b(?:0?[1-9]|[12]\d|3[01])[./](?:0?[1-9]|1[0-2])(?:[./](?:\d{2}|\d{4}))?\b/g,' ')
     .replace(/\sв\s+\d{1,2}([:.]\d{2})?(\s+часов|\s+утра|\s+вечера|\s+дня)?/gi,' ')
     .replace(/\sв\s+(час|два|три|четыре|пять|шесть|семь|восемь|девять|десять|одиннадцать|двенадцать)(\s+часов|\s+утра|\s+вечера|\s+дня)?/gi,' ');
   const digits = text.match(/(\d[\d\s]{0,8})\s*(?:р|₽|руб|тыс)?/i);
@@ -1731,6 +1733,17 @@ function parseDate(text){
   if (/вчера/.test(low)) return iso(new Date(Date.now() - 86400000));
   if (/послезавтра/.test(low)) return iso(new Date(Date.now() + 2*86400000));
   if (/завтра/.test(low)) return iso(new Date(Date.now() + 86400000));
+  // «18.09» и «18.09.2026»: привычная запись даты не является временем или суммой.
+  const numeric = low.match(/\b(0?[1-9]|[12]\d|3[01])[./](0?[1-9]|1[0-2])(?:[./](\d{2}|\d{4}))?\b/);
+  if (numeric){
+    const now = new Date();
+    let y = numeric[3] ? +numeric[3] : now.getFullYear();
+    if (y < 100) y += 2000;
+    let candidate = y + '-' + String(+numeric[2]).padStart(2,'0') + '-' + String(+numeric[1]).padStart(2,'0');
+    if (!validDateValue(candidate)) return null;
+    if (!numeric[3] && candidate < today()) candidate = (y + 1) + candidate.slice(4);
+    return validDateValue(candidate) ? candidate : null;
+  }
   // «24 сентября» или «двадцать четвёртого сентября»
   for (let mi = 0; mi < 12; mi++){
     if (!low.includes(MONTH_GEN[mi])) continue;
@@ -1788,7 +1801,11 @@ const SPLITTERS = ['потом','затем','после этого','ещё','�
  'записалась','записался','встреча','созвон','надо','нужно','заехать','зайти',
  'завтра','послезавтра'];
 function segments(text){
-  let t = ' ' + String(text).replace(/[,;.!?]/g, ' | ').replace(/\s+/g,' ') + ' ';
+  const source = String(text);
+  // Точка разделяет предложения, но не день и месяц внутри даты «18.09».
+  let t = ' ' + source.replace(/[,;.!?]/g, (mark, offset) =>
+    mark === '.' && /\d/.test(source[offset - 1] || '') && /\d/.test(source[offset + 1] || '') ? mark : ' | '
+  ).replace(/\s+/g,' ') + ' ';
   SPLITTERS.forEach(w => {
     t = t.replace(new RegExp('(?<=[\\s|])' + w + '(?=[\\s|])', 'gi'), m => '| ' + m);
   });
@@ -1883,6 +1900,12 @@ function makeNote(text){
 function parseSpeech(text){
   const out = {exp:[], inc:[], ev:[], notes:[], rest:[]};
   if(impossibleSpokenDate(text)){out.invalidDate=true;return out;}
+  const explicitNote = /(?:^|\s)(?:заметка|заметку|заметки|идея|идею)(?=\s|$|[.,!?;:—-])/i.test(String(text));
+  const competingIntent = /(?:^|\s)(?:расход|доход|потратил[аи]?|купил[аи]?|получил[аи]?|встреча|созвон|напомни|событие)(?=\s|$|[.,!?;:—-])/i.test(String(text));
+  if (explicitNote && !competingIntent){
+    out.notes.push(tidy(stripFiller(text)));
+    return out;
+  }
   let receipt = null;   // открытый чек: следующие «товар — сумма» станут его составом
   let lastDate = null;  // дата из предыдущей фразы: «через неделю улетаю… вылет в десять»
   let pending = null;   // «завтра в десять ноль ноль» без дела — ждём следующего куска
