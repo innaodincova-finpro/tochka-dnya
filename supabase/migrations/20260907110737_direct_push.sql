@@ -51,10 +51,11 @@ grant execute on function public.claim_push_delivery(text,uuid) to service_role;
 -- Only invokes the worker when at least one device is enabled. Token is never embedded in source.
 select cron.schedule('tochka-push-every-minute','* * * * *',$job$
  select net.http_post(
- url:='https://dcpthwmuiodrjepifzsd.supabase.co/functions/v1/push',
+ url:=rtrim(current_setting('app.settings.tochka_functions_base_url',true),'/')||'/functions/v1/push',
  headers:=jsonb_build_object('Content-Type','application/json','x-job-key',c.cron_token),
  body:='{}'::jsonb,timeout_milliseconds:=55000)
  from public.push_configuration c where c.id=1
+ and nullif(current_setting('app.settings.tochka_functions_base_url',true),'') is not null
  and exists(select 1 from public.push_subscriptions where enabled);
 $job$);
 select cron.schedule('tochka-push-cleanup','17 3 * * *',$job$

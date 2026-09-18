@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';import {makeHandler} from './receiver.mjs';import {hash} from './common.mjs';import {card} from './conversation.mjs';
 const secret='a'.repeat(64),h=await hash(secret),now=Date.now(),uid='00000000-0000-4000-8000-000000000001';let calls=[],stored=null;
 const env=n=>({SUPABASE_URL:'https://db.test',SUPABASE_SERVICE_ROLE_KEY:'fake',TOCHKA_ASSISTANT_OWNER_EMAIL:'owner@test.invalid',TOCHKA_ASSISTANT_BOT_TOKEN:'fake',TOCHKA_ASSISTANT_DEEPSEEK_API_KEY:'fake'})[n];
-const request=async(url,o={})=>{calls.push([url,o.body&&JSON.parse(o.body)]);let r;
+const request=async(url,o={})=>{calls.push([url,o.body&&JSON.parse(o.body),o]);if(url.startsWith('https://db.test/rest/v1/'))assert.equal(new Headers(o.headers).get('x-client-info'),'tochka-dnya/5.6.1');let r;
 if(url.includes('/auth/'))r={id:uid,email:'owner@test.invalid',email_confirmed_at:'2026-01-01'};
 else if(url.includes('api.telegram.org'))r={ok:true,result:{message_id:10}};
 else if(url.includes('rpc/tochka_assistant_confirm'))r={status:'saved',kind:'event'};
@@ -26,6 +26,13 @@ const vsend=b=>vh(new Request('https://local',{method:'POST',headers:{'x-telegra
 calls=[];await vsend({update_id:4,message:{...message,text:undefined,voice:{file_id:'f',duration:10}}});
 assert.equal(speechCalls,1);assert.equal(draftInput.text,'Врач 15 сентября в 18:00');
 const voiceSent=calls.find(([u])=>u.endsWith('/sendMessage'))[1];assert.ok(voiceSent.text.startsWith('Я услышал:'));assert.ok(voiceSent.reply_markup.inline_keyboard[0][0].callback_data.startsWith('save:'));
+const noteTranscript='Запиши заметку: проверка голосового помощника';
+const clarificationHandler=makeHandler(env,request,async args=>{assert.equal(args.text,noteTranscript);return {text:'Что создать: напоминание, расход или заметку?',needsClarification:true};},async()=>noteTranscript);
+calls=[];await clarificationHandler(new Request('https://local',{method:'POST',headers:{'x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:7,message:{...message,text:undefined,voice:{file_id:'f',duration:2}}})}));
+const clarificationSent=calls.find(([u])=>u.endsWith('/sendMessage'))[1];assert.equal(clarificationSent.text,'Я услышал: «'+noteTranscript+'»\n\nЧто создать: напоминание, расход или заметку?');
+assert.deepEqual(clarificationSent.reply_markup.inline_keyboard.map(row=>row.map(button=>button.text)),[['Напоминание','Расход'],['Заметка','Отмена']]);
+calls=[];await clarificationHandler(new Request('https://local',{method:'POST',headers:{'x-telegram-bot-api-secret-token':secret},body:JSON.stringify({update_id:8,callback_query:{id:'kind-cb',from:message.from,data:'kind:note',message:{...message,from:{id:999,is_bot:true},text:clarificationSent.text}}})}));
+const chosenNote=calls.find(([u])=>u.endsWith('/editMessageText'))[1];assert.match(chosenNote.text,/Я услышал: «Запиши заметку: проверка голосового помощника»/);assert.match(chosenNote.text,/проверка голосового помощника/i);assert.ok(chosenNote.reply_markup.inline_keyboard.flat().some(button=>button.callback_data?.startsWith('save:')));
 await vsend({update_id:5,message:{...message,from:{id:999,is_bot:false},text:undefined,voice:{file_id:'f',duration:10}}});assert.equal(speechCalls,1);
 calls=[];stored=null;await send({update_id:6,message:{...message,text:undefined,voice:{file_id:'f',duration:10}}});assert.equal(stored,null);assert.ok(calls.find(([u])=>u.endsWith('/sendMessage'))[1].text.includes('нужен ключ'));assert.ok(!calls.some(([u])=>u.includes('groq.com')));
-console.log('PASS voice owner gate, text pipeline/buttons, missing key preserves pending');
+console.log('PASS voice owner gate, transcript before clarification, text pipeline/buttons, missing key preserves pending');

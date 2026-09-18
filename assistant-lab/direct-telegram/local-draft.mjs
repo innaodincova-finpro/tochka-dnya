@@ -8,13 +8,21 @@ export function localDraft(text,today){
  const note=/^(?:заметка\s*:|запиши\s+(?:идею|заметку)\s*:?)\s*(.+)$/isu.exec(t);
  if(note)return validateProposal({kind:'note',title:note[1].trim()});
  const timedAction=/^((?:зайти|пойти|прийти|сходить|заехать|позвонить|встретиться)(?=\s).+?)\s+в\s+([01]?\d|2[0-3])[.:]([0-5]\d)[.!]?$/iu.exec(t);
- if(timedAction)return validateProposal({kind:'event',title:timedAction[1].trim(),time:timedAction[2].padStart(2,'0')+':'+timedAction[3]});
+ if(timedAction){
+  let title=timedAction[1].trim(),date;
+  const tomorrow=/(?:^|\s)завтра(?=\s|$)/iu.exec(title);
+  if(tomorrow){
+   const d=new Date(today+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+1);date=d.toISOString().slice(0,10);
+   title=(title.slice(0,tomorrow.index)+' '+title.slice(tomorrow.index+tomorrow[0].length)).replace(/\s+/gu,' ').trim();
+  }
+  return validateProposal({kind:'event',title,...(date?{date}:{}),time:timedAction[2].padStart(2,'0')+':'+timedAction[3]});
+ }
  if(/(?:кажд(?:ый|ую|ое|ого|ые)|ежедневно|еженедельно|ежемесячно|ежегодно|по будням|по выходным)/iu.test(t))return null;
- if(hasDateMention(t)||/(?:^|\s)(?:[01]?\d|2[0-3])[.:][0-5]\d(?:\s|$)|(?:встреч|врач|стоматолог|напомни|перенеси|измени|исправь|доход|зарплат|получил|вернул|возврат|план|задач|замет|иде[яю])/iu.test(t))return null;
+ if(hasDateMention(t)||/(?:^|\s)(?:[01]?\d|2[0-3])[.:][0-5]\d(?:\s|$)|(?:встреч|врач|стоматолог|напомни|перенеси|измени|исправь|доход|зарплат|получил|вернул|возврат|потратил|оплатил|купил|план|задач|замет|иде[яю])/iu.test(t))return null;
  // Require a letter-only description followed by one unambiguous positive amount.
  for(const separator of t.matchAll(/[,\s]+/gu)){
  const title=t.slice(0,separator.index).trim();
- if(!/^[\p{L}][\p{L} .«»()\-]*$/u.test(title))continue;
+ if(!/^[\p{L}][\p{L} .«»()\-]*$/u.test(title)||!/\p{L}{2}/u.test(title))continue;
  let amountText=t.slice(separator.index+separator[0].length).replace(/[.!]$/,''),currency;
  const tail=/^(.*?)\s+(\S+)$/u.exec(amountText);
  if(tail&&currencyWord(tail[2])){currency=currencyWord(tail[2]);amountText=tail[1];}
