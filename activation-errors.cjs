@@ -8,7 +8,13 @@ async function scenario(session,errors){
  assert.equal(verifies,0,'opening a link does not consume it');
  return {d,submit,counts:()=>({verifies,updates})};
 }
-let t=await scenario(null,[{message:'Failed to fetch',status:0},null]);assert((await t.submit()).includes('с этой же ссылкой'));assert.equal(t.counts().updates,0);assert((await t.submit()).includes('пароль не сохранён'));assert.equal(t.counts().verifies,2);await t.submit();assert.equal(t.counts().verifies,2,'retry password without consuming link again');t.d.window.close();
+let t=await scenario(null,[{message:'Failed to fetch',status:0},null]);
+let networkMessage=await t.submit();
+assert(networkMessage.includes('сервисом входа'),'network failure must identify the unavailable auth service');
+assert(networkMessage.includes('VPN'),'Russian mobile-network recovery must be actionable');
+assert.equal(t.counts().updates,0);
+assert((await t.submit()).includes('пароль не сохранён'));
+assert.equal(t.counts().verifies,2);await t.submit();assert.equal(t.counts().verifies,2,'retry password without consuming link again');t.d.window.close();
 t=await scenario(null,[{code:'otp_expired'}]);assert((await t.submit()).includes('истекла'));t.d.window.close();
 t=await scenario(null,[{status:429}]);assert((await t.submit()).includes('Слишком много'));t.d.window.close();
 t=await scenario({user:{email:'owner@example.test'}},[]);assert((await t.submit()).includes('другой аккаунт'));assert.equal(t.counts().verifies,0);t.d.window.close();

@@ -9,5 +9,8 @@ w.eval(fs.readFileSync('registry.js','utf8'));await w.eval('refresh()');w.docume
 await w.document.getElementById('remove-pending').onclick();assert.equal(deleted,false);
 allow=true;await w.document.getElementById('remove-pending').onclick();assert.equal(payload.action,'remove_access');assert.equal(payload.confirm_email,'test@example.invalid');assert.equal(w.document.querySelectorAll('.person').length,0);assert.equal(w.document.getElementById('person-dialog').open,false);
 assert(w.eval("invitationMessage({existing:true,email:'test@example.invalid',url:'https://example.test'})").includes('существующим паролем'));
+const invite=w.eval("invitationMessage({email:'new@example.invalid',url:'https://example.test/invite'})");
+assert.match(invite,/12 символов/,'new-user invitation must match the actual password policy');
+assert.match(invite,/iPhone или iPad[\s\S]*Android[\s\S]*компьютер/i,'registry invitation must cover every supported platform');
 w.close();console.log('PASS: activated-user deletion button, cancel, scoped warning, exact target, refreshed list, existing-account instructions');
 })().catch(e=>{console.error(e);process.exit(1)});

@@ -10,6 +10,11 @@ const status=document.getElementById('status'), button=document.getElementById('
 document.getElementById('account').textContent=invitationEmail?'Доступ для '+invitationEmail:'';
 const client=window.supabase?.createClient('https://dcpthwmuiodrjepifzsd.supabase.co','sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt',{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let accepted=false,busy=false;
+function isNetworkError(error){
+ const code=String(error?.code||'').toLowerCase(),message=String(error?.message||'').toLowerCase();
+ return error?.status===0||code==='network_error'||code==='request_timeout'||message.includes('failed to fetch')||message.includes('network');
+}
+const NETWORK_HELP='Не удалось связаться с сервисом входа. Переключитесь между мобильным интернетом и Wi‑Fi. Если вы находитесь в России и ошибка сохраняется, включите VPN и повторите с этой же ссылкой.';
 if(!invitationToken||!invitationEmail||!client){button.disabled=true;status.textContent='Приглашение недоступно. Откройте полную персональную ссылку от Инны.';}
 document.getElementById('activate').addEventListener('submit',async event=>{
  event.preventDefault();if(busy||button.disabled)return;
@@ -27,16 +32,17 @@ document.getElementById('activate').addEventListener('submit',async event=>{
    const result=await client.auth.verifyOtp({token_hash:invitationToken,type:'invite'});
    if(result.error){
     const code=result.error.code||'',message=String(result.error.message||'').toLowerCase();
-    if(code==='otp_expired'||message==='expired')status.textContent='Ссылка истекла, заменена новой или уже использована. Если вы уже задавали пароль — откройте приложение и войдите. Иначе попросите Инну создать новую ссылку.';
+    if(code==='otp_expired'||message.includes('expired'))status.textContent='Ссылка истекла, заменена новой или уже использована. Если вы уже задавали пароль — откройте приложение и войдите. Иначе попросите Инну создать новую ссылку.';
     else if(result.error.status===429||code==='over_request_rate_limit')status.textContent='Слишком много попыток. Подождите немного и повторите с этой же ссылкой.';
-    else status.textContent='Не удалось проверить приглашение. Проверьте интернет и повторите с этой же ссылкой. Если ошибка повторяется, сообщите Инне. Срок ссылки по этой ошибке определить нельзя.';
+    else if(isNetworkError(result.error))status.textContent=NETWORK_HELP;
+    else status.textContent='Сервис входа отклонил приглашение. Попросите Инну создать новую ссылку. Пароль вводить повторно не нужно до получения новой ссылки.';
     return;
    }
    accepted=true;history.replaceState(null,'',location.pathname);
   }
   const result=await client.auth.updateUser({password});if(result.error)throw result.error;
   status.textContent='Пароль сохранён. Открываем приложение…';location.replace('./');
- }catch(error){status.textContent=accepted?'Доступ подтверждён, но пароль не сохранён. Проверьте соединение и повторите на этой странице.':'Не удалось подключиться. Проверьте интернет и повторите.';}
+ }catch(error){status.textContent=accepted?'Доступ подтверждён, но пароль не сохранён. Проверьте соединение и повторите на этой странице.':(isNetworkError(error)?NETWORK_HELP:'Не удалось подключиться к сервису входа. Сообщите Инне и не создавайте новый пароль повторно.');}
  finally{busy=false;button.disabled=false;}
 });
 </script></body></html>
