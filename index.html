@@ -410,6 +410,10 @@ body{padding:0;background:#7052A5;display:block;overflow-x:hidden;width:100%}
 .empty{color:var(--mut);font-size:13px;padding:8px 0}
 .del{border:0;background:transparent;color:var(--stop);font-size:12px;cursor:pointer;font-family:'Golos Text',sans-serif}
 button.tip{display:block;width:100%;text-align:left;font:inherit;font-size:12px;cursor:pointer}
+.cloud-tip{display:flex;align-items:center;gap:8px}
+.cloud-tip-open{flex:1;border:0;background:transparent;padding:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.cloud-tip-close{flex:0 0 32px;width:32px;height:32px;border:0;background:transparent;border-radius:50%;font-size:22px;line-height:1;color:inherit;cursor:pointer}
+.cloud-tip-close:focus,.cloud-tip-close:hover{background:rgba(47,96,145,.10)}
 button.txt{border:0;background:transparent;padding:0;margin:0;text-align:left;font:inherit;color:inherit;cursor:pointer}
 .withmic{display:flex;gap:7px;align-items:stretch}
 .withmic input,.withmic textarea{flex:1}
@@ -698,7 +702,7 @@ let dateRecoveryNotice = [];
 
 function blank(){
   return {
-    settings:{cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, theme:'light', reminderMode:'hour', onboarded:0, hi:1},
+    settings:{cur:'RUB', hidden:{}, notesTab:'task', name:'', showDone:1, theme:'light', reminderMode:'hour', onboarded:0, hi:1, cloudTipHidden:0},
     exp:[], inc:[], ev:[], notes:[], day:{}, del:[], dateErrors:[], savedAt:null, backupAt:null, firstDataAt:null
   };
 }
@@ -2183,12 +2187,16 @@ function renderAll(){
 }
 
 /* ---------- Сегодня ---------- */
+function hideCloudTip(){
+  S.settings.cloudTipHidden=1;
+  save();
+}
 function renderToday(){
   const d = today(), rec = dayRec(d);
   let h = greetingCard();
 
   if (!storageOk) h += '<div class="warnbar">Записи не сохраняются. Обычно это переполненная память браузера или режим инкогнито. Сохраните резервную копию, пока приложение открыто.</div>';
-  if (!cloudUser) h += '<button type="button" class="tip" onclick="openSheet(\'cloudAuth\')">Защитите записи от потери: подключить облачное сохранение →</button>';
+  if (!cloudUser && !S.settings.cloudTipHidden) h += '<div class="tip cloud-tip"><button type="button" class="cloud-tip-open" onclick="openSheet(\'cloudAuth\')">Защитите записи от потери: подключить облачное сохранение →</button><button type="button" class="cloud-tip-close" onclick="hideCloudTip()" aria-label="Скрыть предложение облачного сохранения" title="Скрыть">×</button></div>';
 
   if (!S.settings.hi){
     h += card('<div style="font-size:14px;margin-bottom:10px">Здесь собраны планы на сегодня. Отмечайте выполненное галочкой, а новые дела, события и заметки добавляйте одной кнопкой.</div>' +
