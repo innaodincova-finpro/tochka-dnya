@@ -1025,9 +1025,9 @@ async function run() {
 
   assert(!w.document.querySelector('.cal-legend') && !html.includes('cal-legend'),
     'подпись про цвета убрана — она объясняла то, что видно и так');
-  assert(calText.trim().indexOf('Сентябрь') < 12 || calText.trim().indexOf('Январь') < 12 ||
-         /^[А-Я][а-я]+ \d{4}/.test(calText.trim()),
-    'календарь начинается с месяца, а не с пояснений');
+  const monthStreamText=w.document.getElementById('cal-stream').textContent.trim();
+  assert(/^[А-Я][а-я]+ \d{4}/.test(monthStreamText),
+    'после согласованного выбора календаря поток начинается с месяца, а не с пояснений');
   assert(calText.includes('Покупки') && !calText.includes('Покупки: Хлеб'),
     'в клетке у списка только название, без перечня пунктов');
 

@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.9.9-audit-registry';
+const CACHE = 'tochka-dnya-v5.9.9-schedule-import';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
@@ -6,6 +6,10 @@ const APP_SHELL = [
   './index.html',
   './manifest.webmanifest',
   './supabase.js',
+  './schedule-import-ui.mjs',
+  './schedule-import.mjs',
+  './schedule-source-base.mjs',
+  './schedule-preview.mjs',
   './icon-180-v3.png',
   './icon-192-v3.png',
   './icon-512-v3.png'

@@ -945,6 +945,7 @@ function hasUserData(data){
 function killed(id){
   if(!id)return;
   S.del=S.del||[];
+  const event=S.ev.find(e=>e.id===id);if(event?.scheduleImport){S.settings.scheduleDeleted=S.settings.scheduleDeleted||{};S.settings.scheduleDeleted[id]=true;}
   if(!S.del.some(x=>x.id===id))S.del.push({id:id,at:new Date().toISOString()});
 }
 function stamp(x){ return x&&x.savedAt?new Date(x.savedAt).getTime():0; }
@@ -1098,6 +1099,7 @@ async function pushCloud(){
 }
 async function connectCloudUser(user){
   if(loadBlocked){setCloudState('error','Проверьте локальные данные перед подключением облака');return;}
+  if(scheduleController?.active())closeSheet();
   const epoch=++cloudEpoch;
   cloudReady=false;cloudSavedAt=null;cloudUser=user;cloudBase=null;cloudConflict=null;resetDocuments();clearTimeout(cloudTimer);setCloudState('syncing');
   try{
@@ -1131,7 +1133,7 @@ async function initCloud(){
   cloudClient.auth.onAuthStateChange((event,session)=>{
     if(event==='PASSWORD_RECOVERY')setTimeout(()=>openSheet('cloudPassword'),0);
     if(session&&(!cloudUser||cloudUser.id!==session.user.id))setTimeout(()=>connectCloudUser(session.user),0);
-    if(!session){adminData=null;adminInvitation=null;cloudEpoch++;cloudReady=false;clearTimeout(cloudTimer);cloudUser=null;cloudSavedAt=null;cloudBase=null;cloudConflict=null;resetDocuments();setCloudState('local');renderAll();}
+    if(!session){if(scheduleController?.active())closeSheet();adminData=null;adminInvitation=null;cloudEpoch++;cloudReady=false;clearTimeout(cloudTimer);cloudUser=null;cloudSavedAt=null;cloudBase=null;cloudConflict=null;resetDocuments();setCloudState('local');renderAll();}
   });
   const result=await cloudClient.auth.getSession();
   if(result.data&&result.data.session&&!cloudUser)await connectCloudUser(result.data.session.user);
@@ -2307,6 +2309,24 @@ function hideHi(){ S.settings.hi = 1; save(); }
 
 /* ---------- План: непрерывный календарь ---------- */
 let selDay = today(), calendarMonthCount = 12, calendarPastMonthCount = 0;
+let planCalendarType='all', scheduleController=null;
+function eventCalendarType(e){return e.calendarType==='study'?'study':'personal';}
+function setPlanCalendar(type){if(!['personal','study','all'].includes(type))return;planCalendarType=type;renderCal(true);}
+function calendarPicker(selected){return '<div class="fld"><label for="f-calendar">Календарь</label><select id="f-calendar">'+[['personal','Личный'],['study','Учебный']].map(x=>'<option value="'+x[0]+'"'+(selected===x[0]?' selected':'')+'>'+x[1]+'</option>').join('')+'</select></div>';}
+async function openScheduleImport(){
+ const owner=cloudEpoch+'|'+(cloudUser?.id||'local');
+ try{
+  if(!scheduleController){const module=await import('./schedule-import-ui.mjs');scheduleController=module.createScheduleUI({document,state:()=>S,owner:()=>cloudEpoch+'|'+(cloudUser?.id||'local'),begin:()=>{sheetState={kind:'scheduleImport'};document.getElementById('sheet').classList.add('open');},close:closeSheet,toast,calendar:type=>{setPlanCalendar(type||'all');goScreen('s-cal');},commit:commitScheduleImport});}
+  if(owner!==cloudEpoch+'|'+(cloudUser?.id||'local'))return;
+  scheduleController.open(planCalendarType);
+ }catch(e){toast('Не удалось открыть загрузку: '+(e.message||'проверьте соединение'));}
+}
+function commitScheduleImport(next){
+ if(loadBlocked)throw new Error('Сохранение остановлено: сначала восстановите корректную копию.');
+ validateData(next);next.savedAt=new Date().toISOString();if(!next.firstDataAt)next.firstDataAt=next.savedAt;
+ try{storeLocal(KEY,JSON.stringify(next));}catch(e){storageOk=false;throw new Error('Не удалось сохранить на устройстве. Освободите место и повторите. Календарь не изменён.');}
+ S=next;dropIndex();renderAll();scheduleCloudSync();
+}
 function nowHHMM(){ const d=new Date(); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
 function planDone(date,id){ return !!(S.day[date]&&S.day[date].done&&(S.day[date].done||[]).includes(id)); }
 function togglePlanDone(date,id){ const r=dayRec(date);r.done=r.done||[];r.doneAt=r.doneAt||{};const i=r.done.indexOf(id);if(i>=0){r.done.splice(i,1);delete r.doneAt[id];}else{r.done.push(id);r.doneAt[id]=today();}save(); }
@@ -2314,8 +2334,8 @@ function addMonths(key, amount){ const p=key.split('-').map(Number);return iso(n
 function calendarEntries(date){
   /* в клетке календаря у списка достаточно названия: перечень пунктов
      превращал ячейку в кашу */
-  return evOf(date).map(e=>({title:e.title,e:e,type:'event'}))
-    .concat(notesOn(date).map(n=>({title:n.items ? (n.title || 'Список') : noteTitle(n), note:n,
+  return evOf(date).filter(e=>planCalendarType==='all'||eventCalendarType(e)===planCalendarType).map(e=>({title:e.title,e:e,type:'event'}))
+    .concat((planCalendarType==='study'?[]:notesOn(date)).map(n=>({title:n.items ? (n.title || 'Список') : noteTitle(n), note:n,
       type:n.items?'list':((n.kind||'task')==='task'?'task':'note')})));
 }
 /* Календарь показывал только «здесь что-то есть». Теперь показывает,
@@ -2364,7 +2384,10 @@ function renderCal(force){
   if (!force && host.hidden){ calDirty = true; return; }
   calDirty = false;
   const scroll=host.scrollTop,start=monthOf(today());
-  let h='<div class="calendar-stream" id="cal-stream">' + monthsHtml(-calendarPastMonthCount, calendarPastMonthCount+calendarMonthCount) + '</div>';
+  const picker='<div class="switch" role="tablist" aria-label="Календарь">'+[['personal','Личный'],['study','Учебный'],['all','Все']].map(x=>'<button type="button" role="tab" aria-selected="'+(planCalendarType===x[0])+'" onclick="setPlanCalendar(\''+x[0]+'\')">'+x[1]+'</button>').join('')+'</div><button class="btn ghost" style="margin-bottom:12px" onclick="openScheduleImport()">Загрузить расписание</button>';
+  const sessions=S.settings.scheduleSessions||{};
+  const period=Object.entries(sessions).filter(([type])=>planCalendarType==='all'||planCalendarType===type).map(([type,v])=>'<p class="mut">'+(type==='study'?'Учебный':'Личный')+': сессия '+esc(v.from)+' — '+esc(v.to)+'</p>').join('');
+  let h=picker+period+'<div class="calendar-stream" id="cal-stream">' + monthsHtml(-calendarPastMonthCount, calendarPastMonthCount+calendarMonthCount) + '</div>';
   host.innerHTML=h;host.scrollTop=scroll;
 }
 function monthsHtml(from, count){
@@ -2405,7 +2428,7 @@ function daySheet(date){
   let h='<div class="day-sheet-date">'+humanDate(date)+(thisYear?'':' '+date.slice(0,4))+'</div>';
   if(!entries.length)h+='<div class="day-sheet-empty">На эту дату записей пока нет.</div>';
   entries.forEach(x=>{
-    if(x.e){const e=x.e,done=planDone(date,e.id),task=(e.kind||'plain')==='plain';h+='<div class="plan-event'+(done?' done':'')+'"><span class="plan-time">'+esc(e.time||'без времени')+'</span><span class="plan-name" onclick="editEv(\''+e.id+'\')">'+esc(e.title)+(repeatLabel(e)?'<small class="plan-meta">'+esc(repeatLabel(e))+'</small>':'')+(e.address?'<small class="plan-meta">'+esc(e.address)+'</small>':'')+'</span><span class="plan-actions">'+(task?'<button class="tick'+(done?' on':'')+'" onclick="togglePlanDoneInDay(\''+date+'\',\''+e.id+'\')">'+(done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editEv(\''+e.id+'\')">изменить</button></span></div>'+(e.address?'<a class="mini" style="display:inline-block;margin:5px 0 8px 60px;text-decoration:none" target="_blank" rel="noopener" href="'+mapsUrl(e.address)+'">Открыть в картах →</a>':'');}
+    if(x.e){const e=x.e,done=planDone(date,e.id),task=(e.kind||'plain')==='plain';h+='<div class="plan-event'+(done?' done':'')+'"><span class="plan-time">'+esc(e.time||'без времени')+(e.endTime?'–'+esc(e.endTime):'')+'</span><span class="plan-name" onclick="editEv(\''+e.id+'\')">'+esc(e.title)+(e.planOnly?'<small class="plan-meta">Плановая дата, официальный срок не указан</small>':'')+(e.recordType?'<small class="plan-meta">'+esc(e.recordType)+'</small>':'')+(e.note?'<small class="plan-meta">'+esc(e.note)+'</small>':'')+(repeatLabel(e)?'<small class="plan-meta">'+esc(repeatLabel(e))+'</small>':'')+(e.address?'<small class="plan-meta">'+esc(e.address)+'</small>':'')+'</span><span class="plan-actions">'+(task?'<button class="tick'+(done?' on':'')+'" onclick="togglePlanDoneInDay(\''+date+'\',\''+e.id+'\')">'+(done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editEv(\''+e.id+'\')">изменить</button></span></div>'+(e.address?'<a class="mini" style="display:inline-block;margin:5px 0 8px 60px;text-decoration:none" target="_blank" rel="noopener" href="'+mapsUrl(e.address)+'">Открыть в картах →</a>':'');}
     else{const n=x.note,task=!n.items&&(n.kind||'task')==='task';h+='<div class="plan-event'+(n.done?' done':'')+'"><span class="plan-time">'+(n.items?'список':task?'дело':'заметка')+'</span><span class="plan-name" onclick="editNote(\''+n.id+'\')">'+esc(noteTitle(n))+'</span><span class="plan-actions">'+(task?'<button class="tick'+(n.done?' on':'')+'" onclick="toggleNoteDoneInDay(\''+date+'\',\''+n.id+'\')">'+(n.done?'✓':'')+'</button>':'')+'<button class="mini" onclick="editNote(\''+n.id+'\')">изменить</button></span></div>';}
   });
   return h+'<button class="btn" style="margin-top:14px" onclick="openSheet(\'ev\',\''+date+'\')">Добавить на '+humanDate(date)+'</button><button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Закрыть</button>';
@@ -3307,6 +3330,7 @@ function setColorTheme(v){
 let sheetState = {};
 
 function openSheet(kind, arg){
+  if(scheduleController?.active())scheduleController.cancel();
   sheetState = {kind, arg};
   if (kind === 'exp' || kind === 'expEdit') catTouched = 0;
   const box = document.getElementById('sheet-in');
@@ -3316,7 +3340,7 @@ function openSheet(kind, arg){
   const first = box.querySelector('input,textarea,select');
   if (first && kind !== 'voice') setTimeout(() => first.focus(), 120);
 }
-function closeSheet(){ if (typeof micStopAll === 'function') micStopAll(); document.getElementById('sheet').classList.remove('open'); }
+function closeSheet(){ if(scheduleController?.active())scheduleController.cancel(); if (typeof micStopAll === 'function') micStopAll(); document.getElementById('sheet').classList.remove('open'); }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && sheetState.kind !== 'welcome') closeSheet(); });
 
 /* Swipe only the sheet grip/header, never its scrolling content. */
@@ -3643,7 +3667,7 @@ const SHEETS = {
     '<button class="btn ghost" style="margin-top:8px" onclick="closeSheet()">Отмена</button>',
 
   ev: (d) => '<h3>Событие</h3>' +
-    fldMic('Событие', eventInput('', true), 'f-title', 'text', hintsBox('f-title','event','')) +
+    fldMic('Событие', eventInput('', true), 'f-title', 'text', hintsBox('f-title','event','')) + calendarPicker(planCalendarType==='study'?'study':'personal') +
     '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (d || today()) + '"></div>' +
     fldMic('Время', timeSelect(''), 'f-time', 'time') +
     '<div class="fld"><label>Адрес — необязательно</label>'+addressInput('')+'</div>' +
@@ -3664,9 +3688,9 @@ const SHEETS = {
     const e = S.ev.find(x => x.id === editId);
     if (!e) return '<h3>Событие не найдено</h3><button class="btn" onclick="closeSheet()">Закрыть</button>';
     return '<h3>Изменить событие</h3>' +
-      fldMic('Событие', eventInput(e.title || '', false), 'f-title', 'text', hintsBox('f-title','event',e.title || '')) +
+      fldMic('Событие', eventInput(e.title || '', false), 'f-title', 'text', hintsBox('f-title','event',e.title || '')) + calendarPicker(eventCalendarType(e)) +
       '<div class="fld"><label>Дата</label><input id="f-date" type="date" value="' + (e.date || today()) + '"></div>' +
-      fldMic('Время', timeSelect(e.time || ''), 'f-time', 'time') +
+      fldMic('Время', timeSelect(e.time || ''), 'f-time', 'time') + (e.scheduleImport?'<div class="fld"><label for="f-end-time">Окончание — необязательно</label><input id="f-end-time" type="time" value="'+esc(e.endTime||'')+'"></div>':'') +
       '<div class="fld"><label>Адрес — необязательно</label>'+addressInput(e.address || '')+'</div>' +
       '<div class="fld"><label>Повторять</label><div class="pick" id="p-rep">' +
         REPEATS.map(r => '<button data-v="' + r[0] + '" aria-pressed="' + (r[0] === (e.repeat || 'none')) + '" onclick="pickOne(this)">' + r[1] + '</button>').join('') +
@@ -3813,6 +3837,9 @@ function saveEvEdit(){
   const timeEl = document.getElementById('f-time');
   if (timeEl) fixTime(timeEl);
   if (!validTime(val('f-time'))){ toast('Проверьте время: например 10:15'); return; }
+  if(document.getElementById('f-end-time')&&(!validTime(val('f-end-time'))||(val('f-end-time')&&(!val('f-time')||val('f-end-time')<=val('f-time'))))){toast('Окончание должно быть позже начала.');return;}
+  e.calendarType=val('f-calendar')==='study'?'study':'personal';
+  if(document.getElementById('f-end-time'))e.endTime=val('f-end-time');
   e.title = title;
   e.kind = e.kind || 'plain';   /* тип больше не спрашиваем, у старых записей сохраняем */
   e.date = val('f-date') || e.date || today();
@@ -3967,7 +3994,7 @@ function saveEv(){
          date: val('f-date') && val('f-date') !== today() ? val('f-date') : (saidDate || today()),
          time: val('f-time') || saidTime || null,
          address: tidy(val('f-address')) || null,
-         plan: +val('f-sum') || null, kind: kind,
+         plan: +val('f-sum') || null, kind: kind, calendarType:val('f-calendar')==='study'?'study':'personal',
          repeat: picked('p-rep', 'none')};
   addEv(rec);
   closeSheet();
