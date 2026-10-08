@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'index.html'
+      - 'schedule-*.mjs'
+      - 'schedule-browser.cjs'
       - 'finance-category-browser.cjs'
       - 'more-browser.cjs'
       - 'offline-browser.cjs'
@@ -27,9 +29,11 @@ jobs:
       - run: node more-browser.cjs
       - run: node finance-category-browser.cjs
       - run: node offline-browser.cjs
+      - run: node schedule-browser.cjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: registry-previews
           path: |
             preview-*.png
             more-dark.png
+            schedule-*-mobile.png
