@@ -17,7 +17,7 @@ console.log('PASS: connection instructions distinguish invitation, installation,
 for(const installed of [false,true]){
  const dom=new JSDOM(html,{runScripts:'dangerously',url:'https://test.invalid/index.html',beforeParse(w){w.scrollTo=()=>{};w.matchMedia=()=>({matches:installed,addListener(){}});Object.defineProperty(w.navigator,'standalone',{value:installed});}});
  try{for(const call of ['userGuideForCurrentDevice()','guideWithInstallSection(INVITATION_INSTALL_GUIDE)']){
-  const result=dom.window.eval(call);assert.match(result,/В установленном приложении проверьте/,'адаптированная инструкция сохраняет проверку входа');assert.match(result,/Сохраните первую запись и дождитесь отметки/,'адаптированная инструкция сохраняет проверку облака');
+  const result=dom.window.eval(call);assert.match(result,/Если пользуетесь браузером без установки, продолжайте в браузере/,'установка не обязательна для работы в браузере');assert.match(result,/в установленном приложении или в браузере/,'адаптированная инструкция сохраняет проверку входа');assert.match(result,/Сохраните первую запись и дождитесь отметки/,'адаптированная инструкция сохраняет проверку облака');
  }}finally{dom.window.close();}
 }
 console.log('PASS: adapted guides retain login and cloud verification for installed and browser modes');

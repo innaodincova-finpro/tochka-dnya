@@ -1,6 +1,6 @@
 {
   "name": "tochka-dnya",
-  "version": "5.9.12",
+  "version": "5.9.13",
   "private": true,
   "scripts": {
     "pretest": "node deployment-security-regression.cjs",
