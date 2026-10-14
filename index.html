@@ -144,7 +144,7 @@ body{
 .cal button.d{cursor:pointer;color:var(--ink);padding:0}
 .cal button.d:hover{border-color:var(--accent)}
 .cal .d.out{color:#C4D1DC;background:transparent;border-color:transparent}
-.cal .d.today{background:var(--navy);color:#fff;border-color:var(--navy)}
+
 .cal .d .mk{position:absolute;bottom:5px;display:flex;gap:2px}
 .cal .d .mk i{width:4px;height:4px;border-radius:50%}
 .plan-toggle{width:100%;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);background:#fff;color:var(--ink);padding:12px 14px;border-radius:14px;font:inherit;cursor:pointer;margin-bottom:10px}
@@ -164,25 +164,7 @@ body{
   overflow:hidden;word-break:keep-all;overflow-wrap:normal;hyphens:none;letter-spacing:-.01em}
 .continuous-cal .day-preview.p-s{font-size:10px;letter-spacing:-.02em}
 .continuous-cal .day-preview.p-xs{font-size:10px;letter-spacing:-.03em}
-.continuous-cal .day-preview:before{content:'●';display:inline-block;margin-right:3px;font-size:.82em;line-height:1;color:#7652A8}
-.continuous-cal .day-preview.type-event:before{color:#7652A8}
-.continuous-cal .day-preview.type-task:before{color:#D16991}
-.continuous-cal .day-preview.type-note:before{color:#4287A9}
-.continuous-cal .day-preview.type-list:before{color:#4E8C78}
-.continuous-cal .day-preview.day-more:before{content:none}
-.continuous-cal .d.has-plan{background:linear-gradient(145deg,#F4E8FA,#FCEAF1);border-color:#B98BD4;box-shadow:inset 0 0 0 1px rgba(128,81,179,.12)}
-.continuous-cal .d.has-plan .day-preview{color:#704395}
-/* впереди — спокойный сиреневый; прошло и не отмечено — тёплый тревожный;
-   закрыто — приглушённая зелень. Цвет означает состояние, не вид записи. */
-.continuous-cal .d.day-missed{background:linear-gradient(145deg,#FCEFE2,#FBE4E4);border-color:#D9A06A;
-  box-shadow:inset 0 0 0 1px rgba(179,77,103,.14)}
-.continuous-cal .d.day-missed .day-preview{color:#A85F3C}
-.continuous-cal .d.day-missed .day-num{color:#A85F3C}
-.continuous-cal .d.day-done{background:linear-gradient(145deg,#EAF3EE,#F3F7F4);border-color:#9BC3AE;box-shadow:none}
-.continuous-cal .d.day-done .day-preview{color:#4E8C78;text-decoration:line-through;opacity:.75}
-.continuous-cal .d.day-done .day-num{color:#4E8C78}
-.continuous-cal .d.today{background:linear-gradient(145deg,#8051B3,#C7688A);border-color:transparent;color:#fff}
-.continuous-cal .d.today .day-preview{color:rgba(255,255,255,.9)}
+
 .day-sheet-date{font-family:'Spectral',Georgia,serif;font-size:20px;font-weight:600;margin-bottom:4px}
 .day-sheet-empty{padding:18px 0;color:var(--mut);font-size:13px;text-align:center}
 .plan-group{position:relative;padding-left:22px;margin:14px 0 18px}
@@ -505,7 +487,7 @@ body{
 .switch button[aria-selected="true"]{color:#68478F;box-shadow:0 4px 12px rgba(90,60,116,.11)}
 .cal .d{border-color:#E7DCEB;border-radius:12px;transition:transform .16s ease,border-color .16s ease}
 .cal .d:not(.out):hover{transform:translateY(-2px);border-color:#B894DC}
-.cal .d.today{background:linear-gradient(145deg,#7252A4,#C578A1);border-color:transparent;box-shadow:0 7px 15px rgba(111,75,147,.25)}
+
 .bar>i{background:linear-gradient(90deg,#7652A8,#E18DAA)}
 .textarea,.fld input,.fld select,.fld textarea,input,textarea,select{background:rgba(255,255,255,.88);border-color:#E4D7E8}
 .fld input:focus,.fld select:focus,.fld textarea:focus{outline:3px solid rgba(184,148,220,.32);border-color:#9C75C1}
@@ -558,17 +540,7 @@ body{
 [data-theme="dark"] .note-menu-pop{background:#251E31;border-color:#493B56}
 [data-theme="dark"] .note-menu-pop button{color:#F4EDF8}
 [data-theme="dark"] .note-menu-pop button:active{background:#332742}
-[data-theme="dark"] .continuous-cal .d.has-plan{background:linear-gradient(145deg,#332545,#3D2739);border-color:#7A5AA0}
-[data-theme="dark"] .continuous-cal .d.has-plan .day-preview,[data-theme="dark"] .continuous-cal .d.has-plan .day-num{color:#D5AEFF}
-[data-theme="dark"] .continuous-cal .day-preview:before{color:#C39AEF}
-[data-theme="dark"] .continuous-cal .day-preview.type-event:before{color:#C39AEF}
-[data-theme="dark"] .continuous-cal .day-preview.type-task:before{color:#F08DA6}
-[data-theme="dark"] .continuous-cal .day-preview.type-note:before{color:#79BBDD}
-[data-theme="dark"] .continuous-cal .day-preview.type-list:before{color:#80C2AA}
-[data-theme="dark"] .continuous-cal .d.day-missed{background:linear-gradient(145deg,#3E2C28,#41282E);border-color:#9A6B4A}
-[data-theme="dark"] .continuous-cal .d.day-missed .day-preview,[data-theme="dark"] .continuous-cal .d.day-missed .day-num{color:#E8A87C}
-[data-theme="dark"] .continuous-cal .d.day-done{background:#26332C;border-color:#4C6B58}
-[data-theme="dark"] .continuous-cal .d.day-done .day-preview,[data-theme="dark"] .continuous-cal .d.day-done .day-num{color:#8FC7AC}
+
 [data-theme="dark"] .tl-dot{background:#2B2237;border-color:#594361}
 [data-theme="dark"] .card.tap:active,[data-theme="dark"] .item.tapline:active{background:#2E2439}
 [data-theme="dark"] .sheet-in:before{background:#544263}
@@ -593,7 +565,7 @@ body{
 [data-theme="light"] .chip{background:#EDF3F8;color:#2F6091}
 [data-theme="light"] .switch{background:#E6EDF3;border-color:transparent}
 [data-theme="light"] .cal .d{border-color:#DCE6EE;border-radius:10px}
-[data-theme="light"] .cal .d.today{background:#28425C;box-shadow:none}
+
 [data-theme="light"] .bar>i{background:#2F6091}
 [data-theme="light"] .textarea,[data-theme="light"] .fld input,[data-theme="light"] .fld select,[data-theme="light"] .fld textarea,[data-theme="light"] input,[data-theme="light"] textarea,[data-theme="light"] select{background:#fff;border-color:#DCE6EE}
 [data-theme="light"] .fab{background:#B08347;box-shadow:0 8px 20px -6px rgba(176,131,71,.6)}
@@ -629,6 +601,86 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
 .note-list-preview{display:block;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:400}
 .compact-note .note-open:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
 .compact-note .note-open:active{background:rgba(118,82,168,.07)}
+
+/* Дополнительные спокойные палитры: общая геометрия и состояния сохранены. */
+[data-theme="graphite"]{
+  --ground:#171D24;--card:#222B35;--ink:#F1F5F9;--mut:#B4C0CD;
+  --line:#465462;--navy:#D1DFEB;--head:#26313D;--accent:#A7CAE8;
+  --ok:#9ACDB5;--ochre:#E9BD82;--stop:#F0A49B;
+  --surface:#2B3642;--input:#1B232D;--action:#365F80;--action-end:#416F90;
+  --hero-end:#3B5163;--success-action:#35634D;--planned:#283D50;
+  --missed:#47382C;--done:#263C33;color-scheme:dark
+}
+[data-theme="blue"]{
+  --ground:#F0F5FA;--card:#FFFFFF;--ink:#223449;--mut:#546A80;
+  --line:#C8D6E3;--navy:#244D70;--head:#244D70;--accent:#285E88;
+  --ok:#376F55;--ochre:#8B5D24;--stop:#A24336;
+  --surface:#E5EEF6;--input:#FFFFFF;--action:#244D70;--action-end:#346B94;
+  --hero-end:#346B94;--success-action:#376F55;--planned:#E0ECF7;
+  --missed:#FAEBDD;--done:#E3F0E8;color-scheme:light
+}
+[data-theme="forest"]{
+  --ground:#F1F6F3;--card:#FFFFFF;--ink:#253B32;--mut:#556D61;
+  --line:#C9D9D0;--navy:#285749;--head:#285749;--accent:#2D6552;
+  --ok:#376F55;--ochre:#8B5D24;--stop:#A24336;
+  --surface:#E5EFE9;--input:#FFFFFF;--action:#285749;--action-end:#3D7360;
+  --hero-end:#3D7360;--success-action:#376F55;--planned:#DFEEE7;
+  --missed:#FAEBDD;--done:#E3F0E8;color-scheme:light
+}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) body{background:var(--ground)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .phone{background:var(--ground);border-color:var(--line)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .appbar,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .greeting,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .greeting.morning,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .greeting.day,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .greeting.evening,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .greeting.night{background:linear-gradient(120deg,var(--head),var(--hero-end));box-shadow:0 10px 28px #0002}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .greeting .moment i{background:#D5E5DD;box-shadow:0 0 0 4px #FFFFFF20}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .card,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .daycard,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .note-card,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .note-reader,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .fold,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .sheet-in,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .hints,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .note-menu-pop{background:var(--card);border-color:var(--line);box-shadow:0 8px 24px #0001}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .card.now{border-color:var(--accent)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .card.navy{background:linear-gradient(120deg,var(--head),var(--hero-end));border-color:var(--head)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .lab{color:var(--mut)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .ic,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .tip,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .parse,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .doc-preview,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .switch,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .chip,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .theme,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .mini,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .mic,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .note-menu summary,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .note-menu[open] summary{background:var(--surface);color:var(--accent);border-color:var(--line);box-shadow:none}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .btn{background:linear-gradient(110deg,var(--action),var(--action-end));color:#fff;box-shadow:0 6px 16px #0002}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .btn.ok{background:var(--success-action);color:#fff}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .btn.ghost{background:var(--surface);color:var(--accent);border-color:var(--line);box-shadow:none}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .fab{background:linear-gradient(110deg,var(--action),var(--action-end));color:#fff;box-shadow:0 8px 24px #0003}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .tabs{background:var(--card);border-top-color:var(--line);box-shadow:0 -8px 24px #0001}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .tabs button{color:var(--mut)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .tabs button[aria-selected="true"],:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .switch button[aria-selected="true"]{color:var(--accent)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .switch button[aria-selected="true"]{background:var(--card)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .textarea,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .fld input,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .fld select,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .fld textarea,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) input,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) textarea,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) select,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .note-search{background:var(--input);color:var(--ink);border-color:var(--line)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) input::placeholder,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) textarea::placeholder{color:var(--mut)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .fld input:focus,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .fld select:focus,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .fld textarea:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) button:focus-visible,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .card.tap:focus-visible,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .item.tapline:focus-visible{outline:2px solid var(--accent)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .plan-toggle,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .askring,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .pick button,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .tick{background:var(--card);color:var(--ink);border-color:var(--line)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .theme.on,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .pick button[aria-pressed="true"]{background:var(--action);border-color:var(--action);color:#fff}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .tick.on{background:var(--success-action);color:#fff}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .cal .d{background:var(--card);border-color:var(--line);color:var(--ink)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .cal .d.out{background:transparent;border-color:transparent;color:var(--mut)}
+
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .chip.ok{background:var(--done);color:var(--ok)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .chip.warn,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .warnbar{background:var(--missed);color:var(--ochre)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .bar>i,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .now-mark{background:var(--action)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .spine,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .sheet-in:before{background:var(--line)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .tl-dot{background:var(--card);border-color:var(--line)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .tl.next .tl-dot{background:var(--accent);border-color:var(--accent);box-shadow:none}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .toast{background:var(--head);color:#fff}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .sheet{background:#10182080}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) a{color:var(--accent)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .item,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .plan-event,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .hint-row,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .admin-row{border-bottom-color:var(--line)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .hint-row,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .note-menu-pop button{color:var(--ink)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .card.tap:active,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .item.tapline:active,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .hint-row:active,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .note-menu-pop button:active,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .compact-note .note-open:active{background:var(--surface)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .note-reader-body .nt-h2{border-left-color:var(--accent)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .admin-mail em,:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .admin-nums span{background:var(--surface)}
+:is([data-theme="graphite"],[data-theme="blue"],[data-theme="forest"]) .crashbar{background:var(--card);border-color:var(--stop);color:var(--ink)}
+
+/* Один цвет для всех дат; только сегодняшняя дата выделена. */
+[data-theme="light"]{--calendar-today:#28425C}
+[data-theme="dark"]{--calendar-today:#6B4A96}
+[data-theme="berry"]{--calendar-today:#7652A8}
+[data-theme] .cal .d:not(.out){background:var(--card);border-color:var(--line);color:var(--ink);box-shadow:none}
+[data-theme] .continuous-cal .day-num{color:var(--ink)}
+[data-theme] .continuous-cal .day-preview{color:var(--mut);text-decoration:none;opacity:1}
+[data-theme] .continuous-cal .day-preview:before{content:'●';display:inline-block;margin-right:3px;font-size:.82em;line-height:1;color:var(--mut)}
+[data-theme] .continuous-cal .day-preview.day-more:before{content:none}
+[data-theme] .cal .d.today{background:var(--calendar-today,var(--action));border-color:var(--calendar-today,var(--action));color:#fff;box-shadow:0 0 0 2px var(--accent)}
+[data-theme] .continuous-cal .d.today .day-num,[data-theme] .continuous-cal .d.today .day-preview,[data-theme] .continuous-cal .d.today .day-preview:before{color:#fff}
 </style>
 </head>
 <body>
@@ -684,7 +736,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.9.9';
+const APP_VERSION = '5.9.10';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -2338,8 +2390,7 @@ function calendarEntries(date){
     .concat((planCalendarType==='study'?[]:notesOn(date)).map(n=>({title:n.items ? (n.title || 'Список') : noteTitle(n), note:n,
       type:n.items?'list':((n.kind||'task')==='task'?'task':'note')})));
 }
-/* Календарь показывал только «здесь что-то есть». Теперь показывает,
-   что с этим стало: закрыто, впереди или прошло и осталось не отмеченным. */
+/* Состояние дня остаётся в подписи для озвучки; цветом выделяется только сегодня. */
 function dayState(date, known){
   /* записи для клетки уже собраны выше — собирать их второй раз незачем */
   const items = known || calendarEntries(date);
@@ -2370,7 +2421,7 @@ function monthCalendar(key, extra){
     const ds=key+'-'+String(i).padStart(2,'0'),entries=calendarEntries(ds),count=entries.length;
     const preview=entries.slice(0,2).map(x=>'<span class="day-preview type-'+x.type+' '+previewSize(x.title)+'">'+esc(x.title)+'</span>').join('')+(count>2?'<span class="day-preview day-more">ещё '+(count-2)+'</span>':'');
     const st=dayState(ds,entries);
-    cells+='<button type="button" class="d'+(ds===today()?' today':'')+(count?' has-plan':'')+(st?' '+st:'')+'" onclick="openDay(\''+ds+'\')" aria-label="'+(count?humanDate(ds)+', записей: '+count+dayStateWord(st,count):humanDate(ds))+'"><span class="day-num">'+i+'</span>'+preview+'</button>';
+    cells+='<button type="button" class="d'+(ds===today()?' today':'')+(count?' has-plan':'')+(st?' '+st:'')+'" onclick="openDay(\''+ds+'\')"'+(ds===today()?' aria-current="date"':'')+' aria-label="'+(count?humanDate(ds)+', записей: '+count+dayStateWord(st,count):humanDate(ds))+'"><span class="day-num">'+i+'</span>'+preview+'</button>';
   }
   return '<div class="month-card"><div class="month-title">'+MONTHS_N[mm-1]+' '+y+'</div>'+(extra||'')+'<div class="cal continuous-cal">'+heads+cells+'</div></div>';
 }
@@ -3286,7 +3337,10 @@ function renderMore(){
       '<div class="fld"><label>Оформление</label><select onchange="setColorTheme(this.value)">' +
         '<option value="light"' + ((S.settings.theme || 'light') === 'light' ? ' selected' : '') + '>Светлая тема</option>' +
         '<option value="dark"' + (S.settings.theme === 'dark' ? ' selected' : '') + '>Тёмная тема</option>' +
-        '<option value="berry"' + (S.settings.theme === 'berry' ? ' selected' : '') + '>Сиренево-ягодная</option></select></div>' +
+        '<option value="berry"' + (S.settings.theme === 'berry' ? ' selected' : '') + '>Сиренево-ягодная</option>' +
+        '<option value="graphite"' + (S.settings.theme === 'graphite' ? ' selected' : '') + '>Графит</option>' +
+        '<option value="blue"' + (S.settings.theme === 'blue' ? ' selected' : '') + '>Синий</option>' +
+        '<option value="forest"' + (S.settings.theme === 'forest' ? ' selected' : '') + '>Хвойный</option></select></div>' +
       '<div class="fld"><label>Выполненные дела на экране «Сегодня»</label><select onchange="setBool(\'showDone\',this.value)">' +
         '<option value="1"' + (S.settings.showDone ? ' selected' : '') + '>Показывать</option>' +
         '<option value="0"' + (!S.settings.showDone ? ' selected' : '') + '>Скрывать</option></select></div>' +
@@ -3314,15 +3368,16 @@ function setText(k,v){ S.settings[k] = String(v || '').trim(); save(); toast('С
 function setBool(k,v){ S.settings[k] = v === '1' ? 1 : 0; save(); toast('Сохранено'); }
 function applyColorTheme(){
   const selected = S && S.settings && S.settings.theme;
-  const theme = selected === 'dark' || selected === 'berry' ? selected : 'light';
+  const theme = selected === 'dark' || selected === 'berry' || selected === 'graphite' || selected === 'blue' || selected === 'forest' ? selected : 'light';
   document.documentElement.dataset.theme = theme;
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = theme === 'dark' ? '#181421' : theme === 'berry' ? '#7052A5' : '#4E7A9E';
+  if (meta) meta.content = theme === 'dark' ? '#181421' : theme === 'berry' ? '#7052A5' : theme === 'graphite' ? '#26313D' : theme === 'blue' ? '#244D70' : theme === 'forest' ? '#285749' : '#4E7A9E';
 }
 function setColorTheme(v){
-  S.settings.theme = v === 'dark' || v === 'berry' ? v : 'light';
+  S.settings.theme = v === 'dark' || v === 'berry' || v === 'graphite' || v === 'blue' || v === 'forest' ? v : 'light';
   save();
-  toast(S.settings.theme === 'dark' ? 'Тёмная тема включена' : S.settings.theme === 'berry' ? 'Сиренево-ягодная тема включена' : 'Светлая тема включена');
+  const names = {light:'Светлая тема',dark:'Тёмная тема',berry:'Сиренево-ягодная тема',graphite:'Тема «Графит»',blue:'Тема «Синий»',forest:'Тема «Хвойный»'};
+  toast(names[S.settings.theme] + ' включена');
 }
 
 

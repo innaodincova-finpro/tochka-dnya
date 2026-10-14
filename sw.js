@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.9.9-schedule-import';
+const CACHE = 'tochka-dnya-v5.9.10-schedule-import';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
