@@ -681,6 +681,11 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
 [data-theme] .continuous-cal .day-preview.day-more:before{content:none}
 [data-theme] .cal .d.today{background:var(--calendar-today,var(--action));border-color:var(--calendar-today,var(--action));color:#fff;box-shadow:0 0 0 2px var(--accent)}
 [data-theme] .continuous-cal .d.today .day-num,[data-theme] .continuous-cal .d.today .day-preview,[data-theme] .continuous-cal .d.today .day-preview:before{color:#fff}
+
+.app-icon-preview{display:flex;align-items:center;gap:14px;margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+.app-icon-preview img{width:64px;height:64px;border-radius:16px;flex-shrink:0}
+.app-icon-preview a{display:inline-block;margin-top:6px;min-height:38px;line-height:38px;color:var(--accent);font-weight:600;text-decoration:underline}
+.app-icon-preview small{display:block;color:var(--mut);font-size:12px}
 </style>
 </head>
 <body>
@@ -736,7 +741,7 @@ button:focus-visible,.card.tap:focus-visible,.item.tapline:focus-visible{outline
    ============================================================== */
 
 const KEY = 'tochka-dnya-v3';
-const APP_VERSION = '5.9.10';
+const APP_VERSION = '5.9.11';
 const SUPABASE_URL = 'https://dcpthwmuiodrjepifzsd.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_OL_S1GutrvcvpaRaLzKpsQ_ExxamvKt';
 const CATS = ['Продукты','Кафе','Доставка','Дом','Красота','Транспорт','Здоровье','Одежда','Дети','Прочее'];
@@ -3341,6 +3346,7 @@ function renderMore(){
         '<option value="graphite"' + (S.settings.theme === 'graphite' ? ' selected' : '') + '>Графит</option>' +
         '<option value="blue"' + (S.settings.theme === 'blue' ? ' selected' : '') + '>Синий</option>' +
         '<option value="forest"' + (S.settings.theme === 'forest' ? ' selected' : '') + '>Хвойный</option></select></div>' +
+      renderThemeIcon() +
       '<div class="fld"><label>Выполненные дела на экране «Сегодня»</label><select onchange="setBool(\'showDone\',this.value)">' +
         '<option value="1"' + (S.settings.showDone ? ' selected' : '') + '>Показывать</option>' +
         '<option value="0"' + (!S.settings.showDone ? ' selected' : '') + '>Скрывать</option></select></div>' +
@@ -3366,10 +3372,31 @@ function backupDue(){
 }
 function setText(k,v){ S.settings[k] = String(v || '').trim(); save(); toast('Сохранено'); }
 function setBool(k,v){ S.settings[k] = v === '1' ? 1 : 0; save(); toast('Сохранено'); }
+function themeIconInfo(value){
+  const names={light:'Светлая тема',dark:'Тёмная тема',berry:'Сиренево-ягодная',graphite:'Графит',blue:'Синий',forest:'Хвойный'};
+  const key=Object.prototype.hasOwnProperty.call(names,value)?value:'light';
+  return {key,name:names[key],icon:'theme-icons/'+key+'-180.png',favicon:'theme-icons/'+key+'-192.png',manifest:'manifest-icon-'+key+'.webmanifest',install:'install-icon-'+key+'.html'};
+}
+function renderThemeIcon(){
+  const t=themeIconInfo(S.settings.theme);
+  return '<div class="app-icon-preview"><img src="'+t.icon+'" alt="Ярлык: '+esc(t.name)+'" width="64" height="64"><div><b>Ярлык приложения</b><small>'+esc(t.name)+'</small><a href="'+t.install+'" target="_blank" rel="noopener">Добавить ярлык этого цвета</a></div></div>';
+}
+function applyInitialIconTheme(){
+  const requested=new URLSearchParams(location.search).get('initial-icon-theme');
+  if(!requested || loadBlocked || S.settings.onboarded)return;
+  const info=themeIconInfo(requested);
+  if(info.key!==requested)return;
+  S.settings.theme=info.key;
+  saveQuiet();
+}
 function applyColorTheme(){
   const selected = S && S.settings && S.settings.theme;
   const theme = selected === 'dark' || selected === 'berry' || selected === 'graphite' || selected === 'blue' || selected === 'forest' ? selected : 'light';
   document.documentElement.dataset.theme = theme;
+  const icon=themeIconInfo(theme);
+  document.querySelector('link[rel="apple-touch-icon"]').setAttribute('href',icon.icon);
+  document.querySelector('link[rel="icon"]').setAttribute('href',icon.favicon);
+  document.querySelector('link[rel="manifest"]').setAttribute('href',icon.manifest);
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.content = theme === 'dark' ? '#181421' : theme === 'berry' ? '#7052A5' : theme === 'graphite' ? '#26313D' : theme === 'blue' ? '#244D70' : theme === 'forest' ? '#285749' : '#4E7A9E';
 }
@@ -4231,6 +4258,7 @@ function micStart(btn, targetId, mode){
 function micStopAll(){ if (rec){ try{ rec.stop(); }catch(e){} rec = null; } }
 
 load();
+applyInitialIconTheme();
 
 /* старое значение бюджета по умолчанию (60 000) осталось у тех,
    кто открывал ранние версии — стираем, чтобы не показывать чужую цифру */

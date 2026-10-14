@@ -1,4 +1,4 @@
-const CACHE = 'tochka-dnya-v5.9.10-schedule-import';
+const CACHE = 'tochka-dnya-v5.9.11-schedule-import';
 const FONTS = 'tochka-dnya-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const APP_SHELL = [
@@ -12,7 +12,11 @@ const APP_SHELL = [
   './schedule-preview.mjs',
   './icon-180-v3.png',
   './icon-192-v3.png',
-  './icon-512-v3.png'
+  './icon-512-v3.png',
+  ...['light','dark','berry','graphite','blue','forest'].flatMap(theme=>[
+    './install-icon-'+theme+'.html', './manifest-icon-'+theme+'.webmanifest',
+    ...[180,192,512].map(size=>'./theme-icons/'+theme+'-'+size+'.png')
+  ])
 ];
 
 self.addEventListener('install', event => {
@@ -54,7 +58,8 @@ self.addEventListener('fetch', event => {
 
   if (request.mode === 'navigate') {
     const isRegistry = url.pathname.endsWith('/reestr.html');
-    const fallback = isRegistry ? './reestr.html' : './index.html';
+    const iconPage = url.pathname.match(/\/install-icon-(light|dark|berry|graphite|blue|forest)\.html$/);
+    const fallback = iconPage ? './install-icon-'+iconPage[1]+'.html' : isRegistry ? './reestr.html' : './index.html';
     event.respondWith(
       fetch(request)
         .then(response => {
