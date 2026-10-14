@@ -1285,10 +1285,12 @@ async function run() {
   const darkCss = html.slice(html.indexOf('[data-theme="dark"]'));
   ['.chip', '.hints', '.hint-row', '.note-search', '.theme', '.askring', '.pick button',
    '.tick', '.crashbar', '.warnbar', '.plan-toggle', '.note-menu-pop',
-   '.continuous-cal .d.has-plan', '.continuous-cal .d.day-missed', '.continuous-cal .d.day-done',
    '.tl-dot', '.sheet-in'].forEach(sel =>
     assert(darkCss.includes('[data-theme="dark"] ' + sel),
       'в тёмной теме перекрыт элемент: ' + sel));
+
+  assert(darkCss.includes('[data-theme] .cal .d:not(.out){background:var(--card)'),
+    'в тёмной теме все даты используют общий фон карточки');
 
   w.eval(`S = blank(); S.settings.onboarded = 1; S.settings.hi = 1; S.settings.theme = 'dark';
     applyColorTheme();
